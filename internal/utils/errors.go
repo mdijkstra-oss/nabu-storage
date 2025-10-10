@@ -3,6 +3,7 @@ package utils
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 )
 
 type ValidationError struct {
@@ -68,4 +69,9 @@ func MustNotError(err error) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+// WarnErr Only for non critical, unlikely errors (eg decoding object that is typed to always be decoded etc)
+func WarnErr(err error) {
+	slog.Warn("Error: %v", "err", err)
 }

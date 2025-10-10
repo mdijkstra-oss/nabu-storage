@@ -51,7 +51,7 @@ func messageHandler(publisher *dispatch.InMemoryPublisher, returnResult bool, me
 		w.WriteHeader(status)
 
 		if result != nil {
-			json.NewEncoder(w).Encode(result)
+			utils.WarnErr(json.NewEncoder(w).Encode(result))
 		}
 	}
 }
@@ -73,10 +73,10 @@ func respondError(w http.ResponseWriter, status int, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	errors := strings.Split(message, "\n")
-	json.NewEncoder(w).Encode(ErrorResponse{
+	utils.WarnErr(json.NewEncoder(w).Encode(ErrorResponse{
 		Error: errors,
 		Type:  getErrorTypeFromStatus(status),
-	})
+	}))
 }
 
 func getErrorTypeFromStatus(status int) string {

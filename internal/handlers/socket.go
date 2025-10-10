@@ -40,7 +40,7 @@ func SetupWebSocketForwarder(publisher *dispatch.InMemoryPublisher, conn *websoc
 	// Subscribe to outgoing events
 	publisher.Subscribe(func(ctx context.Context, event *dispatch.Message, pub dispatch.PublishFunc) (*dispatch.Message, error) {
 		if event.Type == dispatch.Event {
-			conn.WriteJSON(event)
+			utils.WarnErr(conn.WriteJSON(event))
 		}
 
 		return nil, nil
@@ -60,11 +60,10 @@ func SetupWebSocketForwarder(publisher *dispatch.InMemoryPublisher, conn *websoc
 
 			_, publishErr := publisher.Publish(context.Background(), &msg)
 			if publishErr != nil {
-				// Send error back through WebSocket
-				conn.WriteJSON(ErrorResponse{
+				utils.WarnErr(conn.WriteJSON(ErrorResponse{
 					Error: []string{publishErr.Error()},
 					Type:  utils.GetErrorType(publishErr),
-				})
+				}))
 				continue
 			}
 
