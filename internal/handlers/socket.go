@@ -39,7 +39,7 @@ func WebSocketHandler(publisher *dispatch.InMemoryPublisher) http.HandlerFunc {
 func SetupWebSocketForwarder(publisher *dispatch.InMemoryPublisher, conn *websocket.Conn) {
 	// Subscribe to outgoing events
 	publisher.Subscribe(func(ctx context.Context, event *dispatch.Message, pub dispatch.PublishFunc) (*dispatch.Message, error) {
-		if event.Type == dispatch.Event {
+		if event.Type == dispatch.DomainEvent || event.Type == dispatch.SystemEvent {
 			utils.WarnErr(conn.WriteJSON(event))
 		}
 

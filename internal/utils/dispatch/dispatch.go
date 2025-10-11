@@ -2,13 +2,13 @@ package dispatch
 
 import "context"
 
-type CommandRouter func(ctx context.Context, action *Message, publisher PublishFunc) (*Message, error)
-type MessageHandler func(ctx context.Context, action *Message) (*Message, error)
+type CommandRouter func(ctx context.Context, message *Message, publisher PublishFunc) (*Message, error)
+type MessageHandler func(ctx context.Context, message *Message) (*Message, error)
 
 func MakeCombinedRouter(handlers ...CommandRouter) CommandRouter {
-	return func(ctx context.Context, action *Message, publisher PublishFunc) (*Message, error) {
+	return func(ctx context.Context, message *Message, publisher PublishFunc) (*Message, error) {
 		for _, handler := range handlers {
-			ch, err := handler(ctx, action, publisher)
+			ch, err := handler(ctx, message, publisher)
 			if err != nil {
 				return nil, err
 			}
@@ -23,9 +23,9 @@ func MakeCombinedRouter(handlers ...CommandRouter) CommandRouter {
 func LimitOnAction(actionType string, handler ...CommandRouter) CommandRouter {
 	parentRouter := MakeCombinedRouter(handler...)
 
-	return func(ctx context.Context, action *Message, publisher PublishFunc) (*Message, error) {
-		if action.Action == actionType {
-			return parentRouter(ctx, action, publisher)
+	return func(ctx context.Context, message *Message, publisher PublishFunc) (*Message, error) {
+		if message.Action == actionType {
+			return parentRouter(ctx, message, publisher)
 		}
 		return nil, nil
 	}
@@ -34,22 +34,22 @@ func LimitOnAction(actionType string, handler ...CommandRouter) CommandRouter {
 func LimitOnType(messageType MessageType, handler ...CommandRouter) CommandRouter {
 	parentRouter := MakeCombinedRouter(handler...)
 
-	return func(ctx context.Context, action *Message, publisher PublishFunc) (*Message, error) {
-		if action.Type == messageType {
-			return parentRouter(ctx, action, publisher)
+	return func(ctx context.Context, message *Message, publisher PublishFunc) (*Message, error) {
+		if message.Type == messageType {
+			return parentRouter(ctx, message, publisher)
 		}
 		return nil, nil
 	}
 }
 
 func WithPublisher(handler CommandRouter, publisher PublishFunc) MessageHandler {
-	return func(ctx context.Context, action *Message) (*Message, error) {
-		return handler(ctx, action, publisher)
+	return func(ctx context.Context, message *Message) (*Message, error) {
+		return handler(ctx, message, publisher)
 	}
 }
 
 func EmptyRouter() CommandRouter {
-	return func(ctx context.Context, action *Message, publisher PublishFunc) (*Message, error) {
+	return func(ctx context.Context, message *Message, publisher PublishFunc) (*Message, error) {
 		return nil, nil
 	}
 }

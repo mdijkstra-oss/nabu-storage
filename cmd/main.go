@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"hermes-relay/internal/domain/commands"
-	"hermes-relay/internal/domain/entities/file"
 	"hermes-relay/internal/handlers"
 	"hermes-relay/internal/handlers/middleware"
 	"hermes-relay/internal/utils"
@@ -20,6 +19,10 @@ var router = dispatch.MakeCombinedRouter(
 )
 
 func main() {
+
+	// Todo: Change to env var
+	setupLogger(slog.LevelDebug)
+
 	var store = dispatch.NewStore()
 
 	existingEvents := utils.Must(dispatch.LoadEvents("files/events.json"))
@@ -29,19 +32,15 @@ func main() {
 	var publisher = dispatch.NewInMemoryPublisher()
 	publisher.Subscribe(router)
 
-	// In some future, we can add Event routing too, to generate new actions eg FileUploaded, TranscodeFile, TranscodedFile etc
-	publisher.Subscribe(dispatch.LimitOnType(dispatch.Event, func(ctx context.Context, message *dispatch.Message, publisher dispatch.PublishFunc) (*dispatch.Message, error) {
+	// In some future, we can add DomainEvent routing too, to generate new actions eg FileUploaded, TranscodeFile, TranscodedFile etc
+	publisher.Subscribe(dispatch.LimitOnType(dispatch.DomainEvent, func(ctx context.Context, message *dispatch.Message, publisher dispatch.PublishFunc) (*dispatch.Message, error) {
 		err := store.ApplyEvent(*message)
+		// Todo: write event
 		return nil, err
 	}))
 
-	var firstFile = file.File{}
-	utils.MustNotError(store.GetByID("file-001", &firstFile))
-	log.Println(firstFile)
-
-	// Todo: Change to env var
-	setupLogger(slog.LevelDebug)
-
+	// Todo: in some future, for both auth etc
+	// Events would be internal I think, but still, validate (else it can write any entity now)
 	http.HandleFunc("/command", handlers.CommandHandler(publisher))
 	http.HandleFunc("/event", handlers.EventHandler(publisher))
 

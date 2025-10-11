@@ -20,10 +20,9 @@ func addPingHandler(ctx context.Context, action *dispatch.Message, publisher dis
 		return nil, err
 	}
 
-	return dispatch.MakeEvent(
+	return dispatch.MakeSystemEvent(
 		PongEvent,
-		payload.ResponseId,
-		nil,
-		nil,
+		payload,
+		action,
 	), nil
 }

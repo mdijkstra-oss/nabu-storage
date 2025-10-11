@@ -12,7 +12,8 @@ type MessageType int
 
 const (
 	Command MessageType = iota
-	Event
+	DomainEvent
+	SystemEvent
 )
 
 type Message struct {
@@ -33,8 +34,8 @@ func ValidateMessage(m *Message) error {
 	return validate.Struct(m)
 }
 
-func UnmarshalPayload[T any](action *Message, target *T) error {
-	payloadBytes, _ := json.Marshal(action.Payload)
+func UnmarshalPayload[T any](message *Message, target *T) error {
+	payloadBytes, _ := json.Marshal(message.Payload)
 	return json.Unmarshal(payloadBytes, target)
 }
 
@@ -54,12 +55,20 @@ func MakeMessage(msgType MessageType, action string, aggregateId string, payload
 	return msg
 }
 
-func MakeEvent(action string, aggregateId string, payload interface{}, parent *Message) *Message {
-	return MakeMessage(Event, action, aggregateId, payload, parent)
+func MakeDomainEvent(action string, aggregateId string, payload interface{}, parent *Message) *Message {
+	return MakeMessage(DomainEvent, action, aggregateId, payload, parent)
 }
 
 func MakeCommand(action string, aggregateId string, payload interface{}, parent *Message) *Message {
 	return MakeMessage(Command, action, aggregateId, payload, parent)
+}
+
+func CommandToDomainEvent(command *Message) *Message {
+	return MakeDomainEvent(command.Action, command.AggregateID, command.Payload, command)
+}
+
+func MakeSystemEvent(action string, payload interface{}, parent *Message) *Message {
+	return MakeMessage(SystemEvent, action, "", payload, parent)
 }
 
 func (m Message) LogValue() slog.Value {
@@ -77,7 +86,7 @@ func (mt MessageType) String() string {
 	switch mt {
 	case Command:
 		return "command"
-	case Event:
+	case DomainEvent:
 		return "event"
 	default:
 		return "unknown"
