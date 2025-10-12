@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	commands2 "hermes-relay/internal/commands"
+	"hermes-relay/internal/commands"
 	"hermes-relay/internal/commands/events"
 	"hermes-relay/internal/domain/entities/file"
 	"hermes-relay/internal/domain/pingpong"
@@ -16,10 +16,19 @@ import (
 	"os"
 )
 
-var router = commands2.MakeCombinedRouter(
+var router = commands.MakeCombinedRouter(
 	middleware.WithLogging(slog.LevelDebug),
 	pingpong.Router,
+	TempFileCommand,
 )
+
+func TempFileCommand(ctx context.Context, message *commands.Message, _ commands.PublishFunc) (*commands.Message, error) {
+	if (message.Action == "PatchFile") && message.Payload != nil {
+		return commands.CommandToDomainEvent(message), nil
+	}
+
+	return nil, nil
+}
 
 func main() {
 
@@ -32,11 +41,11 @@ func main() {
 
 	utils.MustNotError(store.ApplyEvents(existingEvents))
 
-	var publisher = commands2.NewInMemoryPublisher()
+	var publisher = commands.NewInMemoryPublisher()
 	publisher.Subscribe(router)
 
 	// In some future, we can add DomainEvent routing too, to generate new actions eg FileUploaded, TranscodeFile, TranscodedFile etc
-	publisher.Subscribe(commands2.LimitOnType(commands2.DomainEvent, func(ctx context.Context, message *commands2.Message, publisher commands2.PublishFunc) (*commands2.Message, error) {
+	publisher.Subscribe(commands.LimitOnType(commands.DomainEvent, func(ctx context.Context, message *commands.Message, publisher commands.PublishFunc) (*commands.Message, error) {
 		err := store.ApplyEvent(*message)
 		// Todo: write event
 		return nil, err
@@ -44,8 +53,8 @@ func main() {
 
 	// Todo: in some future, for both auth etc
 	// Events would be internal I think, but still, validate (else it can write any entity now)
-	http.HandleFunc("/command", handlers.CommandHandler(publisher))
-	http.HandleFunc("/event", handlers.EventHandler(publisher))
+	http.HandleFunc("/commands", handlers.CommandHandler(publisher))
+	http.HandleFunc("/events", handlers.EventHandler(publisher))
 
 	http.HandleFunc("/ws", handlers.WebSocketHandler(publisher))
 
@@ -56,8 +65,7 @@ func main() {
 
 func setupLogger(level slog.Level) {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-		Level:     level,
-		AddSource: level == slog.LevelDebug, // Add file:line in debug mode
+		Level: level,
 	}))
 
 	slog.SetDefault(logger)

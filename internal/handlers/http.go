@@ -10,6 +10,8 @@ import (
 	"time"
 )
 
+// Todo: Future, reject duplicates
+
 // Command endpoint - returns business result
 func CommandHandler(publisher *commands2.InMemoryPublisher) http.HandlerFunc {
 	return messageHandler(publisher, true, []commands2.MessageType{commands2.Command})
