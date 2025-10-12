@@ -1,4 +1,4 @@
-package dispatch
+package commands
 
 import (
 	"context"
@@ -27,7 +27,7 @@ func (p *InMemoryPublisher) Publish(ctx context.Context, event *Message) (*Messa
 	if err := ValidateMessage(event); err != nil {
 		return nil, &utils.ValidationError{Message: err.Error()}
 	}
-	
+
 	p.mu.RLock()
 	subscribers := p.subscribers
 	p.mu.RUnlock()

@@ -11,6 +11,6 @@ type Attributes struct {
 }
 
 type Code struct {
-	Name  string   `json:"name"`
+	ID    string   `json:"id"`
 	Texts []string `json:"texts"`
 }

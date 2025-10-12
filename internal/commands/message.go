@@ -1,4 +1,4 @@
-package dispatch
+package commands
 
 import (
 	"encoding/json"
@@ -64,6 +64,7 @@ func MakeCommand(action string, aggregateId string, payload interface{}, parent 
 }
 
 func CommandToDomainEvent(command *Message) *Message {
+	// Todo: translate to thing in past
 	return MakeDomainEvent(command.Action, command.AggregateID, command.Payload, command)
 }
 

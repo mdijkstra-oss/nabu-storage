@@ -1,8 +1,9 @@
-package dispatch
+package events
 
 import (
 	"encoding/json"
 	"fmt"
+	"hermes-relay/internal/commands"
 
 	jsonpatch "github.com/evanphx/json-patch"
 )
@@ -12,7 +13,7 @@ const (
 	Update string = "Updated"
 )
 
-func ApplyEvent(state []byte, event Message) ([]byte, error) {
+func ApplyEvent(state []byte, event commands.Message) ([]byte, error) {
 	switch event.Action {
 	case Create:
 		return json.Marshal(event.Payload)
@@ -35,7 +36,7 @@ func ApplyEvent(state []byte, event Message) ([]byte, error) {
 	}
 }
 
-func ApplyEvents(state []byte, events []Message) ([]byte, error) {
+func ApplyEvents(state []byte, events []commands.Message) ([]byte, error) {
 	var err error
 
 	for _, event := range events {

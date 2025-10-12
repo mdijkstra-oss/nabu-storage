@@ -3,8 +3,8 @@ package handlers
 import (
 	"context"
 	"github.com/gorilla/websocket"
+	commands2 "hermes-relay/internal/commands"
 	"hermes-relay/internal/utils"
-	"hermes-relay/internal/utils/dispatch"
 	"net/http"
 	"time"
 )
@@ -14,7 +14,7 @@ type ErrorResponse struct {
 	Type  string   `json:"type"`
 }
 
-func WebSocketHandler(publisher *dispatch.InMemoryPublisher) http.HandlerFunc {
+func WebSocketHandler(publisher *commands2.InMemoryPublisher) http.HandlerFunc {
 	upgrader := websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
 			return true // Configure this properly in production
@@ -36,10 +36,10 @@ func WebSocketHandler(publisher *dispatch.InMemoryPublisher) http.HandlerFunc {
 	}
 }
 
-func SetupWebSocketForwarder(publisher *dispatch.InMemoryPublisher, conn *websocket.Conn) {
+func SetupWebSocketForwarder(publisher *commands2.InMemoryPublisher, conn *websocket.Conn) {
 	// Subscribe to outgoing events
-	publisher.Subscribe(func(ctx context.Context, event *dispatch.Message, pub dispatch.PublishFunc) (*dispatch.Message, error) {
-		if event.Type == dispatch.DomainEvent || event.Type == dispatch.SystemEvent {
+	publisher.Subscribe(func(ctx context.Context, event *commands2.Message, pub commands2.PublishFunc) (*commands2.Message, error) {
+		if event.Type == commands2.DomainEvent || event.Type == commands2.SystemEvent {
 			utils.WarnErr(conn.WriteJSON(event))
 		}
 
@@ -49,13 +49,13 @@ func SetupWebSocketForwarder(publisher *dispatch.InMemoryPublisher, conn *websoc
 	// Handle incoming messages from WebSocket
 	go func() {
 		for {
-			var msg dispatch.Message
+			var msg commands2.Message
 			decodeErr := conn.ReadJSON(&msg)
 			if decodeErr != nil {
 				continue // Connection closed
 			}
 
-			msg.Type = dispatch.Command
+			msg.Type = commands2.Command
 			msg.Timestamp = time.Now()
 
 			_, publishErr := publisher.Publish(context.Background(), &msg)

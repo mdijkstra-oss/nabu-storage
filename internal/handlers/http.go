@@ -2,8 +2,8 @@ package handlers
 
 import (
 	"encoding/json"
+	commands2 "hermes-relay/internal/commands"
 	"hermes-relay/internal/utils"
-	"hermes-relay/internal/utils/dispatch"
 	"net/http"
 	"slices"
 	"strings"
@@ -11,18 +11,18 @@ import (
 )
 
 // Command endpoint - returns business result
-func CommandHandler(publisher *dispatch.InMemoryPublisher) http.HandlerFunc {
-	return messageHandler(publisher, true, []dispatch.MessageType{dispatch.Command})
+func CommandHandler(publisher *commands2.InMemoryPublisher) http.HandlerFunc {
+	return messageHandler(publisher, true, []commands2.MessageType{commands2.Command})
 }
 
 // DomainEvent endpoint - just acknowledges
-func EventHandler(publisher *dispatch.InMemoryPublisher) http.HandlerFunc {
-	return messageHandler(publisher, false, []dispatch.MessageType{dispatch.DomainEvent, dispatch.SystemEvent})
+func EventHandler(publisher *commands2.InMemoryPublisher) http.HandlerFunc {
+	return messageHandler(publisher, false, []commands2.MessageType{commands2.DomainEvent, commands2.SystemEvent})
 }
 
-func messageHandler(publisher *dispatch.InMemoryPublisher, returnResult bool, allowedMessageTypes []dispatch.MessageType) http.HandlerFunc {
+func messageHandler(publisher *commands2.InMemoryPublisher, returnResult bool, allowedMessageTypes []commands2.MessageType) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var msg dispatch.Message
+		var msg commands2.Message
 		err := json.NewDecoder(r.Body).Decode(&msg)
 		if err != nil {
 			respondError(w, http.StatusBadRequest, err.Error())
@@ -55,7 +55,7 @@ func messageHandler(publisher *dispatch.InMemoryPublisher, returnResult bool, al
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(status)
 
-		if result != nil && msg.Type == dispatch.Command {
+		if result != nil && msg.Type == commands2.Command {
 			utils.WarnErr(json.NewEncoder(w).Encode(result))
 		}
 	}

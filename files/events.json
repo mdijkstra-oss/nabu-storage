@@ -17,7 +17,7 @@
         "op": "add",
         "path": "/codes/-",
         "value": {
-          "name": "HABITAT_LOSS",
+          "id": "HABITAT_LOSS",
           "texts": ["Their traditional burrows have collapsed under heavy machinery"]
         }
       },
@@ -25,7 +25,7 @@
         "op": "add",
         "path": "/codes/-",
         "value": {
-          "name": "POLLUTION",
+          "id": "POLLUTION",
           "texts": ["oil-stained puddles left by survey equipment"]
         }
       },
@@ -33,7 +33,7 @@
         "op": "add",
         "path": "/codes/-",
         "value": {
-          "name": "ANIMAL_ADAPTATION",
+          "id": "ANIMAL_ADAPTATION",
           "texts": [
             "Deer navigate carefully around oil-stained puddles",
             "forcing them to establish new territories",
@@ -57,7 +57,7 @@
         "op": "add",
         "path": "/codes/-",
         "value": {
-          "name": "INFRASTRUCTURE_IMPACT",
+          "id": "INFRASTRUCTURE_IMPACT",
           "texts": ["steel markers"]
         }
       }

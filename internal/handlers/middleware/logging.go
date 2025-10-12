@@ -2,12 +2,12 @@ package middleware
 
 import (
 	"context"
-	"hermes-relay/internal/utils/dispatch"
+	commands2 "hermes-relay/internal/commands"
 	"log/slog"
 )
 
-func WithLogging(level slog.Level) dispatch.CommandRouter {
-	return func(ctx context.Context, action *dispatch.Message, publisher dispatch.PublishFunc) (*dispatch.Message, error) {
+func WithLogging(level slog.Level) commands2.CommandRouter {
+	return func(ctx context.Context, action *commands2.Message, publisher commands2.PublishFunc) (*commands2.Message, error) {
 		slog.Log(context.Background(), level, "message received", "message", action)
 		return nil, nil
 	}

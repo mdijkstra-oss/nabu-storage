@@ -2,20 +2,23 @@ package main
 
 import (
 	"context"
-	"hermes-relay/internal/domain/commands"
+	commands2 "hermes-relay/internal/commands"
+	"hermes-relay/internal/commands/events"
+	"hermes-relay/internal/domain/entities/file"
+	"hermes-relay/internal/domain/pingpong"
 	"hermes-relay/internal/handlers"
 	"hermes-relay/internal/handlers/middleware"
+	"hermes-relay/internal/persistence"
 	"hermes-relay/internal/utils"
-	"hermes-relay/internal/utils/dispatch"
 	"log"
 	"log/slog"
 	"net/http"
 	"os"
 )
 
-var router = dispatch.MakeCombinedRouter(
+var router = commands2.MakeCombinedRouter(
 	middleware.WithLogging(slog.LevelDebug),
-	commands.Router,
+	pingpong.Router,
 )
 
 func main() {
@@ -23,17 +26,17 @@ func main() {
 	// Todo: Change to env var
 	setupLogger(slog.LevelDebug)
 
-	var store = dispatch.NewStore()
+	var store = persistence.NewStore()
 
-	existingEvents := utils.Must(dispatch.LoadEvents("files/events.json"))
+	existingEvents := utils.Must(events.LoadEvents("files/events.json"))
 
 	utils.MustNotError(store.ApplyEvents(existingEvents))
 
-	var publisher = dispatch.NewInMemoryPublisher()
+	var publisher = commands2.NewInMemoryPublisher()
 	publisher.Subscribe(router)
 
 	// In some future, we can add DomainEvent routing too, to generate new actions eg FileUploaded, TranscodeFile, TranscodedFile etc
-	publisher.Subscribe(dispatch.LimitOnType(dispatch.DomainEvent, func(ctx context.Context, message *dispatch.Message, publisher dispatch.PublishFunc) (*dispatch.Message, error) {
+	publisher.Subscribe(commands2.LimitOnType(commands2.DomainEvent, func(ctx context.Context, message *commands2.Message, publisher commands2.PublishFunc) (*commands2.Message, error) {
 		err := store.ApplyEvent(*message)
 		// Todo: write event
 		return nil, err
@@ -45,6 +48,8 @@ func main() {
 	http.HandleFunc("/event", handlers.EventHandler(publisher))
 
 	http.HandleFunc("/ws", handlers.WebSocketHandler(publisher))
+
+	http.HandleFunc("/queries/files/", handlers.RESTHandler[file.File](store))
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
