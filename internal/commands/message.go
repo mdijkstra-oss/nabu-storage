@@ -8,19 +8,19 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-type MessageType int
+type MessageType string
 
 const (
-	Command MessageType = iota
-	DomainEvent
-	SystemEvent
+	Command     MessageType = "command"
+	DomainEvent MessageType = "domainEvent"
+	SystemEvent MessageType = "systemEvent"
 )
 
 type Message struct {
 	ID string `json:"id,omitempty"`
 
 	Action string      `json:"action" validate:"required"`
-	Type   MessageType `json:"-"`
+	Type   MessageType `json:"type"`
 
 	AggregateID string      `json:"aggregateId,omitempty"`
 	Payload     interface{} `json:"payload,omitempty"`

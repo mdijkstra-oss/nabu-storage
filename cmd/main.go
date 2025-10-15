@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"hermes-relay/internal/commands"
-	"hermes-relay/internal/commands/events"
 	"hermes-relay/internal/domain/entities/file"
 	"hermes-relay/internal/domain/pingpong"
 	"hermes-relay/internal/handlers"
@@ -37,7 +36,10 @@ func main() {
 
 	var store = persistence.NewStore()
 
-	existingEvents := utils.Must(events.LoadEvents("files/events.json"))
+	//existingEvents := utils.Must(events.LoadEvents("files/events.json"))
+	existingEvents := []commands.Message{
+		*utils.Must(file.CreateFileEventFromPath("files/file-001.md")),
+	}
 
 	utils.MustNotError(store.ApplyEvents(existingEvents))
 
@@ -60,7 +62,7 @@ func main() {
 
 	http.HandleFunc("/queries/files/", handlers.RESTHandler[file.File](store))
 
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Fatal(http.ListenAndServe(":8080", CORS(http.DefaultServeMux)))
 }
 
 func setupLogger(level slog.Level) {
@@ -69,4 +71,17 @@ func setupLogger(level slog.Level) {
 	}))
 
 	slog.SetDefault(logger)
+}
+
+func CORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "*")
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
