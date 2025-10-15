@@ -1,0 +1,286 @@
+openapi: 3.0.3
+info:
+  title: Commands API
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+
+paths:
+  /commands:
+    post:
+      summary: Execute a command
+      operationId: executeCommand
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Message'
+            examples:
+              addCode:
+                summary: Add a new code to a file
+                value:
+                  action: PatchFile
+                  type: command
+                  aggregateId: file-001
+                  payload:
+                    - op: add
+                      path: /codes/-
+                      value:
+                        id: HABITAT_DESTRUCTION
+                        texts:
+                          - Their traditional burrows have collapsed under heavy machinery
+                  timestamp: "2025-10-14T10:30:00Z"
+              addTextToCode:
+                summary: Add text to an existing code
+                value:
+                  action: PatchFile
+                  type: command
+                  aggregateId: file-001
+                  payload:
+                    - op: add
+                      path: /codes/0/texts/-
+                      value: industrial encroachment
+                  timestamp: "2025-10-14T10:31:00Z"
+              removeCode:
+                summary: Remove a code from a file
+                value:
+                  action: PatchFile
+                  type: command
+                  aggregateId: file-001
+                  payload:
+                    - op: remove
+                      path: /codes/2
+                  timestamp: "2025-10-14T10:32:00Z"
+              replaceCodeId:
+                summary: Replace a code ID
+                value:
+                  action: PatchFile
+                  type: command
+                  aggregateId: file-001
+                  payload:
+                    - op: replace
+                      path: /codes/1/id
+                      value: ENVIRONMENTAL_POLLUTION
+                  timestamp: "2025-10-14T10:33:00Z"
+      responses:
+        '200':
+          description: Command accepted
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /queries/files:
+    get:
+      summary: Get all files
+      operationId: getAllFiles
+      responses:
+        '200':
+          description: Array of files
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/File'
+              examples:
+                fileList:
+                  summary: List of files with codes
+                  value:
+                    - id: file-001
+                      content: "The meadow shows clear signs of industrial encroachment. Deer navigate carefully around oil-stained puddles left by survey equipment. Their traditional burrows have collapsed under heavy machinery, forcing them to establish new territories. The hawk that once perched on the eastern oak now settles on steel markers, adapting to the transformed landscape."
+                      codes:
+                        - id: HABITAT_DESTRUCTION
+                          texts:
+                            - Their traditional burrows have collapsed under heavy machinery
+                            - industrial encroachment
+                        - id: POLLUTION
+                          texts:
+                            - oil-stained puddles left by survey equipment
+                        - id: ANIMAL_ADAPTATION
+                          texts:
+                            - Deer navigate carefully around oil-stained puddles
+                            - forcing them to establish new territories
+                            - The hawk that once perched on the eastern oak now settles on steel markers
+                        - id: INFRASTRUCTURE_IMPACT
+                          texts:
+                            - steel markers
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /queries/files/{id}:
+    get:
+      summary: Get a file by ID
+      operationId: getFileById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Single file
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/File'
+              examples:
+                singleFile:
+                  summary: File with codes
+                  value:
+                    id: file-001
+                    content: "The meadow shows clear signs of industrial encroachment. Deer navigate carefully around oil-stained puddles left by survey equipment. Their traditional burrows have collapsed under heavy machinery, forcing them to establish new territories. The hawk that once perched on the eastern oak now settles on steel markers, adapting to the transformed landscape."
+                    codes:
+                      - id: HABITAT_DESTRUCTION
+                        texts:
+                          - Their traditional burrows have collapsed under heavy machinery
+                          - industrial encroachment
+                      - id: POLLUTION
+                        texts:
+                          - oil-stained puddles left by survey equipment
+                      - id: ANIMAL_ADAPTATION
+                        texts:
+                          - Deer navigate carefully around oil-stained puddles
+                          - forcing them to establish new territories
+                          - The hawk that once perched on the eastern oak now settles on steel markers
+                      - id: INFRASTRUCTURE_IMPACT
+                        texts:
+                          - steel markers
+        '404':
+          description: File not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    Message:
+      type: object
+      required:
+        - action
+        - type
+        - timestamp
+      properties:
+        id:
+          type: string
+        action:
+          type: string
+          enum:
+            - PatchFile
+        type:
+          type: string
+          enum:
+            - command
+        aggregateId:
+          type: string
+        payload:
+          type: array
+          items:
+            $ref: '#/components/schemas/JsonPatchOperation'
+        parent:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    JsonPatchOperation:
+      type: object
+      required:
+        - op
+        - path
+      properties:
+        op:
+          type: string
+          enum:
+            - add
+            - remove
+            - replace
+            - move
+            - copy
+            - test
+        path:
+          type: string
+        value:
+          oneOf:
+            - type: string
+            - type: object
+            - type: array
+        from:
+          type: string
+
+    File:
+      type: object
+      required:
+        - id
+        - content
+        - codes
+      properties:
+        id:
+          type: string
+        content:
+          type: string
+        codes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Code'
+
+    Code:
+      type: object
+      required:
+        - id
+        - texts
+      properties:
+        id:
+          type: string
+        texts:
+          type: array
+          items:
+            type: string
+
+    ValidationError:
+      type: object
+      required:
+        - error
+        - type
+      properties:
+        error:
+          type: array
+          items:
+            type: string
+          example:
+            - "Key: 'Message.Action' Error:Field validation for 'Action' failed on the 'required' tag"
+        type:
+          type: string
+          example: validation_error
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: array
+          items:
+            type: string
+        type:
+          type: string
