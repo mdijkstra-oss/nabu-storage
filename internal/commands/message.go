@@ -2,7 +2,10 @@ package commands
 
 import (
 	"encoding/json"
+	"fmt"
+	"hermes-relay/internal/utils"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -65,7 +68,7 @@ func MakeCommand(action string, aggregateId string, payload interface{}, parent 
 
 func CommandToDomainEvent(command *Message) *Message {
 	// Todo: translate to thing in past
-	return MakeDomainEvent("Updated", command.AggregateID, command.Payload, command)
+	return MakeDomainEvent(utils.Must(ToEventName(command.Action)), command.AggregateID, command.Payload, command)
 }
 
 func MakeSystemEvent(action string, payload interface{}, parent *Message) *Message {
@@ -92,4 +95,36 @@ func (mt MessageType) String() string {
 	default:
 		return "unknown"
 	}
+}
+
+func ParseAction(action string) (verb string, noun string, err error) {
+	// be mindful of order, Create would kick in before Created
+	verbs := []string{"Created", "Patched", "Deleted", "Create", "Patch", "Delete"}
+
+	for _, v := range verbs {
+		if strings.HasPrefix(action, v) {
+			return v, strings.TrimPrefix(action, v), nil
+		}
+	}
+	return "", "", fmt.Errorf("unknown action: %s", action)
+}
+
+func ToEventName(action string) (string, error) {
+	verb, noun, err := ParseAction(action)
+	if err != nil {
+		return "", err
+	}
+
+	past := map[string]string{
+		"Create": "Created",
+		"Patch":  "Patched",
+		"Delete": "Deleted",
+	}
+
+	if pastVerb, ok := past[verb]; ok {
+		return pastVerb + noun, nil
+	}
+
+	// Already past tense
+	return action, nil
 }

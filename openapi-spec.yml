@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: Commands API
+  title: Relay API
   version: 1.0.0
 
 servers:
@@ -9,16 +9,44 @@ servers:
 paths:
   /commands:
     post:
-      summary: Execute a command
+      summary: Execute a command or batch of commands
       operationId: executeCommand
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Message'
+              oneOf:
+                - $ref: '#/components/schemas/Message'
+                - type: array
+                  items:
+                    $ref: '#/components/schemas/Message'
             examples:
-              addCode:
+              createFile:
+                summary: Create a new file
+                value:
+                  action: CreateFile
+                  type: command
+                  aggregateId: file-001
+                  payload:
+                    id: file-001
+                    content: "The meadow shows clear signs of industrial encroachment."
+                    codes:
+                      - id: HABITAT_DESTRUCTION
+                        texts:
+                          - industrial encroachment
+                  timestamp: "2025-10-14T10:30:00Z"
+              createCode:
+                summary: Create a new code
+                value:
+                  action: CreateCode
+                  type: command
+                  aggregateId: HABITAT_DESTRUCTION
+                  payload:
+                    id: HABITAT_DESTRUCTION
+                    color: "#FF5733"
+                  timestamp: "2025-10-14T10:31:00Z"
+              addCodeToFile:
                 summary: Add a new code to a file
                 value:
                   action: PatchFile
@@ -28,12 +56,12 @@ paths:
                     - op: add
                       path: /codes/-
                       value:
-                        id: HABITAT_DESTRUCTION
+                        id: POLLUTION
                         texts:
-                          - Their traditional burrows have collapsed under heavy machinery
-                  timestamp: "2025-10-14T10:30:00Z"
+                          - oil-stained puddles left by survey equipment
+                  timestamp: "2025-10-14T10:32:00Z"
               addTextToCode:
-                summary: Add text to an existing code
+                summary: Add text to an existing code in a file
                 value:
                   action: PatchFile
                   type: command
@@ -41,9 +69,9 @@ paths:
                   payload:
                     - op: add
                       path: /codes/0/texts/-
-                      value: industrial encroachment
-                  timestamp: "2025-10-14T10:31:00Z"
-              removeCode:
+                      value: Their traditional burrows have collapsed
+                  timestamp: "2025-10-14T10:33:00Z"
+              removeCodeFromFile:
                 summary: Remove a code from a file
                 value:
                   action: PatchFile
@@ -52,27 +80,164 @@ paths:
                   payload:
                     - op: remove
                       path: /codes/2
-                  timestamp: "2025-10-14T10:32:00Z"
-              replaceCodeId:
-                summary: Replace a code ID
+                  timestamp: "2025-10-14T10:34:00Z"
+              updateCodeColor:
+                summary: Update a code's color
                 value:
-                  action: PatchFile
+                  action: PatchCode
                   type: command
-                  aggregateId: file-001
+                  aggregateId: HABITAT_DESTRUCTION
                   payload:
                     - op: replace
-                      path: /codes/1/id
-                      value: ENVIRONMENTAL_POLLUTION
-                  timestamp: "2025-10-14T10:33:00Z"
+                      path: /color
+                      value: "#FF5733"
+                  timestamp: "2025-10-14T10:35:00Z"
+              addCodeColor:
+                summary: Add color to a code
+                value:
+                  action: PatchCode
+                  type: command
+                  aggregateId: ANIMAL_ADAPTATION
+                  payload:
+                    - op: add
+                      path: /color
+                      value: "#33FF57"
+                  timestamp: "2025-10-14T10:36:00Z"
+              batchCreateCodes:
+                summary: Batch create multiple codes
+                value:
+                  - action: CreateCode
+                    type: command
+                    aggregateId: HABITAT_DESTRUCTION
+                    payload:
+                      id: HABITAT_DESTRUCTION
+                      color: "#FF5733"
+                    timestamp: "2025-10-14T10:30:00Z"
+                  - action: CreateCode
+                    type: command
+                    aggregateId: POLLUTION
+                    payload:
+                      id: POLLUTION
+                      color: "#33A1FF"
+                    timestamp: "2025-10-14T10:30:00Z"
+                  - action: CreateCode
+                    type: command
+                    aggregateId: ANIMAL_ADAPTATION
+                    payload:
+                      id: ANIMAL_ADAPTATION
+                      color: "#33FF57"
+                    timestamp: "2025-10-14T10:30:00Z"
+              batchMixedOperations:
+                summary: Batch with mixed command types
+                value:
+                  - action: CreateFile
+                    type: command
+                    aggregateId: file-002
+                    payload:
+                      id: file-002
+                      content: "Field notes from the western meadow."
+                      codes: []
+                    timestamp: "2025-10-14T10:30:00Z"
+                  - action: CreateCode
+                    type: command
+                    aggregateId: BIODIVERSITY
+                    payload:
+                      id: BIODIVERSITY
+                      color: "#9C27B0"
+                    timestamp: "2025-10-14T10:30:00Z"
+                  - action: PatchFile
+                    type: command
+                    aggregateId: file-002
+                    payload:
+                      - op: add
+                        path: /codes/-
+                        value:
+                          id: BIODIVERSITY
+                          texts:
+                            - diverse plant species
+                    timestamp: "2025-10-14T10:30:00Z"
       responses:
         '200':
-          description: Command accepted
-        '400':
-          description: Validation error
+          description: Command accepted (single message)
+        '201':
+          description: Command created resources (single message)
+        '207':
+          description: Multi-Status (batch with partial success)
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ValidationError'
+                $ref: '#/components/schemas/BatchResponse'
+              examples:
+                partialSuccess:
+                  summary: Batch with some failures
+                  value:
+                    results:
+                      - index: 0
+                        success: true
+                        result:
+                          action: created
+                          id: HABITAT_DESTRUCTION
+                      - index: 1
+                        success: false
+                        error: "aggregate already exists"
+                      - index: 2
+                        success: true
+                        result:
+                          action: created
+                          id: ANIMAL_ADAPTATION
+                    total: 3
+                    success_count: 2
+                    failure_count: 1
+                allSuccess:
+                  summary: Batch with all successes
+                  value:
+                    results:
+                      - index: 0
+                        success: true
+                        result:
+                          action: created
+                          id: file-002
+                      - index: 1
+                        success: true
+                        result:
+                          action: created
+                          id: BIODIVERSITY
+                      - index: 2
+                        success: true
+                        result:
+                          action: updated
+                          id: file-002
+                    total: 3
+                    success_count: 3
+                    failure_count: 0
+        '400':
+          description: Validation error (single message or all batch items failed)
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ValidationError'
+                  - $ref: '#/components/schemas/BatchResponse'
+              examples:
+                singleValidationError:
+                  summary: Single message validation error
+                  value:
+                    error:
+                      - "Key: 'Message.Action' Error:Field validation for 'Action' failed on the 'required' tag"
+                    type: validation_error
+                batchAllFailed:
+                  summary: All batch items failed
+                  value:
+                    results:
+                      - index: 0
+                        success: false
+                        error: "message type is not allowed"
+                      - index: 1
+                        success: false
+                        error: "message type is not allowed"
+                    total: 2
+                    success_count: 0
+                    failure_count: 2
         '500':
           description: Internal server error
           content:
@@ -174,6 +339,74 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  /queries/codes:
+    get:
+      summary: Get all codes
+      operationId: getAllCodes
+      responses:
+        '200':
+          description: Array of codes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CodeEntity'
+              examples:
+                codeList:
+                  summary: List of codes with colors
+                  value:
+                    - id: HABITAT_DESTRUCTION
+                      color: "#FF5733"
+                    - id: POLLUTION
+                      color: "#33A1FF"
+                    - id: ANIMAL_ADAPTATION
+                      color: "#33FF57"
+                    - id: INFRASTRUCTURE_IMPACT
+                      color: "#FFD700"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /queries/codes/{id}:
+    get:
+      summary: Get a code by ID
+      operationId: getCodeById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Single code
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CodeEntity'
+              examples:
+                singleCode:
+                  summary: Code with color
+                  value:
+                    id: HABITAT_DESTRUCTION
+                    color: "#FF5733"
+        '404':
+          description: Code not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
 components:
   schemas:
     Message:
@@ -188,7 +421,10 @@ components:
         action:
           type: string
           enum:
+            - CreateFile
             - PatchFile
+            - CreateCode
+            - PatchCode
         type:
           type: string
           enum:
@@ -196,14 +432,68 @@ components:
         aggregateId:
           type: string
         payload:
-          type: array
-          items:
-            $ref: '#/components/schemas/JsonPatchOperation'
+          oneOf:
+            - type: array
+              items:
+                $ref: '#/components/schemas/JsonPatchOperation'
+              description: Array of JSON Patch operations (for PatchFile and PatchCode actions)
+            - $ref: '#/components/schemas/File'
+              description: Complete file object (for CreateFile action)
+            - $ref: '#/components/schemas/CodeEntity'
+              description: Complete code object (for CreateCode action)
         parent:
           type: string
         timestamp:
           type: string
           format: date-time
+
+    BatchResponse:
+      type: object
+      required:
+        - results
+        - total
+        - success_count
+        - failure_count
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/BatchResult'
+        total:
+          type: integer
+          description: Total number of messages in the batch
+        success_count:
+          type: integer
+          description: Number of successfully processed messages
+        failure_count:
+          type: integer
+          description: Number of failed messages
+
+    BatchResult:
+      type: object
+      required:
+        - index
+        - success
+      properties:
+        index:
+          type: integer
+          description: Index of the message in the batch
+        success:
+          type: boolean
+          description: Whether the message was processed successfully
+        result:
+          type: object
+          description: Result object if successful (only present when returnResult is true)
+          properties:
+            action:
+              type: string
+              example: created
+            id:
+              type: string
+              example: file-001
+        error:
+          type: string
+          description: Error message if failed
 
     JsonPatchOperation:
       type: object
@@ -258,6 +548,18 @@ components:
           type: array
           items:
             type: string
+
+    CodeEntity:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+        color:
+          type: string
+          description: Hex color code
+          example: "#FF5733"
 
     ValidationError:
       type: object

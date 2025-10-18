@@ -14,3 +14,4 @@ makefile setup-hooks
 - transcription etc diff files, markdown from video etc. to code that
 - REFI-QDA import export
 - Also, COPPA, GDPR etc....
+- Make sure you cannot update ID fields or they are auto generated etc.

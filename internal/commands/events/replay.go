@@ -3,23 +3,28 @@ package events
 import (
 	"encoding/json"
 	"fmt"
-	"hermes-relay/internal/commands"
-
 	jsonpatch "github.com/evanphx/json-patch"
+	"hermes-relay/internal/commands"
 )
 
 const (
 	Create string = "Created"
-	Update string = "Updated"
+	Patch  string = "Patched"
+	Delete string = "Deleted"
 )
 
-func ApplyEvent(state []byte, event commands.Message) ([]byte, error) {
-	switch event.Action {
-	case Create:
-		return json.Marshal(event.Payload)
+func ApplyEvent(state []byte, message commands.Message) ([]byte, error) {
+	verb, _, err := commands.ParseAction(message.Action)
+	if err != nil {
+		return nil, err
+	}
 
-	case Update:
-		patchBytes, err := json.Marshal(event.Payload)
+	switch verb {
+	case Create:
+		return json.Marshal(message.Payload)
+
+	case Patch:
+		patchBytes, err := json.Marshal(message.Payload)
 		if err != nil {
 			return nil, fmt.Errorf("marshal patch: %w", err)
 		}
@@ -32,7 +37,7 @@ func ApplyEvent(state []byte, event commands.Message) ([]byte, error) {
 		return patch.Apply(state)
 
 	default:
-		return nil, fmt.Errorf("unknown action: %s", event.Action)
+		return nil, fmt.Errorf("unknown action: %s", message.Action)
 	}
 }
 

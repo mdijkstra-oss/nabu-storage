@@ -18,7 +18,7 @@ func CreateFileEventFromPath(filePath string) (*commands.Message, error) {
 	fileID := strings.TrimSuffix(filename, filepath.Ext(filename))
 
 	event := &commands.Message{
-		Action:      "Created",
+		Action:      "CreatedFile",
 		AggregateID: fileID,
 		Payload: File{
 			ID:      fileID,

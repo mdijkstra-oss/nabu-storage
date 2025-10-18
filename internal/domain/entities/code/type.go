@@ -1,6 +1,6 @@
 package code
 
 type Code struct {
-	ID    string
-	Color string
+	ID    string `json:"id"`
+	Color string `json:"color"`
 }

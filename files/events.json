@@ -1,6 +1,6 @@
 [
   {
-    "action": "Created",
+    "action": "CreatedFile",
     "aggregateId": "file-001",
     "payload": {
       "id": "file-001",
@@ -10,7 +10,7 @@
     "timestamp": "2025-10-11T14:30:00Z"
   },
   {
-    "action": "Updated",
+    "action": "PatchedFile",
     "aggregateId": "file-001",
     "payload": [
       {
@@ -45,7 +45,7 @@
     "timestamp": "2025-10-11T14:31:00Z"
   },
   {
-    "action": "Updated",
+    "action": "PatchedFile",
     "aggregateId": "file-001",
     "payload": [
       {

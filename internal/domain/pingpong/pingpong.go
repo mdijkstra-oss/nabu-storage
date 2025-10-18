@@ -2,25 +2,25 @@ package pingpong
 
 import (
 	"context"
-	commands2 "hermes-relay/internal/commands"
+	"hermes-relay/internal/commands"
 )
 
 const PingCommand = "ping"
 const PongEvent = "pong"
 
-var AddPingPongRoute = commands2.LimitOnAction(PingCommand, addPingHandler)
+var AddPingPongRoute = commands.LimitOnAction(PingCommand, addPingHandler)
 
 type PingPayload struct {
 	ResponseId string `json:"identifier"`
 }
 
-func addPingHandler(ctx context.Context, action *commands2.Message, publisher commands2.PublishFunc) (*commands2.Message, error) {
+func addPingHandler(ctx context.Context, action *commands.Message, publisher commands.PublishFunc) (*commands.Message, error) {
 	var payload PingPayload
-	if err := commands2.UnmarshalPayload(action, &payload); err != nil {
+	if err := commands.UnmarshalPayload(action, &payload); err != nil {
 		return nil, err
 	}
 
-	return commands2.MakeSystemEvent(
+	return commands.MakeSystemEvent(
 		PongEvent,
 		payload,
 		action,

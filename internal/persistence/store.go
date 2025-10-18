@@ -48,3 +48,9 @@ func (s *Store) ApplyEvents(events []commands.Message) error {
 	return nil
 }
 
+func (s *Store) DeleteByID(aggregateID string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	delete(s.data, aggregateID)
+}

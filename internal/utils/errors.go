@@ -65,6 +65,13 @@ func Must[T any](value T, err error) T {
 	return value
 }
 
+func Must2[T any, D any](value T, secondV D, err error) (T, D) {
+	if err != nil {
+		panic(err)
+	}
+	return value, secondV
+}
+
 func MustNotError(err error) {
 	if err != nil {
 		panic(err)
@@ -73,5 +80,9 @@ func MustNotError(err error) {
 
 // WarnErr Only for non critical, unlikely errors (eg decoding object that is typed to always be decoded etc)
 func WarnErr(err error) {
+	if err == nil {
+		return
+	}
+	
 	slog.Warn("Error: %v", "err", err)
 }
