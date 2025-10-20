@@ -1,54 +1,118 @@
 package persistence
 
 import (
-	"hermes-relay/internal/commands"
-	commandEvents "hermes-relay/internal/commands/events"
+	"fmt"
+	"hermes-relay/internal/cqrs"
 	"sync"
 )
 
-type Store struct {
-	mu   sync.RWMutex
-	data map[string][]byte
+// EventApplier is a type-erased interface for stores that can apply events
+type EventApplier interface {
+	ApplyEvent(message *cqrs.Message) error
+	ApplyEvents(events []cqrs.Message) error
 }
 
-func NewStore() *Store {
-	return &Store{
-		data: make(map[string][]byte),
+// Store is a generic in-memory store for entities
+type Store[T any] struct {
+	mu      sync.RWMutex
+	data    map[string]T
+	reducer cqrs.Reducer[T]
+}
+
+func NewStore[T any](reducer cqrs.Reducer[T]) *Store[T] {
+	return &Store[T]{
+		data:    make(map[string]T),
+		reducer: reducer,
 	}
 }
 
-func (s *Store) ApplyEvent(event commands.Message) error {
+func (s *Store[T]) ApplyEvent(message *cqrs.Message) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	state, err := commandEvents.ApplyEvent(s.data[event.AggregateID], event)
-	if err != nil {
-		return err
+	if s.reducer == nil {
+		return fmt.Errorf("no reducer registered for store")
 	}
-	s.data[event.AggregateID] = state
+
+	// Get current state or nil for new entities
+	var currentState *T
+	if existing, ok := s.data[message.AggregateID]; ok {
+		currentState = &existing
+	}
+
+	newState := s.reducer(currentState, message)
+
+	// If newState is nil, it signals deletion
+	if newState == nil {
+		delete(s.data, message.AggregateID)
+		return nil
+	}
+
+	s.data[message.AggregateID] = *newState
 	return nil
 }
 
-func (s *Store) ApplyEvents(events []commands.Message) error {
+func (s *Store[T]) ApplyEvents(events []cqrs.Message) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	grouped := make(map[string][]commands.Message)
+	if s.reducer == nil {
+		return fmt.Errorf("no reducer registered for store")
+	}
+
+	// Group events by aggregate ID
+	grouped := make(map[string][]cqrs.Message)
 	for _, event := range events {
 		grouped[event.AggregateID] = append(grouped[event.AggregateID], event)
 	}
 
+	// Apply events per aggregate
 	for id, msgs := range grouped {
-		state, err := commandEvents.ApplyEvents(s.data[id], msgs)
-		if err != nil {
-			return err
+		var currentState *T
+		if existing, ok := s.data[id]; ok {
+			currentState = &existing
 		}
-		s.data[id] = state
+
+		for _, event := range msgs {
+			newState := s.reducer(currentState, &event)
+			currentState = newState
+		}
+
+		// If currentState is nil, it signals deletion
+		if currentState == nil {
+			delete(s.data, id)
+		} else {
+			s.data[id] = *currentState
+		}
 	}
 	return nil
 }
 
-func (s *Store) DeleteByID(aggregateID string) {
+func (s *Store[T]) GetByID(id string) (*T, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	state, ok := s.data[id]
+	if !ok {
+		return nil, fmt.Errorf("not found: %s", id)
+	}
+
+	return &state, nil
+}
+
+func (s *Store[T]) GetAll() []T {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	result := make([]T, 0, len(s.data))
+	for _, v := range s.data {
+		result = append(result, v)
+	}
+
+	return result
+}
+
+func (s *Store[T]) DeleteByID(aggregateID string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

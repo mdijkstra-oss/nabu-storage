@@ -1,0 +1,103 @@
+[
+  {
+    "action": "CreateCode",
+    "target": "justification#health_system",
+    "payload": {"code_id": "justification#health_system", "color": "#10b981"}
+  },
+  {
+    "action": "CreateCode",
+    "target": "justification#omicron",
+    "payload": {"code_id": "justification#omicron", "color": "#059669"}
+  },
+  {
+    "action": "CreateCode",
+    "target": "speaker#rutte",
+    "payload": {"code_id": "speaker#rutte", "color": "#3b82f6"}
+  },
+  {
+    "action": "CodeFile",
+    "target": "rutte-lang",
+    "payload": {
+      "file_id": "rutte-lang",
+      "code_id": "speaker#rutte",
+      "texts": [
+        "Goedenavond,\n\nMijn eerste en belangrijkste boodschap vanavond is dat we inderdaad hebben moeten besluiten het huidige maatregelenpakket te verlengen",
+        "En ik hoop dan ook dat veel mensen begrijpen dat die verlenging op dit moment om twee redenen onvermijdelijk is"
+      ]
+    }
+  },
+  {
+    "action": "CodeFile",
+    "target": "rutte-lang",
+    "payload": {
+      "file_id": "rutte-lang",
+      "code_id": "justification#health_system",
+      "texts": [
+        "zolang de ziekenhuizen vol liggen met coronapatiënten en allerlei reguliere behandelingen en operaties worden uitgesteld, moeten we het virus verder terug dringen"
+      ]
+    }
+  },
+  {
+    "action": "AppendCodingToFile",
+    "target": "rutte-lang",
+    "payload": {
+      "file_id": "rutte-lang",
+      "code_id": "speaker#rutte",
+      "texts": [
+        "Dus geen uitzondering voor de Kerstdagen of Oud en Nieuw",
+        "We moeten echt voorzichtig zijn, juist rond de feestdagen"
+      ]
+    }
+  },
+  {
+    "action": "RemoveCodingFromFile",
+    "target": "rutte-lang",
+    "payload": {
+      "file_id": "rutte-lang",
+      "code_id": "speaker#rutte",
+      "texts": ["We moeten echt voorzichtig zijn, juist rond de feestdagen"]
+    }
+  },
+  {
+    "action": "AppendCodingToFile",
+    "target": "rutte-lang",
+    "payload": {
+      "file_id": "rutte-lang",
+      "code_id": "justification#health_system",
+      "texts": [
+        "de druk op de zorg - die nog steeds veel te hoog is - afneemt",
+        "Het aantal nieuwe besmettingen daalt, vandaag een kleine 13 duizend"
+      ]
+    }
+  },
+  {
+    "action": "CodeFile",
+    "target": "rutte-lang",
+    "payload": {
+      "file_id": "rutte-lang",
+      "code_id": "justification#omicron",
+      "texts": [
+        "Ten tweede vanwege die nieuwe Omikronvariant. Daarvan weten we nog veel dingen niet, maar wel dat deze nieuwe variant zich flink sneller verspreidt",
+        "er is reden tot zorg en grote voorzichtigheid"
+      ]
+    }
+  },
+  {
+    "action": "RemoveCodingFromFile",
+    "target": "rutte-lang",
+    "payload": {
+      "file_id": "rutte-lang",
+      "code_id": "justification#omicron"
+    }
+  },
+  {
+    "action": "DeleteCode",
+    "target": "justification#omicron",
+    "payload": {"code_id": "justification#omicron"}
+  },
+  {
+    "action": "UpdateCode",
+    "target": "justification#health_system",
+    "payload": {"code_id": "justification#health_system", "color": "#16a34a"}
+  }
+]

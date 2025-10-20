@@ -1,4 +1,4 @@
-package commands
+package cqrs
 
 import (
 	"context"
@@ -36,6 +36,11 @@ func (p *InMemoryPublisher) Publish(ctx context.Context, event *Message) (*Messa
 
 	for _, router := range subscribers {
 		result, err := router(ctx, event, p.Publish)
+
+		if result != nil {
+			utils.Must(p.Publish(ctx, result))
+		}
+
 		if err != nil {
 			return nil, err
 		}

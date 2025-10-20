@@ -3,7 +3,7 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
-	"hermes-relay/internal/commands"
+	"hermes-relay/internal/cqrs"
 	"hermes-relay/internal/utils"
 	"net/http"
 	"slices"
@@ -14,10 +14,10 @@ import (
 // Todo: Future, reject duplicates
 
 type batchResult struct {
-	Index   int               `json:"index"`
-	Success bool              `json:"success"`
-	Result  *commands.Message `json:"result,omitempty"`
-	Error   string            `json:"error,omitempty"`
+	Index   int           `json:"index"`
+	Success bool          `json:"success"`
+	Result  *cqrs.Message `json:"result,omitempty"`
+	Error   string        `json:"error,omitempty"`
 }
 
 type batchResponse struct {
@@ -28,16 +28,16 @@ type batchResponse struct {
 }
 
 // Command endpoint - returns business result
-func CommandHandler(publisher *commands.InMemoryPublisher) http.HandlerFunc {
-	return messageHandler(publisher, true, []commands.MessageType{commands.Command})
+func CommandHandler(publisher *cqrs.InMemoryPublisher) http.HandlerFunc {
+	return messageHandler(publisher, true, []cqrs.MessageType{cqrs.Command})
 }
 
 // DomainEvent endpoint - just acknowledges
-func EventHandler(publisher *commands.InMemoryPublisher) http.HandlerFunc {
-	return messageHandler(publisher, false, []commands.MessageType{commands.DomainEvent, commands.SystemEvent})
+func EventHandler(publisher *cqrs.InMemoryPublisher) http.HandlerFunc {
+	return messageHandler(publisher, false, []cqrs.MessageType{cqrs.DomainEvent, cqrs.SystemEvent})
 }
 
-func messageHandler(publisher *commands.InMemoryPublisher, returnResult bool, allowedMessageTypes []commands.MessageType) http.HandlerFunc {
+func messageHandler(publisher *cqrs.InMemoryPublisher, returnResult bool, allowedMessageTypes []cqrs.MessageType) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var raw json.RawMessage
 		err := json.NewDecoder(r.Body).Decode(&raw)
@@ -56,8 +56,8 @@ func messageHandler(publisher *commands.InMemoryPublisher, returnResult bool, al
 	}
 }
 
-func handleSingle(w http.ResponseWriter, r *http.Request, raw json.RawMessage, publisher *commands.InMemoryPublisher, returnResult bool, allowedMessageTypes []commands.MessageType) {
-	var msg commands.Message
+func handleSingle(w http.ResponseWriter, r *http.Request, raw json.RawMessage, publisher *cqrs.InMemoryPublisher, returnResult bool, allowedMessageTypes []cqrs.MessageType) {
+	var msg cqrs.Message
 	if err := json.Unmarshal(raw, &msg); err != nil {
 		respondError(w, http.StatusBadRequest, err.Error())
 		return
@@ -89,13 +89,13 @@ func handleSingle(w http.ResponseWriter, r *http.Request, raw json.RawMessage, p
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 
-	if result != nil && msg.Type == commands.Command {
+	if result != nil && msg.Type == cqrs.Command {
 		utils.WarnErr(json.NewEncoder(w).Encode(result))
 	}
 }
 
-func handleBatch(w http.ResponseWriter, r *http.Request, raw json.RawMessage, publisher *commands.InMemoryPublisher, returnResult bool, allowedMessageTypes []commands.MessageType) {
-	var messages []commands.Message
+func handleBatch(w http.ResponseWriter, r *http.Request, raw json.RawMessage, publisher *cqrs.InMemoryPublisher, returnResult bool, allowedMessageTypes []cqrs.MessageType) {
+	var messages []cqrs.Message
 	if err := json.Unmarshal(raw, &messages); err != nil {
 		respondError(w, http.StatusBadRequest, err.Error())
 		return
@@ -201,7 +201,8 @@ func getErrorTypeFromStatus(status int) string {
 	}
 }
 
-func isCreatedType(msgType string) bool {
-	return strings.HasSuffix(msgType, "Created") ||
-		strings.HasSuffix(msgType, "Added")
+func isCreatedType(action cqrs.Action) bool {
+	actionStr := string(action)
+	return strings.HasSuffix(actionStr, "Created") ||
+		strings.HasSuffix(actionStr, "Added")
 }

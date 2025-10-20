@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-func RESTHandler[T any](store *persistence.Store) http.HandlerFunc {
+func RESTHandler[T any](store *persistence.Store[T]) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		path := strings.TrimPrefix(r.URL.Path, r.Pattern)
 

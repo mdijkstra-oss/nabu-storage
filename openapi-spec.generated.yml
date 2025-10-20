@@ -1,0 +1,476 @@
+openapi: 3.0.0
+info:
+  title: hermes-relay-api
+  version: "1"
+  description: CQRS-based API for qualitative coding in Go
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+paths:
+  /commands:
+    post:
+      summary: Execute a command or batch of commands
+      description: |
+        Execute a CQRS command. Commands follow the Message type format where Message.Type is always "command".
+        Supports both single command and batch command execution.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/Message'
+                - type: array
+                  items:
+                    $ref: '#/components/schemas/Message'
+            examples:
+              createCode:
+                summary: Create a new code
+                value:
+                  action: "CreateCode"
+                  type: "Command"
+                  aggregateId: "research-methodology"
+                  aggregateType: "Code"
+                  payload:
+                    color: "red-500"
+                  timestamp: "2024-01-19T10:30:00Z"
+              updateCode:
+                summary: Update an existing code
+                value:
+                  action: "UpdateCode"
+                  type: "Command"
+                  aggregateId: "research-methodology"
+                  aggregateType: "Code"
+                  payload:
+                    color: "blue-600"
+                  timestamp: "2024-01-19T10:30:00Z"
+              deleteCode:
+                summary: Delete a code
+                value:
+                  action: "DeleteCode"
+                  type: "Command"
+                  aggregateId: "research-methodology"
+                  aggregateType: "Code"
+                  timestamp: "2024-01-19T10:30:00Z"
+              codeFile:
+                summary: Apply coding actions to a file
+                value:
+                  action: "CodeFile"
+                  type: "Command"
+                  aggregateId: "interview-transcript-01"
+                  aggregateType: "File"
+                  payload:
+                    actions:
+                      - code_id: "research-methodology"
+                        action: "SetCoding"
+                        texts: ["We used a mixed-methods approach combining interviews and observations"]
+                      - code_id: "data-collection"
+                        action: "AppendCoding"
+                        texts: ["Participants were recruited through snowball sampling", "Data saturation was reached after 15 interviews"]
+                  timestamp: "2024-01-19T10:30:00Z"
+              clearCoding:
+                summary: Clear all coding from a file
+                value:
+                  action: "ClearCoding"
+                  type: "Command"
+                  aggregateId: "interview-transcript-01"
+                  aggregateType: "File"
+                  timestamp: "2024-01-19T10:30:00Z"
+              batchCommands:
+                summary: Batch create multiple codes
+                value:
+                  - action: "CreateCode"
+                    type: "Command"
+                    aggregateId: "research-methodology"
+                    aggregateType: "Code"
+                    payload:
+                      color: "red-500"
+                    timestamp: "2024-01-19T10:30:00Z"
+                  - action: "CreateCode"
+                    type: "Command"
+                    aggregateId: "data-collection"
+                    aggregateType: "Code"
+                    payload:
+                      color: "blue-600"
+                    timestamp: "2024-01-19T10:30:00Z"
+                  - action: "CreateCode"
+                    type: "Command"
+                    aggregateId: "participant-experience"
+                    aggregateType: "Code"
+                    payload:
+                      color: "green-500"
+                    timestamp: "2024-01-19T10:30:00Z"
+      responses:
+        '200':
+          description: Command executed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '201':
+          description: Resource created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '207':
+          description: Multi-Status - batch with partial success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchResponse'
+        '400':
+          description: Bad request - invalid command format or validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict - resource already exists or state conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /queries/codes/:
+    get:
+      summary: Get all codes
+      description: Retrieve all codes without pagination
+      responses:
+        '200':
+          description: List of all codes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Code'
+              example:
+                - id: "research-methodology"
+                  color: "red-500"
+                - id: "data-collection"
+                  color: "blue-600"
+                - id: "participant-experience"
+                  color: "green-500"
+                - id: "ethical-considerations"
+                  color: "yellow-400"
+        '500':
+          description: Internal server error
+
+  /queries/codes/{id}:
+    get:
+      summary: Get code by ID
+      description: Retrieve a specific code by its ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the code
+          example: "research-methodology"
+      responses:
+        '200':
+          description: Code found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Code'
+              example:
+                id: "research-methodology"
+                color: "red-500"
+        '404':
+          description: Code not found
+        '500':
+          description: Internal server error
+
+  /queries/files/:
+    get:
+      summary: Get all files
+      description: Retrieve all files without pagination
+      responses:
+        '200':
+          description: List of all files
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/File'
+              example:
+                - id: "interview-transcript-01"
+                  content: "Participant A: We used a mixed-methods approach combining interviews and observations. The research methodology was grounded in phenomenological traditions..."
+                  codes:
+                    "research-methodology": ["We used a mixed-methods approach combining interviews and observations", "grounded in phenomenological traditions"]
+                    "data-collection": ["Participants were recruited through snowball sampling"]
+                - id: "field-notes-session-02"
+                  content: "Observation notes from session 2. Participants demonstrated clear understanding of ethical considerations during the consent process..."
+                  codes:
+                    "ethical-considerations": ["clear understanding of ethical considerations during the consent process"]
+        '500':
+          description: Internal server error
+
+  /queries/files/{id}:
+    get:
+      summary: Get file by ID
+      description: Retrieve a specific file by its ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the file
+          example: "interview-transcript-01"
+      responses:
+        '200':
+          description: File found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/File'
+              example:
+                id: "interview-transcript-01"
+                content: "Participant A: We used a mixed-methods approach combining interviews and observations. The research methodology was grounded in phenomenological traditions..."
+                codes:
+                  "research-methodology": ["We used a mixed-methods approach combining interviews and observations", "grounded in phenomenological traditions"]
+                  "data-collection": ["Participants were recruited through snowball sampling"]
+        '404':
+          description: File not found
+        '500':
+          description: Internal server error
+
+components:
+  schemas:
+    Message:
+      type: object
+      required:
+        - action
+        - timestamp
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the message (auto-generated if not provided)
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        action:
+          type: string
+          description: The action to perform
+          enum:
+            - CreateCode
+            - UpdateCode
+            - DeleteCode
+            - CodeFile
+            - ClearCoding
+          example: "CreateCode"
+        type:
+          type: string
+          enum:
+            - command
+            - domainEvent
+          description: The message type - always "command" for command endpoint
+          example: "command"
+        aggregateId:
+          type: string
+          description: The ID of the aggregate being operated on (required for updates/deletes)
+          example: "research-methodology"
+        aggregateType:
+          type: string
+          description: The type of aggregate
+          enum:
+            - code
+            - file
+          example: "code"
+        payload:
+          type: object
+          description: The command payload - structure varies by action
+          additionalProperties: true
+        parent:
+          type: string
+          description: ID of parent message if this is part of a chain
+          example: "parent-message-id"
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp of the message
+          example: "2024-01-19T10:30:00Z"
+
+    Code:
+      type: object
+      required:
+        - id
+        - color
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the code
+          example: "research-methodology"
+        color:
+          type: string
+          description: Color in Tailwind color system (e.g., red-500) with intensity on 300-700 range (inclusive)
+          example: "red-500"
+
+    File:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the file
+          example: "interview-transcript-01"
+        content:
+          type: string
+          description: The content of the file
+          example: "Interview transcript with participant A discussing research methods..."
+        codes:
+          type: object
+          description: Map of code IDs to arrays of coded text excerpts
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          example:
+            "research-methodology": ["We used a mixed-methods approach"]
+            "data-collection": ["Participants were recruited through snowball sampling"]
+
+    CreateCodePayload:
+      type: object
+      required:
+        - color
+      properties:
+        color:
+          type: string
+          description: Color in Tailwind color system (e.g., red-500)
+          example: "red-500"
+
+    UpdateCodePayload:
+      type: object
+      properties:
+        color:
+          type: string
+          description: Color in Tailwind color system (e.g., red-500)
+          example: "blue-600"
+
+    CodingAction:
+      type: object
+      required:
+        - code_id
+        - action
+        - texts
+      properties:
+        code_id:
+          type: string
+          description: The ID of the code to apply
+          example: "research-methodology"
+        action:
+          type: string
+          enum:
+            - SetCoding
+            - AppendCoding
+            - RemoveCoding
+          description: The type of coding action to perform
+          example: "SetCoding"
+        texts:
+          type: array
+          minItems: 1
+          items:
+            type: string
+          description: The text excerpts to code
+          example: ["This is a relevant passage about research methodology"]
+
+    CodeFilePayload:
+      type: object
+      required:
+        - actions
+      properties:
+        actions:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/CodingAction'
+          description: Array of coding actions to apply to the file
+
+    BatchResponse:
+      type: object
+      required:
+        - results
+        - total
+        - success_count
+        - failure_count
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/BatchResult'
+          description: Results for each message in the batch
+        total:
+          type: integer
+          description: Total number of messages in the batch
+          example: 3
+        success_count:
+          type: integer
+          description: Number of successfully processed messages
+          example: 2
+        failure_count:
+          type: integer
+          description: Number of failed messages
+          example: 1
+
+    BatchResult:
+      type: object
+      required:
+        - index
+        - success
+      properties:
+        index:
+          type: integer
+          description: Index of the message in the batch
+          example: 0
+        success:
+          type: boolean
+          description: Whether the message was processed successfully
+          example: true
+        result:
+          $ref: '#/components/schemas/Message'
+          description: Result message if successful
+        error:
+          type: string
+          description: Error message if failed
+          example: "aggregate already exists"
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - type
+      properties:
+        error:
+          type: array
+          items:
+            type: string
+          description: Array of error messages
+          example:
+            - "Key: 'Message.Action' Error:Field validation for 'Action' failed on the 'required' tag"
+        type:
+          type: string
+          enum:
+            - validation_error
+            - not_found
+            - conflict
+            - internal_error
+          description: Type of error
+          example: "validation_error"

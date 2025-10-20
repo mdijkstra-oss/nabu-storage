@@ -1,0 +1,74 @@
+package cqrs
+
+import (
+	"context"
+	"hermes-relay/internal/utils"
+)
+
+type CommandRouter func(ctx context.Context, message *Message, publisher PublishFunc) (*Message, error)
+
+func CombineRouters(handlers ...CommandRouter) CommandRouter {
+	return func(ctx context.Context, message *Message, publisher PublishFunc) (*Message, error) {
+		for _, handler := range handlers {
+			ch, err := handler(ctx, message, publisher)
+			if err != nil {
+				return nil, err
+			}
+			if ch != nil {
+				return ch, nil
+			}
+		}
+		return nil, nil // No handler matched
+	}
+}
+
+func ForPayload[P any](action Action, handler func(ctx context.Context, message *Message, payload P, publisher PublishFunc) (*Message, error)) CommandRouter {
+	return func(ctx context.Context, message *Message, publisher PublishFunc) (*Message, error) {
+		if message.Action != action {
+			return nil, nil
+		}
+
+		var payload P
+		err := EnsureValidPayload(message, &payload)
+		if err != nil {
+			return nil, err
+		}
+
+		return handler(ctx, message, payload, publisher)
+	}
+}
+
+func LimitOnType(messageType MessageType, handler ...CommandRouter) CommandRouter {
+	parentRouter := CombineRouters(handler...)
+
+	return func(ctx context.Context, message *Message, publisher PublishFunc) (*Message, error) {
+		if message.Type == messageType {
+			return parentRouter(ctx, message, publisher)
+		}
+		return nil, nil
+	}
+}
+
+func LimitOnEntity(entity any, handler ...CommandRouter) CommandRouter {
+	parentRouter := CombineRouters(handler...)
+
+	name := utils.GetStructName(entity)
+
+	return func(ctx context.Context, message *Message, publisher PublishFunc) (*Message, error) {
+		if message.AggregateType == AggregateType(name) {
+			return parentRouter(ctx, message, publisher)
+		}
+		return nil, nil
+	}
+}
+
+func ReadOnlyRoute(readOnlyHandler func(message *Message) error) CommandRouter {
+	return func(ctx context.Context, message *Message, publishFunc PublishFunc) (*Message, error) {
+		err := readOnlyHandler(message)
+		if err != nil {
+			return nil, err
+		}
+
+		return nil, nil
+	}
+}
