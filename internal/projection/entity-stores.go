@@ -33,8 +33,8 @@ func StoreForNoun(noun cqrs.AggregateType) EventApplier {
 	return stores[noun]
 }
 
-// ApplyEventToStore applies a domain event to the appropriate store
-func ApplyEventToStore(message *cqrs.Message) error {
+// Apply applies a domain event to the appropriate store
+func Apply(message *cqrs.Message) error {
 	if message.AggregateType == "" {
 		return fmt.Errorf("event missing aggregate type %s", message.Action)
 	}

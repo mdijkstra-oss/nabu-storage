@@ -6,6 +6,7 @@ import (
 	"hermes-relay/internal/domain/entities/file"
 	"hermes-relay/internal/handlers"
 	"hermes-relay/internal/handlers/middleware"
+	"hermes-relay/internal/persistence"
 	"hermes-relay/internal/projection"
 	"hermes-relay/internal/utils"
 	"log"
@@ -25,20 +26,28 @@ func main() {
 	// Todo: Change to env var
 	setupLogger(slog.LevelDebug)
 
-	//existingEvents := utils.Must(events.LoadEvents("files/events.json"))
-	existingEvents := []cqrs.Message{
-		*utils.Must(file.CreateFileEventFromPath("files/rutte-lang.md")),
-	}
-
-	utils.MustNotError(projection.FileStore.ApplyEvents(existingEvents))
-
 	var publisher = cqrs.NewInMemoryPublisher()
+
+	// Subscribe command handlers
 	publisher.Subscribe(commandRouter)
 
-	// Domain event handler - applies events to stores using reducers
-	publisher.Subscribe(cqrs.LimitOnType(cqrs.DomainEvent, cqrs.ReadOnlyRoute(projection.ApplyEventToStore)))
+	// Domain event handlers (readonly routes)
+	publisher.Subscribe(cqrs.LimitOnType(cqrs.DomainEvent, cqrs.ReadOnlyRoute(projection.Apply)))
 
+	// Logging middleware
 	publisher.Subscribe(middleware.WithLogging(slog.LevelDebug))
+
+	// Replay all persisted events on boot
+	utils.MustNotError(persistence.ReplayAllEvents(publisher))
+
+	// Persist must be after replay ⚠️
+	publisher.Subscribe(cqrs.LimitOnType(cqrs.DomainEvent, cqrs.ReadOnlyRoute(persistence.Apply)))
+
+	//newFile, err := file.CreateFileEventFromPath("files/rutte-lang.md")
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	//utils.MustNotError(persistence.Apply(newFile))
 
 	// Todo: in some future, for both auth etc
 	// Events would be internal I think, but still, validate (else it can write any entity now)
