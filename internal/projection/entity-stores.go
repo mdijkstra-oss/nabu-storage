@@ -1,4 +1,4 @@
-package persistence
+package projection
 
 import (
 	"fmt"
@@ -9,8 +9,8 @@ import (
 
 var (
 	// Type-specific stores
-	FileStore *Store[file.File]
-	CodeStore *Store[code.Code]
+	FileStore *ProjectionStore[file.File]
+	CodeStore *ProjectionStore[code.Code]
 
 	// Type-erased registry for event application
 	stores map[cqrs.AggregateType]EventApplier

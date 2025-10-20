@@ -1,4 +1,4 @@
-package persistence
+package projection
 
 import (
 	"fmt"
@@ -12,21 +12,21 @@ type EventApplier interface {
 	ApplyEvents(events []cqrs.Message) error
 }
 
-// Store is a generic in-memory store for entities
-type Store[T any] struct {
+// ProjectionStore is a generic in-memory store for entities
+type ProjectionStore[T any] struct {
 	mu      sync.RWMutex
 	data    map[string]T
 	reducer cqrs.Reducer[T]
 }
 
-func NewStore[T any](reducer cqrs.Reducer[T]) *Store[T] {
-	return &Store[T]{
+func NewStore[T any](reducer cqrs.Reducer[T]) *ProjectionStore[T] {
+	return &ProjectionStore[T]{
 		data:    make(map[string]T),
 		reducer: reducer,
 	}
 }
 
-func (s *Store[T]) ApplyEvent(message *cqrs.Message) error {
+func (s *ProjectionStore[T]) ApplyEvent(message *cqrs.Message) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -52,7 +52,7 @@ func (s *Store[T]) ApplyEvent(message *cqrs.Message) error {
 	return nil
 }
 
-func (s *Store[T]) ApplyEvents(events []cqrs.Message) error {
+func (s *ProjectionStore[T]) ApplyEvents(events []cqrs.Message) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -88,7 +88,7 @@ func (s *Store[T]) ApplyEvents(events []cqrs.Message) error {
 	return nil
 }
 
-func (s *Store[T]) GetByID(id string) (*T, error) {
+func (s *ProjectionStore[T]) GetByID(id string) (*T, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -100,7 +100,7 @@ func (s *Store[T]) GetByID(id string) (*T, error) {
 	return &state, nil
 }
 
-func (s *Store[T]) GetAll() []T {
+func (s *ProjectionStore[T]) GetAll() []T {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -112,7 +112,7 @@ func (s *Store[T]) GetAll() []T {
 	return result
 }
 
-func (s *Store[T]) DeleteByID(aggregateID string) {
+func (s *ProjectionStore[T]) DeleteByID(aggregateID string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
