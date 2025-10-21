@@ -77,7 +77,7 @@ func NewMessage(mType MessageType, action Action, payload any, aggregateType Agg
 		AggregateType: aggregateType,
 		Payload:       payload,
 		ParentID:      parent.ID,
-		Timestamp:     time.Time{},
+		Timestamp:     time.Now(),
 	}
 }
 

@@ -27,30 +27,32 @@ paths:
                     $ref: '#/components/schemas/Message'
             examples:
               createCode:
-                summary: Create a new code
+                summary: Create a new code with reasoning
                 value:
                   action: "CreateCode"
-                  type: "Command"
+                  type: "command"
                   aggregateId: "research-methodology"
                   aggregateType: "Code"
                   payload:
                     color: "red-500"
+                    reasoning: "This code identifies sections discussing research methodologies, including qualitative and quantitative approaches. Look for discussions of data collection methods, sampling strategies, and analytical frameworks."
                   timestamp: "2024-01-19T10:30:00Z"
               updateCode:
                 summary: Update an existing code
                 value:
                   action: "UpdateCode"
-                  type: "Command"
+                  type: "command"
                   aggregateId: "research-methodology"
                   aggregateType: "Code"
                   payload:
                     color: "blue-600"
+                    reasoning: "Updated to focus specifically on mixed-methods approaches combining interviews and observations."
                   timestamp: "2024-01-19T10:30:00Z"
               deleteCode:
                 summary: Delete a code
                 value:
                   action: "DeleteCode"
-                  type: "Command"
+                  type: "command"
                   aggregateId: "research-methodology"
                   aggregateType: "Code"
                   timestamp: "2024-01-19T10:30:00Z"
@@ -58,7 +60,7 @@ paths:
                 summary: Apply coding actions to a file
                 value:
                   action: "CodeFile"
-                  type: "Command"
+                  type: "command"
                   aggregateId: "interview-transcript-01"
                   aggregateType: "File"
                   payload:
@@ -74,7 +76,7 @@ paths:
                 summary: Clear all coding from a file
                 value:
                   action: "ClearCoding"
-                  type: "Command"
+                  type: "command"
                   aggregateId: "interview-transcript-01"
                   aggregateType: "File"
                   timestamp: "2024-01-19T10:30:00Z"
@@ -82,25 +84,20 @@ paths:
                 summary: Batch create multiple codes
                 value:
                   - action: "CreateCode"
-                    type: "Command"
+                    type: "command"
                     aggregateId: "research-methodology"
                     aggregateType: "Code"
                     payload:
                       color: "red-500"
+                      reasoning: "Identifies research methodology discussions"
                     timestamp: "2024-01-19T10:30:00Z"
                   - action: "CreateCode"
-                    type: "Command"
+                    type: "command"
                     aggregateId: "data-collection"
                     aggregateType: "Code"
                     payload:
                       color: "blue-600"
-                    timestamp: "2024-01-19T10:30:00Z"
-                  - action: "CreateCode"
-                    type: "Command"
-                    aggregateId: "participant-experience"
-                    aggregateType: "Code"
-                    payload:
-                      color: "green-500"
+                      reasoning: "Marks data collection procedures and techniques"
                     timestamp: "2024-01-19T10:30:00Z"
       responses:
         '200':
@@ -162,12 +159,13 @@ paths:
               example:
                 - id: "research-methodology"
                   color: "red-500"
+                  reasoning: "Identifies research methodology discussions including qualitative and quantitative approaches."
                 - id: "data-collection"
                   color: "blue-600"
+                  reasoning: "Marks data collection procedures and techniques."
                 - id: "participant-experience"
                   color: "green-500"
-                - id: "ethical-considerations"
-                  color: "yellow-400"
+                  reasoning: "Captures participant perspectives and lived experiences."
         '500':
           description: Internal server error
 
@@ -193,6 +191,7 @@ paths:
               example:
                 id: "research-methodology"
                 color: "red-500"
+                reasoning: "Identifies research methodology discussions including qualitative and quantitative approaches."
         '404':
           description: Code not found
         '500':
@@ -213,12 +212,12 @@ paths:
                   $ref: '#/components/schemas/File'
               example:
                 - id: "interview-transcript-01"
-                  content: "Participant A: We used a mixed-methods approach combining interviews and observations. The research methodology was grounded in phenomenological traditions..."
+                  content: "Participant A: We used a mixed-methods approach combining interviews and observations..."
                   codes:
-                    "research-methodology": ["We used a mixed-methods approach combining interviews and observations", "grounded in phenomenological traditions"]
+                    "research-methodology": ["We used a mixed-methods approach combining interviews and observations"]
                     "data-collection": ["Participants were recruited through snowball sampling"]
                 - id: "field-notes-session-02"
-                  content: "Observation notes from session 2. Participants demonstrated clear understanding of ethical considerations during the consent process..."
+                  content: "Observation notes from session 2..."
                   codes:
                     "ethical-considerations": ["clear understanding of ethical considerations during the consent process"]
         '500':
@@ -226,8 +225,11 @@ paths:
 
   /queries/files/{id}:
     get:
-      summary: Get file by ID
-      description: Retrieve a specific file by its ID
+      summary: Get file by ID or file chunk
+      description: |
+        Retrieve a specific file by its ID.
+        If chunk_index query parameter is provided, returns a FileChunk instead of the full File.
+        The file content is split into markdown blocks, and each chunk represents one block.
       parameters:
         - name: id
           in: path
@@ -236,21 +238,49 @@ paths:
             type: string
           description: The unique identifier of the file
           example: "interview-transcript-01"
+        - name: chunk_index
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+          description: The index of the chunk to retrieve (0-based)
+          example: 0
       responses:
         '200':
-          description: File found
+          description: File or file chunk found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/File'
-              example:
-                id: "interview-transcript-01"
-                content: "Participant A: We used a mixed-methods approach combining interviews and observations. The research methodology was grounded in phenomenological traditions..."
-                codes:
-                  "research-methodology": ["We used a mixed-methods approach combining interviews and observations", "grounded in phenomenological traditions"]
-                  "data-collection": ["Participants were recruited through snowball sampling"]
+                oneOf:
+                  - $ref: '#/components/schemas/File'
+                  - $ref: '#/components/schemas/FileChunk'
+              examples:
+                fullFile:
+                  summary: Full file (without chunk_index parameter)
+                  value:
+                    id: "interview-transcript-01"
+                    content: "Participant A: We used a mixed-methods approach..."
+                    codes:
+                      "research-methodology": ["We used a mixed-methods approach"]
+                fileChunk:
+                  summary: File chunk (with chunk_index parameter)
+                  value:
+                    id: "interview-transcript-01"
+                    chunk: "# Interview Transcript\n\nParticipant A discussed their research approach..."
+                    chunk_index: 0
+                    next_chunk_index: 1
+                lastChunk:
+                  summary: Last chunk (next_chunk_index is -1)
+                  value:
+                    id: "interview-transcript-01"
+                    chunk: "Final thoughts and conclusions from the interview."
+                    chunk_index: 3
+                    next_chunk_index: -1
+        '400':
+          description: Invalid chunk_index parameter
         '404':
-          description: File not found
+          description: File not found or chunk_index out of range
         '500':
           description: Internal server error
 
@@ -291,9 +321,9 @@ components:
           type: string
           description: The type of aggregate
           enum:
-            - code
-            - file
-          example: "code"
+            - Code
+            - File
+          example: "Code"
         payload:
           type: object
           description: The command payload - structure varies by action
@@ -313,6 +343,7 @@ components:
       required:
         - id
         - color
+        - reasoning
       properties:
         id:
           type: string
@@ -322,6 +353,13 @@ components:
           type: string
           description: Color in Tailwind color system (e.g., red-500) with intensity on 300-700 range (inclusive)
           example: "red-500"
+        reasoning:
+          type: string
+          description: |
+            The reasoning for determining whether this code applies to a given piece of text.
+            Should be thorough with samples and exclusions to enable consistent application.
+            Limited to 1-3 paragraphs.
+          example: "This code identifies sections discussing research methodologies, including qualitative and quantitative approaches. Look for discussions of data collection methods, sampling strategies, and analytical frameworks. Excludes general mentions of research without methodological details."
 
     File:
       type: object
@@ -334,7 +372,7 @@ components:
           example: "interview-transcript-01"
         content:
           type: string
-          description: The content of the file
+          description: The full content of the file
           example: "Interview transcript with participant A discussing research methods..."
         codes:
           type: object
@@ -347,15 +385,45 @@ components:
             "research-methodology": ["We used a mixed-methods approach"]
             "data-collection": ["Participants were recruited through snowball sampling"]
 
+    FileChunk:
+      type: object
+      required:
+        - id
+        - chunk
+        - chunk_index
+        - next_chunk_index
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the file
+          example: "interview-transcript-01"
+        chunk:
+          type: string
+          description: The content of this specific chunk (one markdown block)
+          example: "# Interview Transcript\n\nParticipant A discussed their research approach..."
+        chunk_index:
+          type: integer
+          description: The index of this chunk (0-based)
+          example: 0
+        next_chunk_index:
+          type: integer
+          description: The index of the next chunk, or -1 if this is the last chunk
+          example: 1
+
     CreateCodePayload:
       type: object
       required:
         - color
+        - reasoning
       properties:
         color:
           type: string
           description: Color in Tailwind color system (e.g., red-500)
           example: "red-500"
+        reasoning:
+          type: string
+          description: Reasoning for when this code should be applied
+          example: "Identifies research methodology discussions"
 
     UpdateCodePayload:
       type: object
@@ -364,6 +432,10 @@ components:
           type: string
           description: Color in Tailwind color system (e.g., red-500)
           example: "blue-600"
+        reasoning:
+          type: string
+          description: Updated reasoning for when this code should be applied
+          example: "Updated to focus on mixed-methods approaches"
 
     CodingAction:
       type: object

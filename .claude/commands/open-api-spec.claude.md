@@ -42,3 +42,19 @@ For now only two features on queries:
 
 - fetch all (no pagination)
 - fetch by id
+
+---FOR FILE ONLY
+For file there is a query like this
+
+/queries/files/{id}?chunk_index={index}
+
+with return format like
+
+{
+"id": "rutte-lang",
+"chunk": "#### RUTTE\n\nNee, die vragen wij natuurlijk ook om verstandig zich te bewegen in de samenleving. Drukte te vermijden en zich te realiseren dat je als zeventigplusser gemiddeld genomen, na een besmetting met corona, veel groter risico hebt dat je in het ziekenhuis komt, ernstig ziek wordt, dan wat jongere mensen. Dus ook tegen zeventigplussers zeggen we dat en het is niet zo dat we de scholen sluiten zodat de kinderen dan naar opa en oma kunnen met de kerst. Nee we zeggen, het is verstandig om met de kerst echt dat te beperken en als het niet anders kan, in ieder geval anderhalve meter en testen en noem maar op. We doen dit omdat we weten dat niet alle kindjes opa en oma zullen vermijden. Dus daar is altijd een risico dat het toch gebeurt en dat is ook een keuze die mensen maken. En naast de Delta-variant, de risico's van Omikron en de noodzaak om verspreiding te vertragen. Het noodzakelijk is om deze maatregel te nemen.",
+"chunk_index": 177,
+"next_chunk_index": 178
+}
+
+will 404 on invalid, will have -1 next_chunk_index when no more next chunks

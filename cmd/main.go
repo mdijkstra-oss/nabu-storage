@@ -43,7 +43,7 @@ func main() {
 	// Persist must be after replay ⚠️
 	publisher.Subscribe(cqrs.LimitOnType(cqrs.DomainEvent, cqrs.ReadOnlyRoute(persistence.Apply)))
 
-	//newFile, err := file.CreateFileEventFromPath("files/rutte-lang.md")
+	//newFile, err := file.CreateFileEventFromPath("files/2020-03-LT.md")
 	//if err != nil {
 	//	log.Fatal(err)
 	//}
