@@ -6,7 +6,7 @@ import (
 )
 
 var Router = cqrs.CombineRouters(
-	cqrs.LimitOnEntity(Code{},
+	cqrs.LimitOnEntity(EntityName,
 		cqrs.LimitOnType(cqrs.Command,
 			cqrs.ForPayload[CreateCodePayload](CreateCode, CreateCodeHandler),
 			cqrs.ToUpdateEvent[UpdateCodePayload](UpdateCode, UpdatedCode),

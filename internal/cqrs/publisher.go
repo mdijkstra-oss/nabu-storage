@@ -2,7 +2,7 @@ package cqrs
 
 import (
 	"context"
-	"hermes-relay/internal/utils"
+	"hermes-relay/internal/lib/utils"
 	"sync"
 )
 

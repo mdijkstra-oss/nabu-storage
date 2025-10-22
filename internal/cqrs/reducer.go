@@ -1,6 +1,8 @@
 package cqrs
 
-import "hermes-relay/internal/utils"
+import (
+	"hermes-relay/internal/lib/utils"
+)
 
 type Reducer[T any] func(current *T, event *Message) *T
 

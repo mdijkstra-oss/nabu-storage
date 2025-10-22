@@ -2,7 +2,6 @@ package cqrs
 
 import (
 	"context"
-	"hermes-relay/internal/utils"
 )
 
 type CommandRouter func(ctx context.Context, message *Message, publisher PublishFunc) (*Message, error)
@@ -49,26 +48,25 @@ func LimitOnType(messageType MessageType, handler ...CommandRouter) CommandRoute
 	}
 }
 
-func LimitOnEntity(entity any, handler ...CommandRouter) CommandRouter {
+func LimitOnEntity(entity AggregateType, handler ...CommandRouter) CommandRouter {
 	parentRouter := CombineRouters(handler...)
 
-	name := utils.GetStructName(entity)
-
 	return func(ctx context.Context, message *Message, publisher PublishFunc) (*Message, error) {
-		if message.AggregateType == AggregateType(name) {
+		if message.AggregateType == entity {
 			return parentRouter(ctx, message, publisher)
 		}
 		return nil, nil
 	}
 }
 
-func ReadOnlyRoute(readOnlyHandler func(message *Message) error) CommandRouter {
+func ReadOnlyRoutes(readOnlyHandlers ...func(message *Message) error) CommandRouter {
 	return func(ctx context.Context, message *Message, publishFunc PublishFunc) (*Message, error) {
-		err := readOnlyHandler(message)
-		if err != nil {
-			return nil, err
+		for _, handler := range readOnlyHandlers {
+			err := handler(message)
+			if err != nil {
+				return nil, err
+			}
 		}
-
 		return nil, nil
 	}
 }

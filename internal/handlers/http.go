@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"hermes-relay/internal/cqrs"
-	"hermes-relay/internal/utils"
+	"hermes-relay/internal/lib/utils"
 	"net/http"
 	"slices"
 	"strings"
@@ -12,6 +12,8 @@ import (
 )
 
 // Todo: Future, reject duplicates
+// Todo: Future refactor, also only pub func
+// Todo: This makes me sad comparing to the rest
 
 type batchResult struct {
 	Index   int           `json:"index"`

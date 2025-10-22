@@ -1,5 +1,7 @@
 package utils
 
+import "errors"
+
 func Values[K comparable, V any](m map[K]V) []V {
 	result := make([]V, 0, len(m))
 	for _, v := range m {
@@ -44,12 +46,12 @@ func Filter[T any](slice []T, predicate func(T) bool) []T {
 	return result
 }
 
-func Find[T any](items []T, predicate func(T) bool) (T, bool) {
+func Find[T any](items []T, predicate func(T) bool) (T, error) {
 	for _, item := range items {
 		if predicate(item) {
-			return item, true
+			return item, nil
 		}
 	}
 	var zero T
-	return zero, false
+	return zero, errors.New("item not found")
 }

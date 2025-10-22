@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/gorilla/websocket"
 	"hermes-relay/internal/cqrs"
-	"hermes-relay/internal/utils"
+	"hermes-relay/internal/lib/utils"
 	"net/http"
 	"time"
 )
