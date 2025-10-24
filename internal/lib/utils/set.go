@@ -55,3 +55,29 @@ func Find[T any](items []T, predicate func(T) bool) (T, error) {
 	var zero T
 	return zero, errors.New("item not found")
 }
+
+func Unique[T comparable](arr []T) []T {
+	seen := make(map[T]bool)
+	result := []T{}
+	for _, v := range arr {
+		if !seen[v] {
+			seen[v] = true
+			result = append(result, v)
+		}
+	}
+	return result
+}
+
+func Subtract[T comparable](a, b []T) []T {
+	bMap := make(map[T]bool)
+	for _, v := range b {
+		bMap[v] = true
+	}
+	result := []T{}
+	for _, v := range a {
+		if !bMap[v] {
+			result = append(result, v)
+		}
+	}
+	return result
+}

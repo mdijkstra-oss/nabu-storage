@@ -27,14 +27,10 @@ func main() {
 
 	setUpCommandHandlers(publisher)
 	setupEventHandlers(publisher)
+
+	//utils.MustNotError(PublishNewSourceFiles(publisher.Publish, fileview.Store))
+
 	setupHTTPHandlers(publisher)
-
-	//newFile, err := file.CreateFileEventFromPath("files/2020-03-LT.md")
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	//utils.MustNotError(persistence.Apply(newFile))
-
 }
 
 func setUpCommandHandlers(publisher *cqrs.InMemoryPublisher) {

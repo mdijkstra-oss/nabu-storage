@@ -9,12 +9,12 @@ var Router = cqrs.CombineRouters(
 	cqrs.LimitOnEntity(EntityName,
 		cqrs.LimitOnType(cqrs.Command,
 			cqrs.ForPayload[CreateCodePayload](CreateCode, CreateCodeHandler),
-			cqrs.ToUpdateEvent[UpdateCodePayload](UpdateCode, UpdatedCode),
+			cqrs.ToUpdateEntityEvent[UpdateCodePayload](UpdateCode, UpdatedCode),
 			cqrs.ToEmptyDomainEvent(DeleteCode, DeletedCode),
 		),
 	),
 )
 
-func CreateCodeHandler(ctx context.Context, message *cqrs.Message, payload CreateCodePayload, publisher cqrs.PublishFunc) (*cqrs.Message, error) {
+func CreateCodeHandler(ctx context.Context, message *cqrs.AnyMessage, payload CreateCodePayload, publisher cqrs.PublishFunc) (*cqrs.AnyMessage, error) {
 	return cqrs.ToDomainEvent(message, CreatedCode), nil
 }

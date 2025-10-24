@@ -6,7 +6,7 @@ import (
 	"sync"
 )
 
-type PublishFunc func(ctx context.Context, event *Message) (*Message, error)
+type PublishFunc func(ctx context.Context, event *AnyMessage) (*AnyMessage, error)
 
 type InMemoryPublisher struct {
 	subscribers []CommandRouter
@@ -23,7 +23,7 @@ func (p *InMemoryPublisher) Subscribe(router CommandRouter) {
 	p.subscribers = append(p.subscribers, router)
 }
 
-func (p *InMemoryPublisher) Publish(ctx context.Context, event *Message) (*Message, error) {
+func (p *InMemoryPublisher) Publish(ctx context.Context, event *AnyMessage) (*AnyMessage, error) {
 	if err := ValidateMessage(event); err != nil {
 		return nil, &utils.ValidationError{Message: err.Error()}
 	}
@@ -32,33 +32,21 @@ func (p *InMemoryPublisher) Publish(ctx context.Context, event *Message) (*Messa
 	subscribers := p.subscribers
 	p.mu.RUnlock()
 
-	var resultMessages []*Message
+	var firstResult *AnyMessage
 
 	for _, router := range subscribers {
 		result, err := router(ctx, event, p.Publish)
 
 		if result != nil {
+			if firstResult == nil {
+				firstResult = result
+			}
+
 			utils.Must(p.Publish(ctx, result))
 		}
 
 		if err != nil {
 			return nil, err
-		}
-
-		if result != nil {
-			resultMessages = append(resultMessages, result)
-		}
-	}
-
-	var firstResult *Message
-	if len(resultMessages) > 0 {
-		firstResult = resultMessages[0]
-	}
-
-	for _, msg := range resultMessages {
-		_, err := p.Publish(ctx, msg)
-		if err != nil {
-			return firstResult, err
 		}
 	}
 

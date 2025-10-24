@@ -4,10 +4,10 @@ import (
 	"context"
 )
 
-type CommandRouter func(ctx context.Context, message *Message, publisher PublishFunc) (*Message, error)
+type CommandRouter func(ctx context.Context, message *AnyMessage, publisher PublishFunc) (*AnyMessage, error)
 
 func CombineRouters(handlers ...CommandRouter) CommandRouter {
-	return func(ctx context.Context, message *Message, publisher PublishFunc) (*Message, error) {
+	return func(ctx context.Context, message *AnyMessage, publisher PublishFunc) (*AnyMessage, error) {
 		for _, handler := range handlers {
 			ch, err := handler(ctx, message, publisher)
 			if err != nil {
@@ -21,8 +21,8 @@ func CombineRouters(handlers ...CommandRouter) CommandRouter {
 	}
 }
 
-func ForPayload[P any](action Action, handler func(ctx context.Context, message *Message, payload P, publisher PublishFunc) (*Message, error)) CommandRouter {
-	return func(ctx context.Context, message *Message, publisher PublishFunc) (*Message, error) {
+func ForPayload[P any](action Action, handler func(ctx context.Context, message *AnyMessage, payload P, publisher PublishFunc) (*AnyMessage, error)) CommandRouter {
+	return func(ctx context.Context, message *AnyMessage, publisher PublishFunc) (*AnyMessage, error) {
 		if message.Action != action {
 			return nil, nil
 		}
@@ -40,7 +40,7 @@ func ForPayload[P any](action Action, handler func(ctx context.Context, message 
 func LimitOnType(messageType MessageType, handler ...CommandRouter) CommandRouter {
 	parentRouter := CombineRouters(handler...)
 
-	return func(ctx context.Context, message *Message, publisher PublishFunc) (*Message, error) {
+	return func(ctx context.Context, message *AnyMessage, publisher PublishFunc) (*AnyMessage, error) {
 		if message.Type == messageType {
 			return parentRouter(ctx, message, publisher)
 		}
@@ -51,7 +51,7 @@ func LimitOnType(messageType MessageType, handler ...CommandRouter) CommandRoute
 func LimitOnEntity(entity AggregateType, handler ...CommandRouter) CommandRouter {
 	parentRouter := CombineRouters(handler...)
 
-	return func(ctx context.Context, message *Message, publisher PublishFunc) (*Message, error) {
+	return func(ctx context.Context, message *AnyMessage, publisher PublishFunc) (*AnyMessage, error) {
 		if message.AggregateType == entity {
 			return parentRouter(ctx, message, publisher)
 		}
@@ -59,8 +59,8 @@ func LimitOnEntity(entity AggregateType, handler ...CommandRouter) CommandRouter
 	}
 }
 
-func ReadOnlyRoutes(readOnlyHandlers ...func(message *Message) error) CommandRouter {
-	return func(ctx context.Context, message *Message, publishFunc PublishFunc) (*Message, error) {
+func ReadOnlyRoutes(readOnlyHandlers ...func(message *AnyMessage) error) CommandRouter {
+	return func(ctx context.Context, message *AnyMessage, publishFunc PublishFunc) (*AnyMessage, error) {
 		for _, handler := range readOnlyHandlers {
 			err := handler(message)
 			if err != nil {

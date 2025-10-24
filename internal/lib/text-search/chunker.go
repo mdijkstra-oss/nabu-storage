@@ -1,4 +1,4 @@
-package markdown
+package textsearch
 
 import (
 	"regexp"
@@ -9,10 +9,10 @@ type BlockSize = int
 
 const (
 	HalfPage BlockSize = 1500
-	FullPage BlockSize = 3000
+	FullPage BlockSize = HalfPage * 2
 )
 
-func ParseBlocks(text string, minBlockSize BlockSize) []string {
+func ChunkBlocks(text string, minBlockSize BlockSize) []string {
 	lines := strings.Split(text, "\n")
 	blocks := []string{}
 

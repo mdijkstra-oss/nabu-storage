@@ -11,7 +11,7 @@ var Reducer = cqrs.CombineReducers(
 	cqrs.For(code.DeletedCode, DeletedCodeReducer),
 )
 
-func CreatedCodeReducer(_ *Code, message *cqrs.Message, payload *code.CreatedCodePayload) *Code {
+func CreatedCodeReducer(_ *Code, message *cqrs.AnyMessage, payload *code.CreatedCodePayload) *Code {
 	return &code.Code{
 		ID:        message.AggregateID,
 		Slug:      payload.Slug,
@@ -20,7 +20,7 @@ func CreatedCodeReducer(_ *Code, message *cqrs.Message, payload *code.CreatedCod
 	}
 }
 
-func UpdatedCodeReducer(current *Code, _ *cqrs.Message, payload *code.UpdateCodePayload) *Code {
+func UpdatedCodeReducer(current *Code, _ *cqrs.AnyMessage, payload *code.UpdatedCodePayload) *Code {
 	if payload.Color != "" {
 		current.Color = payload.Color
 	}
@@ -30,6 +30,6 @@ func UpdatedCodeReducer(current *Code, _ *cqrs.Message, payload *code.UpdateCode
 	return current
 }
 
-func DeletedCodeReducer(_ *Code, _ *cqrs.Message, _ any) *Code {
+func DeletedCodeReducer(_ *Code, _ *cqrs.AnyMessage, _ any) *Code {
 	return nil
 }

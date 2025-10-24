@@ -38,7 +38,7 @@ func WebSocketHandler(publisher *cqrs.InMemoryPublisher) http.HandlerFunc {
 
 func SetupWebSocketForwarder(publisher *cqrs.InMemoryPublisher, conn *websocket.Conn) {
 	// Subscribe to outgoing events
-	publisher.Subscribe(func(ctx context.Context, event *cqrs.Message, pub cqrs.PublishFunc) (*cqrs.Message, error) {
+	publisher.Subscribe(func(ctx context.Context, event *cqrs.AnyMessage, pub cqrs.PublishFunc) (*cqrs.AnyMessage, error) {
 		if event.Type == cqrs.DomainEvent || event.Type == cqrs.SystemEvent {
 			utils.WarnErr(conn.WriteJSON(event))
 		}
@@ -49,7 +49,7 @@ func SetupWebSocketForwarder(publisher *cqrs.InMemoryPublisher, conn *websocket.
 	// Handle incoming messages from WebSocket
 	go func() {
 		for {
-			var msg cqrs.Message
+			var msg cqrs.AnyMessage
 			decodeErr := conn.ReadJSON(&msg)
 			if decodeErr != nil {
 				return

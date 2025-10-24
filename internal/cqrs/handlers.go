@@ -5,8 +5,8 @@ import (
 	"github.com/google/uuid"
 )
 
-func ToCreateEvent[P any](commandAction, eventAction Action) CommandRouter {
-	return func(ctx context.Context, message *Message, publisher PublishFunc) (*Message, error) {
+func ToCreateEntityEvent[P any](commandAction, eventAction Action) CommandRouter {
+	return func(ctx context.Context, message *AnyMessage, publisher PublishFunc) (*AnyMessage, error) {
 		if message.Action != commandAction {
 			return nil, nil
 		}
@@ -17,14 +17,15 @@ func ToCreateEvent[P any](commandAction, eventAction Action) CommandRouter {
 			return nil, err
 		}
 
+		// Copies struct, so all good
 		withID := *message
 		withID.AggregateID = uuid.New().String()
 		return ToDomainEvent(&withID, eventAction), nil
 	}
 }
 
-func ToUpdateEvent[P any](commandAction, eventAction Action) CommandRouter {
-	return func(ctx context.Context, message *Message, publisher PublishFunc) (*Message, error) {
+func ToUpdateEntityEvent[P any](commandAction, eventAction Action) CommandRouter {
+	return func(ctx context.Context, message *AnyMessage, publisher PublishFunc) (*AnyMessage, error) {
 		if message.Action != commandAction {
 			return nil, nil
 		}
@@ -40,7 +41,7 @@ func ToUpdateEvent[P any](commandAction, eventAction Action) CommandRouter {
 }
 
 func ToEmptyDomainEvent(commandAction, eventAction Action) CommandRouter {
-	return func(ctx context.Context, message *Message, publisher PublishFunc) (*Message, error) {
+	return func(ctx context.Context, message *AnyMessage, publisher PublishFunc) (*AnyMessage, error) {
 		if message.Action != commandAction {
 			return nil, nil
 		}

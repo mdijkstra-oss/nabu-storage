@@ -4,10 +4,10 @@ import (
 	"hermes-relay/internal/lib/utils"
 )
 
-type Reducer[T any] func(current *T, event *Message) *T
+type Reducer[T any] func(current *T, event *AnyMessage) *T
 
 func CombineReducers[T any](reducers ...Reducer[T]) Reducer[T] {
-	return func(current *T, event *Message) *T {
+	return func(current *T, event *AnyMessage) *T {
 		var state = current
 		for _, reducer := range reducers {
 			state = reducer(state, event)
@@ -16,8 +16,8 @@ func CombineReducers[T any](reducers ...Reducer[T]) Reducer[T] {
 	}
 }
 
-func For[T any, P any](action Action, reducer func(*T, *Message, P) *T) Reducer[T] {
-	return func(current *T, event *Message) *T {
+func For[T any, P any](action Action, reducer func(*T, *AnyMessage, P) *T) Reducer[T] {
+	return func(current *T, event *AnyMessage) *T {
 		if event.Action != action {
 			return current
 		}

@@ -25,8 +25,9 @@ const (
 //System events: scheduled jobs, webhooks, monitoring. PaymentWebhook → generates command → domain event. Cron cleanup → generates command → domain event.
 //Integration/system can trigger commands, which generate domain events. But integration/system events themselves aren't replayed.
 
-// Todo: Important, make sure some of these cannot be modified by external party!
-type Message struct {
+// Todo: validation here?
+
+type Message[T any] struct {
 	ID string `json:"id,omitempty"`
 
 	Action Action      `json:"action" validate:"required"`
@@ -34,19 +35,41 @@ type Message struct {
 
 	AggregateID   string        `json:"aggregateId,omitempty"`
 	AggregateType AggregateType `json:"aggregateType,omitempty"`
-	Payload       any           `json:"payload,omitempty"`
+	Payload       T             `json:"payload,omitempty"`
 
-	ParentID string `json:"parent,omitempty"`
-	// Todo: add again
-	Timestamp time.Time //`json:"timestamp" validate:"required"`
+	CausationID string    `json:"causationId,omitempty"`
+	Timestamp   time.Time //`json:"timestamp" validate:"required"`
 }
 
-func ValidateMessage(m *Message) error {
+type AnyMessage = Message[any]
+
+// Todo more message things for tracking etc.
+// Versioning
+// Parent
+/*
+type Event struct {
+    ID            string
+    AggregateID   string
+    Version       int
+    CausationID   string  // immediate cause (command/event ID)
+    CorrelationID string  // workflow/request ID
+}
+Example:
+
+User request: correlation ID = "req-123"
+CreateAccount command: causation = "req-123"
+AccountCreated event: causation = "cmd-456", correlation = "req-123"
+WelcomeEmailSent event: causation = "account-created-789", correlation = "req-123"
+
+Causation = parent. Correlation = trace entire flow.
+*/
+
+func ValidateMessage[T any](m *Message[T]) error {
 	validate := validator.New()
 	return validate.Struct(m)
 }
 
-func EnsureValidPayload(m *Message, p any) error {
+func EnsureValidPayload[T any](m *Message[T], p any) error {
 	validate := validator.New()
 
 	err := UnmarshallPayload(m, p)
@@ -57,39 +80,40 @@ func EnsureValidPayload(m *Message, p any) error {
 	return validate.Struct(p)
 }
 
-func (m Message) LogValue() slog.Value {
+// Wastefull generic fornow.
+func (m Message[T]) LogValue() slog.Value {
 	return slog.GroupValue(
 		slog.String("id", m.ID),
 		slog.String("action", string(m.Action)),
 		slog.String("type", string(m.Type)),
 		slog.String("aggregateId", m.AggregateID),
-		slog.String("parentId", m.ParentID),
+		slog.String("causationId", m.CausationID),
 		slog.Time("timestamp", m.Timestamp),
 	)
 }
 
-func NewMessage(mType MessageType, action Action, payload any, aggregateType AggregateType, aggregateID string, parent *Message) *Message {
-	return &Message{
+func NewMessage[T any, C any](mType MessageType, action Action, payload T, aggregateType AggregateType, aggregateID string, cause *Message[C]) *Message[T] {
+	return &Message[T]{
 		ID:            uuid.NewString(),
 		Action:        action,
 		Type:          mType,
 		AggregateID:   aggregateID,
 		AggregateType: aggregateType,
 		Payload:       payload,
-		ParentID:      parent.ID,
+		CausationID:   cause.ID,
 		Timestamp:     time.Now(),
 	}
 }
 
-func NewCommand(action Action, payload any, aggregateType AggregateType, aggregateID string, parent *Message) *Message {
+func NewCommand[T any, P any](action Action, payload T, aggregateType AggregateType, aggregateID string, parent *Message[P]) *Message[T] {
 	return NewMessage(Command, action, payload, aggregateType, aggregateID, parent)
 }
 
-func NewDomainEvent(action Action, payload any, aggregateType AggregateType, aggregateID string, parent *Message) *Message {
+func NewDomainEvent[T any, P any](action Action, payload T, aggregateType AggregateType, aggregateID string, parent *Message[P]) *Message[T] {
 	return NewMessage(DomainEvent, action, payload, aggregateType, aggregateID, parent)
 }
 
-func ToDomainEvent(message *Message, event Action) *Message {
+func ToDomainEvent[T any](message *Message[T], event Action) *Message[T] {
 	return NewMessage(
 		DomainEvent,
 		event,
@@ -100,10 +124,22 @@ func ToDomainEvent(message *Message, event Action) *Message {
 	)
 }
 
-func UnmarshallPayload(m *Message, payload any) error {
+func UnmarshallPayload[T any](m *Message[T], payload any) error {
 	data, err := json.Marshal(m.Payload)
 	if err != nil {
 		return err
 	}
 	return json.Unmarshal(data, payload)
+}
+
+func ToAny[P any](m *Message[P]) *AnyMessage {
+	return &AnyMessage{
+		ID:          m.ID,
+		Action:      m.Action,
+		Type:        m.Type,
+		AggregateID: m.AggregateID,
+		CausationID: m.CausationID,
+		Timestamp:   m.Timestamp,
+		Payload:     m.Payload,
+	}
 }

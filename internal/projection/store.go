@@ -8,8 +8,8 @@ import (
 
 // EventApplier is a type-erased interface for stores that can apply events
 type EventApplier interface {
-	ApplyEvent(message *cqrs.Message) error
-	ApplyEvents(events []cqrs.Message) error
+	ApplyEvent(message *cqrs.AnyMessage) error
+	ApplyEvents(events []cqrs.AnyMessage) error
 }
 
 // Store is a generic in-memory store for entities
@@ -26,7 +26,7 @@ func NewStore[T any](reducer cqrs.Reducer[T]) *Store[T] {
 	}
 }
 
-func (s *Store[T]) ApplyEvent(message *cqrs.Message) error {
+func (s *Store[T]) ApplyEvent(message *cqrs.AnyMessage) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -52,7 +52,7 @@ func (s *Store[T]) ApplyEvent(message *cqrs.Message) error {
 	return nil
 }
 
-func (s *Store[T]) ApplyEvents(events []cqrs.Message) error {
+func (s *Store[T]) ApplyEvents(events []cqrs.AnyMessage) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -61,7 +61,7 @@ func (s *Store[T]) ApplyEvents(events []cqrs.Message) error {
 	}
 
 	// Group events by aggregate ID
-	grouped := make(map[string][]cqrs.Message)
+	grouped := make(map[string][]cqrs.AnyMessage)
 	for _, event := range events {
 		grouped[event.AggregateID] = append(grouped[event.AggregateID], event)
 	}

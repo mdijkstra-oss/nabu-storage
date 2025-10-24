@@ -1,10 +1,12 @@
 package fileview
 
 import (
+	"github.com/google/uuid"
 	"hermes-relay/internal/cqrs"
 	"hermes-relay/internal/domain/entities/file"
+	"hermes-relay/internal/lib/text-search"
 	"hermes-relay/internal/lib/utils"
-	"slices"
+	"log/slog"
 )
 
 var Reducer = cqrs.CombineReducers(
@@ -13,47 +15,76 @@ var Reducer = cqrs.CombineReducers(
 	cqrs.For(file.ClearedCoding, ClearedCodingReducer),
 )
 
-func CreatedFileReducer(_ *File, message *cqrs.Message, payload *file.CreatedFilePayload) *File {
+func CreatedFileReducer(_ *File, message *cqrs.AnyMessage, payload *file.CreatedFilePayload) *File {
+	// Todo: What's faster, what's better?
+	blocks := textsearch.ChunkBlocks(payload.Content, textsearch.FullPage)
+
+	chunks := utils.Map(blocks, func(block string) file.Chunk {
+		return file.Chunk{
+			ID:      uuid.New().String(),
+			Content: block,
+			Codes:   []file.CodedSection{},
+		}
+	})
+
 	return &File{
 		ID:      payload.ID,
 		Content: payload.Content,
-		Attributes: file.Attributes{
-			Codes: payload.Codes,
-		},
+		Chunks:  chunks,
 	}
 }
 
-func CodedFileReducer(current *File, message *cqrs.Message, payload *file.CodedFilePayload) *File {
-	if current.Codes == nil {
-		current.Codes = make(map[string][]string)
-	}
-
+func CodedFileReducer(current *File, message *cqrs.AnyMessage, payload *file.CodeFileData) *File {
 	for _, action := range payload.Actions {
+		chunkIdx := -1
+		for i, c := range current.Chunks {
+			if c.ID == action.ChunkID {
+				chunkIdx = i
+				break
+			}
+		}
+
+		if chunkIdx == -1 {
+			slog.Warn("Chunk not found", "id", action.ChunkID)
+			continue
+		}
+
+		chunk := &current.Chunks[chunkIdx]
+
 		switch action.Action {
 		case file.SetCoding:
-			current.Codes[action.CodeID] = action.Texts
+			newCodes := []file.CodedSection{}
+			for _, code := range chunk.Codes {
+				if code.CodeSlug != action.CodeSlug {
+					newCodes = append(newCodes, code)
+				}
+			}
+			chunk.Codes = newCodes
+			fallthrough
 
 		case file.AppendCoding:
-			current.Codes[action.CodeID] = append(current.Codes[action.CodeID], action.Texts...)
+			for _, text := range action.Texts {
+				start, end, found := textsearch.FindRange(text, chunk.Content)
+				if !found {
+					slog.Warn("Text not found", "chunk", action.ChunkID, "text", text)
+					continue
+				}
 
-		case file.RemoveCoding:
-			current.Codes[action.CodeID] = removeTexts(current.Codes[action.CodeID], action.Texts)
-			if len(current.Codes[action.CodeID]) == 0 {
-				delete(current.Codes, action.CodeID)
+				chunk.Codes = append(chunk.Codes, file.CodedSection{
+					StartIndex: start,
+					EndIndex:   end,
+					CodeSlug:   action.CodeSlug,
+					Text:       chunk.Content[start:end],
+				})
 			}
 		}
 	}
-
 	return current
 }
 
-func ClearedCodingReducer(current *File, message *cqrs.Message, payload any) *File {
-	current.Codes = make(map[string][]string)
+func ClearedCodingReducer(current *File, message *cqrs.AnyMessage, payload any) *File {
+	for i := range current.Chunks {
+		current.Chunks[i].Codes = []file.CodedSection{}
+	}
 	return current
-}
-
-func removeTexts(existing, toRemove []string) []string {
-	return utils.Filter(existing, func(text string) bool {
-		return !slices.Contains(toRemove, text)
-	})
 }

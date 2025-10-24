@@ -24,7 +24,7 @@ func getBasePath() string {
 // PersistEvent writes a domain event to disk using append-only writes
 // Events are stored in JSONL format (one JSON object per line)
 // File structure: ~/Documents/hermes-persistence/{AggregateType}/{AggregateId}.jsonl
-func PersistEvent(message *cqrs.Message) error {
+func PersistEvent(message *cqrs.AnyMessage) error {
 	if message.AggregateType == "" {
 		return fmt.Errorf("cannot persist event without aggregate type")
 	}
@@ -48,8 +48,8 @@ func PersistEvent(message *cqrs.Message) error {
 
 // LoadAllEvents reads all persisted events from disk
 // Returns events sorted by timestamp
-func LoadAllEvents() ([]cqrs.Message, error) {
-	var allEvents []cqrs.Message
+func LoadAllEvents() ([]cqrs.AnyMessage, error) {
+	var allEvents []cqrs.AnyMessage
 	basePath := getBasePath()
 
 	// Check if base path exists
@@ -88,8 +88,8 @@ func LoadAllEvents() ([]cqrs.Message, error) {
 }
 
 // loadEventsForType loads all events for a specific aggregate type
-func loadEventsForType(aggregateType string) ([]cqrs.Message, error) {
-	var events []cqrs.Message
+func loadEventsForType(aggregateType string) ([]cqrs.AnyMessage, error) {
+	var events []cqrs.AnyMessage
 	basePath := getBasePath()
 
 	typePath := filepath.Join(basePath, aggregateType)
@@ -125,18 +125,18 @@ func getEventFilePath(aggregateType cqrs.AggregateType, aggregateID string) stri
 }
 
 // readEventsFromFile reads events from a JSONL file (one JSON object per line)
-func readEventsFromFile(filePath string) ([]cqrs.Message, error) {
+func readEventsFromFile(filePath string) ([]cqrs.AnyMessage, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, err
 	}
 	defer file.Close()
 
-	var events []cqrs.Message
+	var events []cqrs.AnyMessage
 	decoder := json.NewDecoder(file)
 
 	for decoder.More() {
-		var event cqrs.Message
+		var event cqrs.AnyMessage
 		if err := decoder.Decode(&event); err != nil {
 			return nil, fmt.Errorf("failed to decode event: %w", err)
 		}
@@ -147,7 +147,7 @@ func readEventsFromFile(filePath string) ([]cqrs.Message, error) {
 }
 
 // appendEventToFile appends a single event to a JSONL file
-func appendEventToFile(filePath string, event *cqrs.Message) error {
+func appendEventToFile(filePath string, event *cqrs.AnyMessage) error {
 	// Ensure directory exists
 	dir := filepath.Dir(filePath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
@@ -171,7 +171,7 @@ func appendEventToFile(filePath string, event *cqrs.Message) error {
 }
 
 // Apply is a readonly route that persists domain events to disk
-func Apply(message *cqrs.Message) error {
+func Apply(message *cqrs.AnyMessage) error {
 	if err := PersistEvent(message); err != nil {
 		slog.Error("failed to persist event",
 			"action", message.Action,

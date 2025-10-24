@@ -8,7 +8,8 @@ import (
 var Router = cqrs.CombineRouters(
 	cqrs.LimitOnEntity(EntityName,
 		cqrs.LimitOnType(cqrs.Command,
-			cqrs.ToUpdateEvent[CodeFilePayload](CodeFile, CodedFile),
+			cqrs.ToCreateEntityEvent[CreatedFilePayload](Create, CreatedFile),
+			cqrs.ToUpdateEntityEvent[CodeFilePayload](CodeFile, CodedFile),
 			cqrs.ToEmptyDomainEvent(ClearCoding, ClearedCoding),
 		),
 	),

@@ -16,10 +16,10 @@ import (
 // Todo: This makes me sad comparing to the rest
 
 type batchResult struct {
-	Index   int           `json:"index"`
-	Success bool          `json:"success"`
-	Result  *cqrs.Message `json:"result,omitempty"`
-	Error   string        `json:"error,omitempty"`
+	Index   int              `json:"index"`
+	Success bool             `json:"success"`
+	Result  *cqrs.AnyMessage `json:"result,omitempty"`
+	Error   string           `json:"error,omitempty"`
 }
 
 type batchResponse struct {
@@ -59,7 +59,7 @@ func messageHandler(publisher *cqrs.InMemoryPublisher, returnResult bool, allowe
 }
 
 func handleSingle(w http.ResponseWriter, r *http.Request, raw json.RawMessage, publisher *cqrs.InMemoryPublisher, returnResult bool, allowedMessageTypes []cqrs.MessageType) {
-	var msg cqrs.Message
+	var msg cqrs.AnyMessage
 	if err := json.Unmarshal(raw, &msg); err != nil {
 		respondError(w, http.StatusBadRequest, err.Error())
 		return
@@ -97,7 +97,7 @@ func handleSingle(w http.ResponseWriter, r *http.Request, raw json.RawMessage, p
 }
 
 func handleBatch(w http.ResponseWriter, r *http.Request, raw json.RawMessage, publisher *cqrs.InMemoryPublisher, returnResult bool, allowedMessageTypes []cqrs.MessageType) {
-	var messages []cqrs.Message
+	var messages []cqrs.AnyMessage
 	if err := json.Unmarshal(raw, &messages); err != nil {
 		respondError(w, http.StatusBadRequest, err.Error())
 		return

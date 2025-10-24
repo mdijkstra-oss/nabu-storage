@@ -6,5 +6,6 @@ const (
 	ClearedCoding = "ClearedCoding"
 )
 
-type CreatedFilePayload = File
+type CreatedFilePayload = CreateFileData
+
 type CodedFilePayload = CodeFileData
