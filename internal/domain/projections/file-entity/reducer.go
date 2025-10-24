@@ -17,7 +17,7 @@ var Reducer = cqrs.CombineReducers(
 
 func CreatedFileReducer(_ *File, message *cqrs.AnyMessage, payload *file.CreatedFilePayload) *File {
 	// Todo: What's faster, what's better?
-	blocks := textsearch.ChunkBlocks(payload.Content, textsearch.FullPage)
+	blocks := textsearch.ChunkBlocks(payload.Content, textsearch.FullPage, textsearch.FullPage+textsearch.HalfPage)
 
 	chunks := utils.Map(blocks, func(block string) file.Chunk {
 		return file.Chunk{
@@ -28,7 +28,11 @@ func CreatedFileReducer(_ *File, message *cqrs.AnyMessage, payload *file.Created
 	})
 
 	return &File{
-		ID:      payload.ID,
+		BaseFile: file.BaseFile{
+			ID:      message.AggregateID,
+			Summary: payload.Summary,
+			Name:    payload.Name,
+		},
 		Content: payload.Content,
 		Chunks:  chunks,
 	}

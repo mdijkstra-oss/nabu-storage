@@ -1,7 +1,7 @@
 package file
 
 type CreateFileData struct {
-	ID      string `json:"id"`
+	BaseFile
 	Content string `json:"content"`
 }
 

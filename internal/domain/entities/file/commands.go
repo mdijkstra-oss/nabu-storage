@@ -9,4 +9,4 @@ const (
 )
 
 type CodeFilePayload = CodeFileData
-type CreateFilePayload = CreatedFilePayload
+type CreateFilePayload = CreateFileData

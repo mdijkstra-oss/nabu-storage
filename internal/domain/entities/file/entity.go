@@ -1,9 +1,16 @@
 package file
 
 type File struct {
-	ID      string  `json:"id" validate:"required"`
-	Content string  `json:"content"`
-	Chunks  []Chunk `json:"chunks" validate:"required,min=1,dive,required"`
+	BaseFile
+	Content string `json:"content"`
+	Chunks  []Chunk
+}
+
+type BaseFile struct {
+	ID      string `json:"id"`
+	Summary string `json:"summary"`
+	Name    string `json:"name" validate:"required"`
+	Title   string `json:"title"`
 }
 
 type CodedSection struct {
@@ -19,4 +26,8 @@ type Chunk struct {
 	ID      string         `json:"id" validate:"required"`
 	Content string         `json:"content"`
 	Codes   []CodedSection `json:"codes"`
+}
+
+func ToBaseFile(file *File) BaseFile {
+	return file.BaseFile
 }

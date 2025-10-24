@@ -12,7 +12,7 @@ const (
 	FullPage BlockSize = HalfPage * 2
 )
 
-func ChunkBlocks(text string, minBlockSize BlockSize) []string {
+func ChunkBlocks(text string, minBlockSize BlockSize, maxBlockSize BlockSize) []string {
 	lines := strings.Split(text, "\n")
 	blocks := []string{}
 
@@ -45,23 +45,44 @@ func ChunkBlocks(text string, minBlockSize BlockSize) []string {
 		currentType = bType
 	}
 
+	appendLine := func(line string) {
+		newContent := current + line + "\n"
+		if len(newContent) > int(maxBlockSize) && current != "" {
+			// Find closest newline to maxBlockSize
+			splitPos := int(maxBlockSize)
+			if splitPos > len(current) {
+				splitPos = len(current)
+			}
+
+			lastNewline := strings.LastIndex(current[:splitPos], "\n")
+			if lastNewline > 0 {
+				splitPos = lastNewline + 1
+			}
+
+			blocks = append(blocks, current[:splitPos])
+			current = current[splitPos:] + line + "\n"
+		} else {
+			current = newContent
+		}
+	}
+
 	for _, line := range lines {
 		if match := regexp.MustCompile("^(```|~~~)").FindString(line); match != "" {
 			if codeMarker == "" {
 				startBlock("code", line+"\n")
 				codeMarker = match
 			} else if strings.HasPrefix(line, codeMarker) {
-				current += line + "\n"
+				appendLine(line)
 				addBlock()
 				codeMarker = ""
 			} else {
-				current += line + "\n"
+				appendLine(line)
 			}
 			continue
 		}
 
 		if codeMarker != "" {
-			current += line + "\n"
+			appendLine(line)
 			continue
 		}
 
@@ -79,7 +100,7 @@ func ChunkBlocks(text string, minBlockSize BlockSize) []string {
 				} else if current == "" || currentType != m.blockType {
 					startBlock(m.blockType, line+"\n")
 				} else {
-					current += line + "\n"
+					appendLine(line)
 				}
 				matched = true
 				break
@@ -90,7 +111,7 @@ func ChunkBlocks(text string, minBlockSize BlockSize) []string {
 			if current == "" || currentType != "paragraph" {
 				startBlock("paragraph", line+"\n")
 			} else {
-				current += line + "\n"
+				appendLine(line)
 			}
 		}
 	}

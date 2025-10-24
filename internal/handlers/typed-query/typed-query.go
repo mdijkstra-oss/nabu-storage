@@ -23,6 +23,14 @@ func Route[T, Q, R any](
 	store *projection.Store[T],
 	queryFn QueryFunc[T, Q, R],
 ) http.HandlerFunc {
+	return RouteWithMap[T, Q, R, R](store, queryFn, func(r R) R { return r })
+}
+
+func RouteWithMap[T, Q, R, Y any](
+	store *projection.Store[T],
+	queryFn QueryFunc[T, Q, R],
+	mapFn func(R) Y,
+) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var query Q
 
@@ -42,8 +50,13 @@ func Route[T, Q, R any](
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		utils.MustNotError(json.NewEncoder(w).Encode(result))
+		mapped := mapFn(result)
+
+		if w.Header().Get("Content-Type") == "application/json" {
+			utils.MustNotError(json.NewEncoder(w).Encode(mapped))
+		} else {
+			utils.Must(fmt.Fprint(w, mapped))
+		}
 	}
 }
 
