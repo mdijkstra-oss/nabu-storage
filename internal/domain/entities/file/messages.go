@@ -16,10 +16,10 @@ const (
 // Todo: Remove by uuid
 
 type CodingAction struct {
-	CodeSlug string         `json:"code_slug" validate:"required"`
-	Action   CodingMutation `json:"action" validate:"oneof=SetCoding AppendCoding RemoveCoding"`
-	Texts    []string       `json:"texts" validate:"min=1,dive,required"`
-	ChunkID  string         `json:"chunk_id" validate:"required"`
+	CodeSlug string                   `json:"code_slug" validate:"required"`
+	Action   CodingMutation           `json:"action" validate:"oneof=SetCoding AppendCoding RemoveCoding"`
+	Sections []CodedSectionAttributes `json:"texts" validate:"min=1,dive,required"`
+	ChunkID  string                   `json:"chunk_id" validate:"required"`
 }
 
 type CodeFileData struct {

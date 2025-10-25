@@ -42,9 +42,11 @@ func NewCreatedFileAction(filePath string) (*cqrs.AnyMessage, error) {
 
 	payload := file.CreateFilePayload{
 		BaseFile: file.BaseFile{
-			Summary: "TBD",
-			Name:    filename,
-			Title:   "TBD",
+			Name: filename,
+			Attributes: file.Attributes{
+				Title:   "",
+				Summary: "",
+			},
 		},
 		Content: string(content),
 	}

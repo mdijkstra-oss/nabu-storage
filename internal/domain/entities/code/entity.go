@@ -9,7 +9,7 @@ type Code struct {
 	ID string `json:"id" validate:"required"`
 
 	// eg speaker:mark-rutte
-	Slug string `json:"slug" validate:"required,code_slug"`
+	Slug string `json:"slug" validate:"required,min=3,max=100,code_slug"`
 	// Color is in tailwind color system e.g. red-500 intensity on 300-700 range (inclusive)
 	Color string `json:"color" validate:"required"`
 	// The reasoning for determining whether this code applies to a given piece of text.

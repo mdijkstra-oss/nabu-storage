@@ -29,9 +29,13 @@ func CreatedFileReducer(_ *File, message *cqrs.AnyMessage, payload *file.Created
 
 	return &File{
 		BaseFile: file.BaseFile{
-			ID:      message.AggregateID,
-			Summary: payload.Summary,
-			Name:    payload.Name,
+			ID:   message.AggregateID,
+			Name: payload.Name,
+			Attributes: file.Attributes{
+				Title:   payload.Title,
+				Summary: payload.Summary,
+				Time:    payload.Time,
+			},
 		},
 		Content: payload.Content,
 		Chunks:  chunks,
@@ -67,10 +71,10 @@ func CodedFileReducer(current *File, message *cqrs.AnyMessage, payload *file.Cod
 			fallthrough
 
 		case file.AppendCoding:
-			for _, text := range action.Texts {
-				start, end, found := textsearch.FindRange(text, chunk.Content)
+			for _, section := range action.Sections {
+				start, end, found := textsearch.FindRange(section.Text, chunk.Content)
 				if !found {
-					slog.Warn("Text not found", "chunk", action.ChunkID, "text", text)
+					slog.Warn("Text not found", "chunk", action.ChunkID, "section", section)
 					continue
 				}
 
@@ -78,7 +82,11 @@ func CodedFileReducer(current *File, message *cqrs.AnyMessage, payload *file.Cod
 					StartIndex: start,
 					EndIndex:   end,
 					CodeSlug:   action.CodeSlug,
-					Text:       chunk.Content[start:end],
+					CodedSectionAttributes: file.CodedSectionAttributes{
+						Text:     section.Text,
+						AIReason: section.AIReason,
+						Comment:  section.Comment,
+					},
 				})
 			}
 		}
