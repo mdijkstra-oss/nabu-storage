@@ -1,0 +1,5 @@
+This is a very long first line that exceeds one hundred bytes on purpose so when the next line is appended it will trigger splitting logic where the first one hundred bytes have no newlines and we can test word boundary splitting properly.
+Second line continues the paragraph.
+
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+Second line triggers mid-word split because first line has no spaces in first 100 bytes.

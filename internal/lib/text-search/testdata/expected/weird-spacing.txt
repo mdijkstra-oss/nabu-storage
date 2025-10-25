@@ -1,0 +1,8 @@
+First paragraph.
+
+Multiple blank lines above.
+
+Too many spaces.
+
+---CHUNK---
+Normal paragraph here.

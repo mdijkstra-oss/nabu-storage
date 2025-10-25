@@ -1,0 +1,12 @@
+Shopping list:
+
+- Apples
+- Bananas
+- Oranges
+- Grapes
+
+Numbered items:
+
+1. First item
+2. Second item
+3. Third item

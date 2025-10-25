@@ -47,16 +47,29 @@ func ChunkBlocks(text string, minBlockSize BlockSize, maxBlockSize BlockSize) []
 
 	appendLine := func(line string) {
 		newContent := current + line + "\n"
-		if len(newContent) > int(maxBlockSize) && current != "" {
-			// Find closest newline to maxBlockSize
+
+		// Never split block-level elements (tables, lists, code, blockquotes, rules)
+		// Only apply size-based splitting to paragraphs for frontend rendering compatibility
+		isBlockLevel := currentType != "paragraph" && currentType != ""
+
+		if len(newContent) > int(maxBlockSize) && current != "" && !isBlockLevel {
+			// Three-tier fallback for splitting long paragraph content
 			splitPos := int(maxBlockSize)
 			if splitPos > len(current) {
 				splitPos = len(current)
 			}
 
+			// First priority: split at newline
 			lastNewline := strings.LastIndex(current[:splitPos], "\n")
 			if lastNewline > 0 {
 				splitPos = lastNewline + 1
+			} else {
+				// Second priority: split at space (word boundary)
+				lastSpace := strings.LastIndex(current[:splitPos], " ")
+				if lastSpace > 0 {
+					splitPos = lastSpace + 1
+				}
+				// Third priority: split mid-word (splitPos already set to maxBlockSize)
 			}
 
 			blocks = append(blocks, current[:splitPos])
@@ -133,6 +146,14 @@ func mergeHeaders(blocks []string) []string {
 	return result
 }
 
+func getHeadingLevel(block string) int {
+	match := regexp.MustCompile(`^(#+)\s`).FindStringSubmatch(block)
+	if match != nil {
+		return len(match[1]) // Number of # characters
+	}
+	return 0 // Not a heading
+}
+
 func mergeSmallBlocks(blocks []string, minSize int) []string {
 	if len(blocks) == 0 {
 		return blocks
@@ -140,13 +161,25 @@ func mergeSmallBlocks(blocks []string, minSize int) []string {
 
 	result := []string{}
 	accumulated := blocks[0]
+	accumulatedHeadingLevel := getHeadingLevel(accumulated)
 
 	for i := 1; i < len(blocks); i++ {
-		if len(accumulated) < minSize {
+		nextHeadingLevel := getHeadingLevel(blocks[i])
+
+		// Don't merge if next block has a "bigger" heading (lower level number)
+		// e.g., ### (level 3) followed by ## (level 2) should start new chunk
+		isBiggerHeading := nextHeadingLevel > 0 && accumulatedHeadingLevel > 0 && nextHeadingLevel < accumulatedHeadingLevel
+
+		if len(accumulated) < minSize && !isBiggerHeading {
 			accumulated += "\n" + blocks[i]
+			// Update to track the smallest (most important) heading level
+			if nextHeadingLevel > 0 && (accumulatedHeadingLevel == 0 || nextHeadingLevel < accumulatedHeadingLevel) {
+				accumulatedHeadingLevel = nextHeadingLevel
+			}
 		} else {
 			result = append(result, accumulated)
 			accumulated = blocks[i]
+			accumulatedHeadingLevel = nextHeadingLevel
 		}
 	}
 	result = append(result, accumulated)
