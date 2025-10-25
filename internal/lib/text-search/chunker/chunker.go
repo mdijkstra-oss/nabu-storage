@@ -1,4 +1,4 @@
-package textsearch
+package chunker
 
 import (
 	"regexp"

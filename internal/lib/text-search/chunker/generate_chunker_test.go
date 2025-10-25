@@ -1,4 +1,4 @@
-package textsearch
+package chunker
 
 import (
 	"os"
@@ -12,11 +12,12 @@ import (
 // SAFETY: Requires explicit GENERATE argument to prevent accidental regeneration.
 //
 // Usage:
-//   # Regenerate a single file (recommended for iterating on one test case)
-//   GENERATE=word-boundary.md go test -run TestGenerateExpectedOutputs
 //
-//   # Regenerate all files (⚠️  WARNING: You MUST manually verify each file after!)
-//   GENERATE=all go test -run TestGenerateExpectedOutputs
+//	# Regenerate a single file (recommended for iterating on one test case)
+//	GENERATE=word-boundary.md go test -run TestGenerateExpectedOutputs
+//
+//	# Regenerate all files (⚠️  WARNING: You MUST manually verify each file after!)
+//	GENERATE=all go test -run TestGenerateExpectedOutputs
 //
 // The test will skip if no GENERATE argument is provided.
 func TestGenerateExpectedOutputs(t *testing.T) {

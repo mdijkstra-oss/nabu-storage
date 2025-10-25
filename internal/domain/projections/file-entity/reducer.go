@@ -4,7 +4,8 @@ import (
 	"github.com/google/uuid"
 	"hermes-relay/internal/cqrs"
 	"hermes-relay/internal/domain/entities/file"
-	"hermes-relay/internal/lib/text-search"
+	"hermes-relay/internal/lib/text-search/chunker"
+	"hermes-relay/internal/lib/text-search/find"
 	"hermes-relay/internal/lib/utils"
 	"log/slog"
 )
@@ -17,7 +18,7 @@ var Reducer = cqrs.CombineReducers(
 
 func CreatedFileReducer(_ *File, message *cqrs.AnyMessage, payload *file.CreatedFilePayload) *File {
 	// Todo: What's faster, what's better?
-	blocks := textsearch.ChunkBlocks(payload.Content, textsearch.FullPage, textsearch.FullPage+textsearch.HalfPage)
+	blocks := chunker.ChunkBlocks(payload.Content, chunker.FullPage, chunker.FullPage+chunker.HalfPage)
 
 	chunks := utils.Map(blocks, func(block string) file.Chunk {
 		return file.Chunk{
@@ -72,7 +73,7 @@ func CodedFileReducer(current *File, message *cqrs.AnyMessage, payload *file.Cod
 
 		case file.AppendCoding:
 			for _, section := range action.Sections {
-				start, end, found := textsearch.FindRange(section.Text, chunk.Content)
+				start, end, found := find.FindRange(section.Text, chunk.Content)
 				if !found {
 					slog.Warn("Text not found", "chunk", action.ChunkID, "section", section)
 					continue

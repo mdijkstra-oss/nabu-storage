@@ -96,7 +96,7 @@ func TestFileReducer_Coding(t *testing.T) {
 			Content: content + "\n",
 			Codes: []file.CodedSection{
 				{StartIndex: 0, EndIndex: 14, CodeSlug: "topic:climate", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change", AIReason: "Climate reference 1"}},
-				{StartIndex: 23, EndIndex: 37, CodeSlug: "topic:climate", CodedSectionAttributes: file.CodedSectionAttributes{Text: "global warming", AIReason: "Climate reference 2"}},
+				{StartIndex: 23, EndIndex: 38, CodeSlug: "topic:climate", CodedSectionAttributes: file.CodedSectionAttributes{Text: "global warming", AIReason: "Climate reference 2"}},
 			},
 		},
 	}, "After append two climate codes")
@@ -136,7 +136,7 @@ func TestFileReducer_Coding(t *testing.T) {
 			Content: content + "\n",
 			Codes: []file.CodedSection{
 				{StartIndex: 39, EndIndex: 58, CodeSlug: "topic:temperature", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Rising temperatures", AIReason: "Temperature topic"}},
-				{StartIndex: 66, EndIndex: 76, CodeSlug: "topic:climate", CodedSectionAttributes: file.CodedSectionAttributes{Text: "ecosystems", AIReason: "New climate reference"}},
+				{StartIndex: 66, EndIndex: 77, CodeSlug: "topic:climate", CodedSectionAttributes: file.CodedSectionAttributes{Text: "ecosystems", AIReason: "New climate reference"}},
 			},
 		},
 	}, "After SetCoding climate (should replace 2 with 1, keep temperature)")
