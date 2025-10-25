@@ -93,6 +93,11 @@ func (m Message[T]) LogValue() slog.Value {
 }
 
 func NewMessage[T any, C any](mType MessageType, action Action, payload T, aggregateType AggregateType, aggregateID string, cause *Message[C]) *Message[T] {
+	var causationID = ""
+	if cause != nil {
+		causationID = cause.ID
+	}
+	
 	return &Message[T]{
 		ID:            uuid.NewString(),
 		Action:        action,
@@ -100,17 +105,17 @@ func NewMessage[T any, C any](mType MessageType, action Action, payload T, aggre
 		AggregateID:   aggregateID,
 		AggregateType: aggregateType,
 		Payload:       payload,
-		CausationID:   cause.ID,
+		CausationID:   causationID,
 		Timestamp:     time.Now(),
 	}
 }
 
-func NewCommand[T any, P any](action Action, payload T, aggregateType AggregateType, aggregateID string, parent *Message[P]) *Message[T] {
-	return NewMessage(Command, action, payload, aggregateType, aggregateID, parent)
+func NewCommand[T any, P any](action Action, payload T, aggregateType AggregateType, aggregateID string, cause *Message[P]) *Message[T] {
+	return NewMessage(Command, action, payload, aggregateType, aggregateID, cause)
 }
 
-func NewDomainEvent[T any, P any](action Action, payload T, aggregateType AggregateType, aggregateID string, parent *Message[P]) *Message[T] {
-	return NewMessage(DomainEvent, action, payload, aggregateType, aggregateID, parent)
+func NewDomainEvent[T any, P any](action Action, payload T, aggregateType AggregateType, aggregateID string, cause *Message[P]) *Message[T] {
+	return NewMessage(DomainEvent, action, payload, aggregateType, aggregateID, cause)
 }
 
 func ToDomainEvent[T any](message *Message[T], event Action) *Message[T] {
