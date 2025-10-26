@@ -6,13 +6,12 @@ import (
 	"hermes-relay/internal/cqrs"
 	"hermes-relay/internal/lib/utils"
 	"net/http"
-	"time"
 )
 
 func WebSocketHandler(publish cqrs.PublishFunc, subscribe func(cqrs.CommandRouter)) http.HandlerFunc {
 	upgrader := websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
-			return true // Configure properly in production
+			return true // Todo: Configure properly in production
 		},
 	}
 
@@ -33,7 +32,6 @@ func handleWebSocket(conn *websocket.Conn, publish cqrs.PublishFunc, subscribe f
 	defer cancel()
 
 	// Forward domain/system events to client
-	// Todo: Ofc not all on multiple clients etc
 	subscribe(cqrs.LimitOnType(
 		cqrs.DomainEvent,
 		forwardToWebSocket(conn),
@@ -41,22 +39,16 @@ func handleWebSocket(conn *websocket.Conn, publish cqrs.PublishFunc, subscribe f
 
 	// Handle incoming commands from client
 	for {
-		var msg cqrs.AnyMessage
-		if err := conn.ReadJSON(&msg); err != nil {
+		_, message, err := conn.ReadMessage()
+		if err != nil {
 			return // Connection closed
 		}
 
-		msg.Type = cqrs.Command
-		msg.Timestamp = time.Now()
+		output := ProcessCommand(ctx, Input{Body: message}, publish)
 
-		result, err := publish(ctx, &msg)
-		if err != nil {
-			sendError(conn, err)
-			continue
-		}
-
-		if result != nil {
-			utils.WarnErr(conn.WriteJSON(result))
+		// Send response (errors or results)
+		if len(output.Body) > 0 {
+			utils.WarnErr(conn.WriteMessage(websocket.TextMessage, output.Body))
 		}
 	}
 }
@@ -66,14 +58,4 @@ func forwardToWebSocket(conn *websocket.Conn) cqrs.CommandRouter {
 		utils.WarnErr(conn.WriteJSON(msg))
 		return nil, nil
 	}
-}
-
-func sendError(conn *websocket.Conn, err error) {
-	response := ErrorResponse{Message: err.Error()}
-
-	if ve, ok := err.(*utils.ValidationError); ok {
-		response.Fields = ve.Fields
-	}
-
-	utils.WarnErr(conn.WriteJSON(response))
 }
