@@ -89,6 +89,17 @@ func WrongActionCase[T any](correctAction cqrs.Action, payload T, entityType cqr
 	}
 }
 
+// ValidationErrorCase creates a test case expecting a validation error (missing/invalid required fields)
+func ValidationErrorCase[T any](name string, action cqrs.Action, payload T, entityType cqrs.AggregateType, aggregateID string) RouterTestCase {
+	return RouterTestCase{
+		Name:              name,
+		InputMessage:      cqrs.ToAny(cqrs.NewCommand[T, any](action, payload, entityType, aggregateID, nil)),
+		ExpectedReturn:    nil,
+		ExpectedPublished: nil,
+		ExpectError:       true,
+	}
+}
+
 // CommonRouterTestCases generates standard test cases for wrong entity, wrong message type, and wrong action
 func CommonRouterTestCases[T any](action cqrs.Action, payload T, entityType cqrs.AggregateType) []RouterTestCase {
 	return []RouterTestCase{

@@ -1,7 +1,6 @@
 package code
 
 import (
-	"hermes-relay/internal/cqrs"
 	th "hermes-relay/internal/lib/test-helpers"
 	"testing"
 )
@@ -30,16 +29,10 @@ func TestCodeRouter(t *testing.T) {
 
 		th.CommandToEventCase[any]("DeleteCode", DeleteCode, DeletedCode, nil, EntityName, "code-999"),
 
-		{
-			Name: "CreateCode with missing required fields",
-			InputMessage: cqrs.ToAny(cqrs.NewCommand[CreateCodePayload, any](CreateCode, CreateCodePayload{
-				Slug: "topic:incomplete",
-				// Missing Color and Reasoning
-			}, EntityName, "", nil)),
-			ExpectedReturn:    nil,
-			ExpectedPublished: nil,
-			ExpectError:       true,
-		},
+		th.ValidationErrorCase("CreateCode with missing Color and Reasoning", CreateCode, CreateCodePayload{
+			Slug: "topic:incomplete",
+			// Missing Color and Reasoning
+		}, EntityName, ""),
 	}
 
 	// Add common router test cases (wrong entity, wrong message type, wrong action)
