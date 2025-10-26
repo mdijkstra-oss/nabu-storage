@@ -8,7 +8,7 @@ import (
 	"hermes-relay/internal/domain/projections/code-entity"
 	"hermes-relay/internal/domain/projections/file-entity"
 	"hermes-relay/internal/handlers/http"
-	"hermes-relay/internal/handlers/typed-query"
+	tq "hermes-relay/internal/handlers/http/typed-query"
 	"hermes-relay/internal/lib/utils"
 	"log/slog"
 	net "net/http"
@@ -29,7 +29,7 @@ func SetupHTTPHandlers(r chi.Router, publisher *cqrs.InMemoryPublisher) {
 	r.Route("/queries", func(r chi.Router) {
 
 		r.Route("/files", func(r chi.Router) {
-			r.Get("/", typedquery.RouteWithMap(fileview.Store, typedquery.GetAll, func(f []file.File) []file.BaseFile {
+			r.Get("/", tq.RouteWithMap(fileview.Store, tq.GetAll, func(f []file.File) []file.BaseFile {
 				return utils.Map(f, func(f file.File) file.BaseFile {
 					return f.BaseFile
 				})
@@ -37,19 +37,19 @@ func SetupHTTPHandlers(r chi.Router, publisher *cqrs.InMemoryPublisher) {
 
 			r.Get("/{id}",
 				http.WithHeaders(http.MarkDownHeaders)(
-					typedquery.RouteWithMap(fileview.Store, typedquery.GetById, func(f *file.File) string {
+					tq.RouteWithMap(fileview.Store, tq.GetById, func(f *file.File) string {
 						return f.Content
 					}),
 				).ServeHTTP,
 			)
 
-			r.Get("/{id}/chunks/{index}", typedquery.Route(fileview.Store, fileview.GetFileChunk))
+			r.Get("/{id}/chunks/{index}", tq.Route(fileview.Store, fileview.GetFileChunk))
 		})
 
 		r.Route("/codes", func(r chi.Router) {
-			r.Get("/", typedquery.Route(codeview.Store, typedquery.GetAll))
-			r.Get("/{id}", typedquery.Route(codeview.Store, typedquery.GetById))
-			r.Get("/slug/{slug}", typedquery.Route(codeview.Store, codeview.GetBySlug))
+			r.Get("/", tq.Route(codeview.Store, tq.GetAll))
+			r.Get("/{id}", tq.Route(codeview.Store, tq.GetById))
+			r.Get("/slug/{slug}", tq.Route(codeview.Store, codeview.GetBySlug))
 		})
 
 	})

@@ -5,13 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"hermes-relay/internal/lib/utils"
 	"hermes-relay/internal/projection"
-	"net/http"
 	"reflect"
 	"strconv"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
 )
 
@@ -19,48 +16,62 @@ var validate = validator.New()
 
 type QueryFunc[T, Q, R any] = func(ctx context.Context, store *projection.Store[T], q Q) (R, error)
 
-func Route[T, Q, R any](
+func Query[T, Q, R any](
 	store *projection.Store[T],
 	queryFn QueryFunc[T, Q, R],
-) http.HandlerFunc {
-	return RouteWithMap[T, Q, R, R](store, queryFn, func(r R) R { return r })
+) ProcessorFunc {
+	return QueryWithMap[T, Q, R, R](store, queryFn, func(r R) R { return r })
 }
 
-func RouteWithMap[T, Q, R, Y any](
+func QueryWithMap[T, Q, R, Y any](
 	store *projection.Store[T],
 	queryFn QueryFunc[T, Q, R],
 	mapFn func(R) Y,
-) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+) ProcessorFunc {
+	return func(ctx context.Context, in Input) Output {
 		var query Q
 
-		if err := bindPathParams(r, &query); err != nil {
-			http.Error(w, err.Error(), 400)
-			return
+		if err := bindPathParams(in.Path, &query); err != nil {
+			return Output{
+				StatusCode: 400,
+				Body:       []byte(err.Error()),
+			}
 		}
 
 		if err := validate.Struct(query); err != nil {
-			http.Error(w, err.Error(), 400)
-			return
+			return Output{
+				StatusCode: 400,
+				Body:       []byte(err.Error()),
+			}
 		}
 
-		result, err := queryFn(r.Context(), store, query)
+		result, err := queryFn(ctx, store, query)
 		if err != nil {
-			http.Error(w, err.Error(), 404)
-			return
+			return Output{
+				StatusCode: 404,
+				Body:       []byte(err.Error()),
+			}
 		}
 
 		mapped := mapFn(result)
 
-		if w.Header().Get("Content-Type") == "application/json" {
-			utils.MustNotError(json.NewEncoder(w).Encode(mapped))
-		} else {
-			utils.Must(fmt.Fprint(w, mapped))
+		body, err := json.Marshal(mapped)
+		if err != nil {
+			return Output{
+				StatusCode: 500,
+				Body:       []byte(err.Error()),
+			}
+		}
+
+		return Output{
+			StatusCode: 200,
+			Body:       body,
 		}
 	}
 }
 
-func bindPathParams(r *http.Request, dst any) error {
+// Todo: refactor this?
+func bindPathParams(pathParams map[string]string, dst any) error {
 	v := reflect.ValueOf(dst)
 	if v.Kind() != reflect.Ptr {
 		return errors.New("dst must be a pointer")
@@ -80,8 +91,8 @@ func bindPathParams(r *http.Request, dst any) error {
 			continue
 		}
 
-		pathValue := chi.URLParam(r, pathTag)
-		if pathValue == "" {
+		pathValue, ok := pathParams[pathTag]
+		if !ok || pathValue == "" {
 			continue
 		}
 
