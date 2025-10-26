@@ -3,7 +3,7 @@ package codeview
 import (
 	"hermes-relay/internal/cqrs"
 	"hermes-relay/internal/domain/entities/code"
-	th "hermes-relay/internal/lib"
+	th "hermes-relay/internal/lib/test-helpers"
 	"testing"
 )
 

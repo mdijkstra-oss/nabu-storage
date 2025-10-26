@@ -1,12 +1,11 @@
 package chunker
 
 import (
+	th "hermes-relay/internal/lib/test-helpers"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
-
-	th "hermes-relay/internal/lib"
 )
 
 const (

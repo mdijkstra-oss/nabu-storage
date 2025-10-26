@@ -1,11 +1,18 @@
-package th
+package test_helpers
 
 import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"hermes-relay/internal/cqrs"
 	"reflect"
 	"testing"
 )
+
+// AssertMessage compares messages ignoring auto-generated fields (ID, Timestamp, CausationID)
+func AssertMessage(t *testing.T, got, want *cqrs.AnyMessage, msg string) {
+	t.Helper()
+	AssertEqualIgnoreFields(t, got, want, msg, cqrs.AnyMessage{}, "ID", "Timestamp", "CausationID")
+}
 
 func AssertEqual(t *testing.T, got, want any, msg string, opts ...cmp.Option) {
 	t.Helper()

@@ -2,10 +2,10 @@ package cqrs
 
 import (
 	"encoding/json"
+	"hermes-relay/internal/lib/utils"
 	"log/slog"
 	"time"
 
-	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 )
 
@@ -65,19 +65,16 @@ Causation = parent. Correlation = trace entire flow.
 */
 
 func ValidateMessage[T any](m *Message[T]) error {
-	validate := validator.New()
-	return validate.Struct(m)
+	return utils.Validate.Struct(m)
 }
 
 func EnsureValidPayload[T any](m *Message[T], p any) error {
-	validate := validator.New()
-
 	err := UnmarshallPayload(m, p)
 	if err != nil {
 		return err
 	}
 
-	return validate.Struct(p)
+	return utils.Validate.Struct(p)
 }
 
 // Wastefull generic fornow.
@@ -139,12 +136,13 @@ func UnmarshallPayload[T any](m *Message[T], payload any) error {
 
 func ToAny[P any](m *Message[P]) *AnyMessage {
 	return &AnyMessage{
-		ID:          m.ID,
-		Action:      m.Action,
-		Type:        m.Type,
-		AggregateID: m.AggregateID,
-		CausationID: m.CausationID,
-		Timestamp:   m.Timestamp,
-		Payload:     m.Payload,
+		ID:            m.ID,
+		Action:        m.Action,
+		Type:          m.Type,
+		AggregateID:   m.AggregateID,
+		AggregateType: m.AggregateType,
+		CausationID:   m.CausationID,
+		Timestamp:     m.Timestamp,
+		Payload:       m.Payload,
 	}
 }
