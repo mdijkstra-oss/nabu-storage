@@ -49,6 +49,16 @@ func TestRouter(t *testing.T, router cqrs.CommandRouter, tc RouterTestCase) {
 	}
 }
 
+// CommandToEventCase creates a test case for a command that transforms into an event with the same payload
+func CommandToEventCase[T any](name string, commandAction, eventAction cqrs.Action, payload T, entityType cqrs.AggregateType, aggregateID string) RouterTestCase {
+	return RouterTestCase{
+		Name:              name,
+		InputMessage:      cqrs.ToAny(cqrs.NewCommand[T, any](commandAction, payload, entityType, aggregateID, nil)),
+		ExpectedReturn:    cqrs.ToAny(cqrs.NewDomainEvent[T, any](eventAction, payload, entityType, aggregateID, nil)),
+		ExpectedPublished: nil,
+	}
+}
+
 // WrongEntityTypeCase creates a test case verifying a router ignores commands for different entities
 func WrongEntityTypeCase[T any](action cqrs.Action, payload T, correctEntityType cqrs.AggregateType) RouterTestCase {
 	return RouterTestCase{

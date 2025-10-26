@@ -9,58 +9,27 @@ import (
 func TestCodeRouter(t *testing.T) {
 	// Specific test cases
 	tests := []th.RouterTestCase{
-		{
-			Name: "CreateCode with valid payload",
-			InputMessage: cqrs.ToAny(cqrs.NewCommand[CreateCodePayload, any](CreateCode, CreateCodePayload{
-				Slug:      "topic:climate",
-				Color:     "green-500",
-				Reasoning: "Environmental topics",
-			}, EntityName, "", nil)),
-			ExpectedReturn: cqrs.ToAny(cqrs.NewDomainEvent[CreateCodePayload, any](CreatedCode, CreateCodePayload{
-				Slug:      "topic:climate",
-				Color:     "green-500",
-				Reasoning: "Environmental topics",
-			}, EntityName, "", nil)),
-			ExpectedPublished: nil,
-		},
-		{
-			Name: "UpdateCode with valid payload",
-			InputMessage: cqrs.ToAny(cqrs.NewCommand[UpdateCodePayload, any](UpdateCode, UpdateCodePayload{
-				Color:     "emerald-600",
-				Reasoning: "Updated environmental coverage",
-			}, EntityName, "code-123", nil)),
-			ExpectedReturn: cqrs.ToAny(cqrs.NewDomainEvent[UpdateCodePayload, any](UpdatedCode, UpdateCodePayload{
-				Color:     "emerald-600",
-				Reasoning: "Updated environmental coverage",
-			}, EntityName, "code-123", nil)),
-			ExpectedPublished: nil,
-		},
-		{
-			Name: "UpdateCode with partial payload (color only)",
-			InputMessage: cqrs.ToAny(cqrs.NewCommand[UpdateCodePayload, any](UpdateCode, UpdateCodePayload{
-				Color: "teal-500",
-			}, EntityName, "code-456", nil)),
-			ExpectedReturn: cqrs.ToAny(cqrs.NewDomainEvent[UpdateCodePayload, any](UpdatedCode, UpdateCodePayload{
-				Color: "teal-500",
-			}, EntityName, "code-456", nil)),
-			ExpectedPublished: nil,
-		},
-		{
-			Name: "UpdateCode with partial payload (reasoning only)",
-			InputMessage: cqrs.ToAny(cqrs.NewCommand[UpdateCodePayload, any](UpdateCode, UpdateCodePayload{
-				Reasoning: "Comprehensive climate coverage",
-			}, EntityName, "code-789", nil)),
-			ExpectedReturn: cqrs.ToAny(cqrs.NewDomainEvent[UpdateCodePayload, any](UpdatedCode, UpdateCodePayload{
-				Reasoning: "Comprehensive climate coverage",
-			}, EntityName, "code-789", nil)),
-			ExpectedPublished: nil,
-		},
-		{
-			Name:           "DeleteCode",
-			InputMessage:   cqrs.ToAny(cqrs.NewCommand[any, any](DeleteCode, nil, EntityName, "code-999", nil)),
-			ExpectedReturn: cqrs.ToAny(cqrs.NewDomainEvent[any, any](DeletedCode, nil, EntityName, "code-999", nil)),
-			ExpectedPublished: nil,
-		},
+		th.CommandToEventCase("CreateCode with valid payload", CreateCode, CreatedCode, CreateCodePayload{
+			Slug:      "topic:climate",
+			Color:     "green-500",
+			Reasoning: "Environmental topics",
+		}, EntityName, ""),
+
+		th.CommandToEventCase("UpdateCode with valid payload", UpdateCode, UpdatedCode, UpdateCodePayload{
+			Color:     "emerald-600",
+			Reasoning: "Updated environmental coverage",
+		}, EntityName, "code-123"),
+
+		th.CommandToEventCase("UpdateCode with partial payload (color only)", UpdateCode, UpdatedCode, UpdateCodePayload{
+			Color: "teal-500",
+		}, EntityName, "code-456"),
+
+		th.CommandToEventCase("UpdateCode with partial payload (reasoning only)", UpdateCode, UpdatedCode, UpdateCodePayload{
+			Reasoning: "Comprehensive climate coverage",
+		}, EntityName, "code-789"),
+
+		th.CommandToEventCase[any]("DeleteCode", DeleteCode, DeletedCode, nil, EntityName, "code-999"),
+
 		{
 			Name: "CreateCode with missing required fields",
 			InputMessage: cqrs.ToAny(cqrs.NewCommand[CreateCodePayload, any](CreateCode, CreateCodePayload{
