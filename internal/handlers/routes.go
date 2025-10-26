@@ -23,7 +23,7 @@ func SetupHTTPHandlers(r chi.Router, publisher *cqrs.InMemoryPublisher) {
 	r.Use(http.WithHeaders(http.DefaultHeaders))
 
 	r.Post("/commands", http.CommandHandler(publisher.Publish))
-	r.Post("/events", http.EventHandler(publisher.Publish))
+	//r.Post("/events", http.EventHandler(publisher.Publish))
 	r.Get("/ws/", http.WebSocketHandler(publisher.Publish, publisher.Subscribe))
 
 	r.Route("/queries", func(r chi.Router) {

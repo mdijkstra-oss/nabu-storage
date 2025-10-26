@@ -2,7 +2,6 @@ package utils
 
 import (
 	"errors"
-	"fmt"
 	"github.com/go-playground/validator/v10"
 	"log/slog"
 )
@@ -37,11 +36,11 @@ func ToValidationError(err error) *ValidationError {
 }
 
 type NotFoundError struct {
-	Resource string `json:"resource"`
+	Message string `json:"resource"`
 }
 
 func (e *NotFoundError) Error() string {
-	return fmt.Sprintf("%s not found", e.Resource)
+	return e.Message
 }
 
 type ConflictError struct {
