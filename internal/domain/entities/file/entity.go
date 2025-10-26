@@ -10,7 +10,7 @@ type File struct {
 
 type BaseFile struct {
 	ID   string `json:"id"`
-	Name string `json:"name" validate:"required"`
+	Name string `json:"name" validate:"required" normalize:"trim"`
 
 	Attributes
 }
@@ -22,9 +22,9 @@ type Attributes struct {
 }
 
 type CodedSection struct {
-	StartIndex int    `json:"start_index" validate:"required"`
-	EndIndex   int    `json:"end_index" validate:"required"`
-	CodeSlug   string `json:"code_slug" validate:"required,min=3,max=100,code_slug"`
+	StartIndex int    `json:"start_index" validate:"required,gte=0"`
+	EndIndex   int    `json:"end_index" validate:"required,gtfield=StartIndex"`
+	CodeSlug   string `json:"code_slug" validate:"required,min=3,max=100,code_slug" normalize:"trim,lowercase"`
 	CodedSectionAttributes
 }
 

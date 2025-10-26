@@ -1,7 +1,7 @@
 package http
 
 import (
-	"hermes-relay/internal/lib/utils"
+	"hermes-relay/internal/lib/normalizer"
 	"net/http"
 	"reflect"
 )
@@ -30,7 +30,7 @@ func WithHeaders(h any) func(http.Handler) http.Handler {
 					continue
 				}
 
-				name := utils.ToKebab(t.Field(i).Name)
+				name := normalizer.Kebab(t.Field(i).Name)
 				w.Header().Set(name, field.String())
 			}
 

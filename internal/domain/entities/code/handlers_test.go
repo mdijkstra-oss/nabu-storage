@@ -33,6 +33,30 @@ func TestCodeRouter(t *testing.T) {
 			Slug: "topic:incomplete",
 			// Missing Color and Reasoning
 		}, EntityName, ""),
+
+		th.ValidationErrorCase("CreateCode with invalid slug (no colon)", CreateCode, CreateCodePayload{
+			Slug:      "topicclimate",
+			Color:     "blue-500",
+			Reasoning: "Invalid format",
+		}, EntityName, ""),
+
+		th.ValidationErrorCase("CreateCode with invalid slug (uppercase)", CreateCode, CreateCodePayload{
+			Slug:      "Topic:climate",
+			Color:     "blue-500",
+			Reasoning: "Invalid format",
+		}, EntityName, ""),
+
+		th.ValidationErrorCase("CreateCode with invalid slug (empty after colon)", CreateCode, CreateCodePayload{
+			Slug:      "topic:",
+			Color:     "blue-500",
+			Reasoning: "Invalid format",
+		}, EntityName, ""),
+
+		th.ValidationErrorCase("CreateCode with invalid slug (starts with hyphen)", CreateCode, CreateCodePayload{
+			Slug:      "topic:-climate",
+			Color:     "blue-500",
+			Reasoning: "Invalid format",
+		}, EntityName, ""),
 	}
 
 	// Add common router test cases (wrong entity, wrong message type, wrong action)

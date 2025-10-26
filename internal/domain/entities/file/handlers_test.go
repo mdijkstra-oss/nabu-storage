@@ -175,6 +175,45 @@ func TestFileRouter(t *testing.T) {
 				},
 			},
 		}, EntityName, "file-123"),
+
+		th.ValidationErrorCase("CodeFile with invalid slug (no colon)", CodeFile, CodeFilePayload{
+			Actions: []CodingAction{
+				{
+					CodeSlug: "topicclimate",
+					Action:   SetCoding,
+					Sections: []CodedSectionAttributes{
+						{Text: "Some text"},
+					},
+					ChunkID: "chunk-1",
+				},
+			},
+		}, EntityName, "file-123"),
+
+		th.ValidationErrorCase("CodeFile with invalid slug (uppercase)", CodeFile, CodeFilePayload{
+			Actions: []CodingAction{
+				{
+					CodeSlug: "Topic:climate",
+					Action:   SetCoding,
+					Sections: []CodedSectionAttributes{
+						{Text: "Some text"},
+					},
+					ChunkID: "chunk-1",
+				},
+			},
+		}, EntityName, "file-123"),
+
+		th.ValidationErrorCase("CodeFile with invalid slug (empty before colon)", CodeFile, CodeFilePayload{
+			Actions: []CodingAction{
+				{
+					CodeSlug: ":climate",
+					Action:   SetCoding,
+					Sections: []CodedSectionAttributes{
+						{Text: "Some text"},
+					},
+					ChunkID: "chunk-1",
+				},
+			},
+		}, EntityName, "file-123"),
 	}
 
 	// Add common router test cases (wrong entity, wrong message type, wrong action)
