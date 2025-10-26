@@ -56,9 +56,6 @@ func setupEventHandlers(publisher *cqrs.InMemoryPublisher) {
 
 	// Persist must be after replay ⚠️
 	publisher.Subscribe(cqrs.LimitOnType(cqrs.DomainEvent, cqrs.ReadOnlyRoutes(persistence.Apply)))
-
-	r := chi.NewRouter()
-	handlers.SetupHTTPHandlers(r, publisher)
 }
 
 func setupLogger(level slog.Level) {

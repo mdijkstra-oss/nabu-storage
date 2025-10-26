@@ -9,15 +9,10 @@ import (
 	"time"
 )
 
-type ErrorResponse struct {
-	Error []string `json:"error"`
-	Type  string   `json:"type"`
-}
-
-func WebSocketHandler(publisher *cqrs.InMemoryPublisher) http.HandlerFunc {
+func WebSocketHandler(publish cqrs.PublishFunc, subscribe func(cqrs.CommandRouter)) http.HandlerFunc {
 	upgrader := websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
-			return true // Configure this properly in production
+			return true // Configure properly in production
 		},
 	}
 
@@ -29,46 +24,56 @@ func WebSocketHandler(publisher *cqrs.InMemoryPublisher) http.HandlerFunc {
 		}
 		defer conn.Close()
 
-		SetupWebSocketForwarder(publisher, conn)
-
-		// Keep connection alive
-		select {}
+		handleWebSocket(conn, publish, subscribe)
 	}
 }
 
-func SetupWebSocketForwarder(publisher *cqrs.InMemoryPublisher, conn *websocket.Conn) {
-	// Subscribe to outgoing events
-	publisher.Subscribe(func(ctx context.Context, event *cqrs.AnyMessage, pub cqrs.PublishFunc) (*cqrs.AnyMessage, error) {
-		if event.Type == cqrs.DomainEvent || event.Type == cqrs.SystemEvent {
-			utils.WarnErr(conn.WriteJSON(event))
+func handleWebSocket(conn *websocket.Conn, publish cqrs.PublishFunc, subscribe func(cqrs.CommandRouter)) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Forward domain/system events to client
+	// Todo: Ofc not all on multiple clients etc
+	subscribe(cqrs.LimitOnType(
+		cqrs.DomainEvent,
+		forwardToWebSocket(conn),
+	))
+
+	// Handle incoming commands from client
+	for {
+		var msg cqrs.AnyMessage
+		if err := conn.ReadJSON(&msg); err != nil {
+			return // Connection closed
 		}
 
+		msg.Type = cqrs.Command
+		msg.Timestamp = time.Now()
+
+		result, err := publish(ctx, &msg)
+		if err != nil {
+			sendError(conn, err)
+			continue
+		}
+
+		if result != nil {
+			utils.WarnErr(conn.WriteJSON(result))
+		}
+	}
+}
+
+func forwardToWebSocket(conn *websocket.Conn) cqrs.CommandRouter {
+	return func(ctx context.Context, msg *cqrs.AnyMessage, pub cqrs.PublishFunc) (*cqrs.AnyMessage, error) {
+		utils.WarnErr(conn.WriteJSON(msg))
 		return nil, nil
-	})
+	}
+}
 
-	// Handle incoming messages from WebSocket
-	go func() {
-		for {
-			var msg cqrs.AnyMessage
-			decodeErr := conn.ReadJSON(&msg)
-			if decodeErr != nil {
-				return
-				//continue // Connection closed
-			}
+func sendError(conn *websocket.Conn, err error) {
+	response := ErrorResponse{Message: err.Error()}
 
-			msg.Type = cqrs.Command
-			msg.Timestamp = time.Now()
+	if ve, ok := err.(*utils.ValidationError); ok {
+		response.Fields = ve.Fields
+	}
 
-			_, publishErr := publisher.Publish(context.Background(), &msg)
-			if publishErr != nil {
-				utils.WarnErr(conn.WriteJSON(ErrorResponse{
-					Error: []string{publishErr.Error()},
-					Type:  utils.GetErrorType(publishErr),
-				}))
-				continue
-			}
-
-			// Result already sent by subscriber above
-		}
-	}()
+	utils.WarnErr(conn.WriteJSON(response))
 }

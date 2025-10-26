@@ -2,7 +2,9 @@ package http
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
 	"hermes-relay/internal/cqrs"
 	"hermes-relay/internal/lib/utils"
 	"net/http"
@@ -11,9 +13,10 @@ import (
 	"time"
 )
 
-// Todo: Future, reject duplicates
-// Todo: Future refactor, also only pub func
-// Todo: This makes me sad comparing to the rest
+type ErrorResponse struct {
+	Message string            `json:"message"`
+	Fields  map[string]string `json:"fields,omitempty"`
+}
 
 type batchResult struct {
 	Index   int              `json:"index"`
@@ -29,52 +32,40 @@ type batchResponse struct {
 	FailureCount int           `json:"failure_count"`
 }
 
-// Command endpoint - returns business result
-func CommandHandler(publisher *cqrs.InMemoryPublisher) http.HandlerFunc {
-	return messageHandler(publisher, true, []cqrs.MessageType{cqrs.Command})
+func CommandHandler(publish cqrs.PublishFunc) http.HandlerFunc {
+	return messageHandler(publish, true, []cqrs.MessageType{cqrs.Command})
 }
 
-// DomainEvent endpoint - just acknowledges
-func EventHandler(publisher *cqrs.InMemoryPublisher) http.HandlerFunc {
-	return messageHandler(publisher, false, []cqrs.MessageType{cqrs.DomainEvent, cqrs.SystemEvent})
+func EventHandler(publish cqrs.PublishFunc) http.HandlerFunc {
+	return messageHandler(publish, false, []cqrs.MessageType{cqrs.DomainEvent, cqrs.SystemEvent})
 }
 
-func messageHandler(publisher *cqrs.InMemoryPublisher, returnResult bool, allowedMessageTypes []cqrs.MessageType) http.HandlerFunc {
+func messageHandler(publish cqrs.PublishFunc, returnResult bool, allowedTypes []cqrs.MessageType) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var raw json.RawMessage
-		err := json.NewDecoder(r.Body).Decode(&raw)
-		if err != nil {
-			respondError(w, http.StatusBadRequest, err.Error())
+		if err := json.NewDecoder(r.Body).Decode(&raw); err != nil {
+			respondError(w, http.StatusBadRequest, err)
 			return
 		}
 
-		// Check if it's an array
-		trimmed := bytes.TrimSpace(raw)
-		if bytes.HasPrefix(trimmed, []byte("[")) {
-			handleBatch(w, r, raw, publisher, returnResult, allowedMessageTypes)
+		if isBatch(raw) {
+			handleBatch(w, r, raw, publish, returnResult, allowedTypes)
 		} else {
-			handleSingle(w, r, raw, publisher, returnResult, allowedMessageTypes)
+			handleSingle(w, r, raw, publish, returnResult, allowedTypes)
 		}
 	}
 }
 
-func handleSingle(w http.ResponseWriter, r *http.Request, raw json.RawMessage, publisher *cqrs.InMemoryPublisher, returnResult bool, allowedMessageTypes []cqrs.MessageType) {
-	var msg cqrs.AnyMessage
-	if err := json.Unmarshal(raw, &msg); err != nil {
-		respondError(w, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	if !slices.Contains(allowedMessageTypes, msg.Type) {
-		respondError(w, http.StatusBadRequest, "message type is not allowed")
-		return
-	}
-
-	msg.Timestamp = time.Now()
-
-	result, err := publisher.Publish(r.Context(), &msg)
+func handleSingle(w http.ResponseWriter, r *http.Request, raw json.RawMessage, publish cqrs.PublishFunc, returnResult bool, allowedTypes []cqrs.MessageType) {
+	msg, err := parseMessage(raw, allowedTypes)
 	if err != nil {
-		handleError(w, err)
+		respondError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	result, err := publish(r.Context(), msg)
+	if err != nil {
+		respondTypedError(w, err)
 		return
 	}
 
@@ -83,55 +74,53 @@ func handleSingle(w http.ResponseWriter, r *http.Request, raw json.RawMessage, p
 		return
 	}
 
-	status := http.StatusOK
-	if result != nil && isCreatedType(result.Action) {
-		status = http.StatusCreated
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-
-	if result != nil && msg.Type == cqrs.Command {
-		utils.WarnErr(json.NewEncoder(w).Encode(result))
-	}
+	respondSuccess(w, result)
 }
 
-func handleBatch(w http.ResponseWriter, r *http.Request, raw json.RawMessage, publisher *cqrs.InMemoryPublisher, returnResult bool, allowedMessageTypes []cqrs.MessageType) {
+func handleBatch(w http.ResponseWriter, r *http.Request, raw json.RawMessage, publish cqrs.PublishFunc, returnResult bool, allowedTypes []cqrs.MessageType) {
 	var messages []cqrs.AnyMessage
 	if err := json.Unmarshal(raw, &messages); err != nil {
-		respondError(w, http.StatusBadRequest, err.Error())
+		respondError(w, http.StatusBadRequest, err)
 		return
 	}
 
 	if len(messages) == 0 {
-		respondError(w, http.StatusBadRequest, "empty batch")
+		respondError(w, http.StatusBadRequest, errors.New("empty batch"))
 		return
 	}
 
+	response := processBatch(r.Context(), messages, publish, allowedTypes, returnResult)
+
+	if !returnResult {
+		w.WriteHeader(batchStatus(response))
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(batchStatus(response))
+	utils.WarnErr(json.NewEncoder(w).Encode(response))
+}
+
+func processBatch(ctx context.Context, messages []cqrs.AnyMessage, publish cqrs.PublishFunc, allowedTypes []cqrs.MessageType, returnResult bool) batchResponse {
 	results := make([]batchResult, len(messages))
 	successCount := 0
-	failureCount := 0
 	now := time.Now()
 
 	for i, msg := range messages {
 		results[i].Index = i
 
-		// Validate message type
-		if !slices.Contains(allowedMessageTypes, msg.Type) {
+		if !slices.Contains(allowedTypes, msg.Type) {
 			results[i].Success = false
-			results[i].Error = "message type is not allowed"
-			failureCount++
+			results[i].Error = "message type not allowed"
 			continue
 		}
 
 		msg.Timestamp = now
+		result, err := publish(ctx, &msg)
 
-		// Publish message
-		result, err := publisher.Publish(r.Context(), &msg)
 		if err != nil {
 			results[i].Success = false
 			results[i].Error = err.Error()
-			failureCount++
 		} else {
 			results[i].Success = true
 			successCount++
@@ -141,70 +130,83 @@ func handleBatch(w http.ResponseWriter, r *http.Request, raw json.RawMessage, pu
 		}
 	}
 
-	// Determine HTTP status
-	status := http.StatusOK
-	if failureCount == len(messages) {
-		status = http.StatusBadRequest // All failed
-	} else if failureCount > 0 {
-		status = http.StatusMultiStatus // Partial success (207)
+	return batchResponse{
+		Results:      results,
+		Total:        len(messages),
+		SuccessCount: successCount,
+		FailureCount: len(messages) - successCount,
+	}
+}
+
+func parseMessage(raw json.RawMessage, allowedTypes []cqrs.MessageType) (*cqrs.AnyMessage, error) {
+	var msg cqrs.AnyMessage
+	if err := json.Unmarshal(raw, &msg); err != nil {
+		return nil, err
 	}
 
-	if !returnResult {
-		w.WriteHeader(status)
-		return
+	if !slices.Contains(allowedTypes, msg.Type) {
+		return nil, errors.New("message type not allowed")
+	}
+
+	msg.Timestamp = time.Now()
+	return &msg, nil
+}
+
+func isBatch(raw json.RawMessage) bool {
+	return bytes.HasPrefix(bytes.TrimSpace(raw), []byte("["))
+}
+
+func batchStatus(response batchResponse) int {
+	if response.FailureCount == response.Total {
+		return http.StatusBadRequest
+	}
+	if response.FailureCount > 0 {
+		return http.StatusMultiStatus
+	}
+	return http.StatusOK
+}
+
+func respondSuccess(w http.ResponseWriter, result *cqrs.AnyMessage) {
+	status := http.StatusOK
+	if result != nil && isCreatedAction(result.Action) {
+		status = http.StatusCreated
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 
-	response := batchResponse{
-		Results:      results,
-		Total:        len(messages),
-		SuccessCount: successCount,
-		FailureCount: failureCount,
+	if result != nil {
+		utils.WarnErr(json.NewEncoder(w).Encode(result))
+	}
+}
+
+func respondTypedError(w http.ResponseWriter, err error) {
+	switch {
+	case utils.IsValidationError(err):
+		respondError(w, http.StatusBadRequest, err)
+	case utils.IsNotFoundError(err):
+		respondError(w, http.StatusNotFound, err)
+	case utils.IsConflictError(err):
+		respondError(w, http.StatusConflict, err)
+	default:
+		respondError(w, http.StatusInternalServerError, err)
+	}
+}
+
+func respondError(w http.ResponseWriter, status int, err error) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+
+	response := ErrorResponse{Message: err.Error()}
+
+	if ve, ok := err.(*utils.ValidationError); ok {
+		response.Fields = ve.Fields
 	}
 
 	utils.WarnErr(json.NewEncoder(w).Encode(response))
 }
 
-func handleError(w http.ResponseWriter, err error) {
-	switch {
-	case utils.IsValidationError(err):
-		respondError(w, http.StatusBadRequest, err.Error())
-	case utils.IsNotFoundError(err):
-		respondError(w, http.StatusNotFound, err.Error())
-	case utils.IsConflictError(err):
-		respondError(w, http.StatusConflict, err.Error())
-	default:
-		respondError(w, http.StatusInternalServerError, err.Error())
-	}
-}
-
-func respondError(w http.ResponseWriter, status int, message string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	errors := strings.Split(message, "\n")
-	utils.WarnErr(json.NewEncoder(w).Encode(ErrorResponse{
-		Error: errors,
-		Type:  getErrorTypeFromStatus(status),
-	}))
-}
-
-func getErrorTypeFromStatus(status int) string {
-	switch status {
-	case http.StatusBadRequest:
-		return "validation_error"
-	case http.StatusNotFound:
-		return "not_found"
-	case http.StatusConflict:
-		return "conflict"
-	default:
-		return "internal_error"
-	}
-}
-
-func isCreatedType(action cqrs.Action) bool {
-	actionStr := string(action)
-	return strings.HasSuffix(actionStr, "Created") ||
-		strings.HasSuffix(actionStr, "Added")
+func isCreatedAction(action cqrs.Action) bool {
+	s := string(action)
+	return strings.HasSuffix(s, "Created") || strings.HasSuffix(s, "Added")
 }

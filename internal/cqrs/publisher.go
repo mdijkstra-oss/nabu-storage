@@ -25,7 +25,7 @@ func (p *InMemoryPublisher) Subscribe(router CommandRouter) {
 
 func (p *InMemoryPublisher) Publish(ctx context.Context, event *AnyMessage) (*AnyMessage, error) {
 	if err := ValidateMessage(event); err != nil {
-		return nil, &utils.ValidationError{Message: err.Error()}
+		return nil, err
 	}
 
 	p.mu.RLock()

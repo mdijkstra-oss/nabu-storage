@@ -14,10 +14,12 @@ type MessageType string
 
 type AggregateType string
 
+// Errors can be part of entity story! Eg oh no, at this point in time I could not parse file
+// So set uploaded file to state 'broken' or something so that can be reflected in client too!
 const (
 	Command     MessageType = "Command"
 	DomainEvent MessageType = "DomainEvent"
-	SystemEvent MessageType = "systemEvent"
+	SystemEvent MessageType = "SystemEvent"
 )
 
 // Potential future events
@@ -64,20 +66,18 @@ WelcomeEmailSent event: causation = "account-created-789", correlation = "req-12
 Causation = parent. Correlation = trace entire flow.
 */
 
-func ValidateMessage[T any](m *Message[T]) error {
-	return utils.Validate.Struct(m)
+func ValidateMessage[T any](m *Message[T]) *utils.ValidationError {
+	return utils.ToValidationError(utils.Validate.Struct(m))
 }
 
-func EnsureValidPayload[T any](m *Message[T], p any) error {
-	err := UnmarshallPayload(m, p)
-	if err != nil {
-		return err
+func EnsureValidPayload[T any](m *Message[T], p any) *utils.ValidationError {
+	if err := UnmarshallPayload(m, p); err != nil {
+		return utils.ToValidationError(err)
 	}
 
-	return utils.Validate.Struct(p)
+	return utils.ToValidationError(utils.Validate.Struct(p))
 }
 
-// Wastefull generic fornow.
 func (m Message[T]) LogValue() slog.Value {
 	return slog.GroupValue(
 		slog.String("id", m.ID),
@@ -89,12 +89,12 @@ func (m Message[T]) LogValue() slog.Value {
 	)
 }
 
-func NewMessage[T any, C any](mType MessageType, action Action, payload T, aggregateType AggregateType, aggregateID string, cause *Message[C]) *Message[T] {
+func NewMessage[T, C any](mType MessageType, action Action, payload T, aggregateType AggregateType, aggregateID string, cause *Message[C]) *Message[T] {
 	var causationID = ""
 	if cause != nil {
 		causationID = cause.ID
 	}
-	
+
 	return &Message[T]{
 		ID:            uuid.NewString(),
 		Action:        action,
@@ -107,11 +107,11 @@ func NewMessage[T any, C any](mType MessageType, action Action, payload T, aggre
 	}
 }
 
-func NewCommand[T any, P any](action Action, payload T, aggregateType AggregateType, aggregateID string, cause *Message[P]) *Message[T] {
+func NewCommand[T, P any](action Action, payload T, aggregateType AggregateType, aggregateID string, cause *Message[P]) *Message[T] {
 	return NewMessage(Command, action, payload, aggregateType, aggregateID, cause)
 }
 
-func NewDomainEvent[T any, P any](action Action, payload T, aggregateType AggregateType, aggregateID string, cause *Message[P]) *Message[T] {
+func NewDomainEvent[T, P any](action Action, payload T, aggregateType AggregateType, aggregateID string, cause *Message[P]) *Message[T] {
 	return NewMessage(DomainEvent, action, payload, aggregateType, aggregateID, cause)
 }
 

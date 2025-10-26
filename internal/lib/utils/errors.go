@@ -3,19 +3,41 @@ package utils
 import (
 	"errors"
 	"fmt"
+	"github.com/go-playground/validator/v10"
 	"log/slog"
 )
 
 type ValidationError struct {
-	Message string
+	Message string            `json:"message"`
+	Fields  map[string]string `json:"fields,omitempty"`
 }
 
 func (e *ValidationError) Error() string {
 	return e.Message
 }
 
+func ToValidationError(err error) *ValidationError {
+	if err == nil {
+		return nil
+	}
+
+	ve := &ValidationError{
+		Message: "validation failed",
+		Fields:  make(map[string]string),
+	}
+
+	var validationErrs validator.ValidationErrors
+	if errors.As(err, &validationErrs) {
+		for _, fe := range validationErrs {
+			ve.Fields[fe.Field()] = fe.Tag()
+		}
+	}
+
+	return ve
+}
+
 type NotFoundError struct {
-	Resource string
+	Resource string `json:"resource"`
 }
 
 func (e *NotFoundError) Error() string {
@@ -23,7 +45,7 @@ func (e *NotFoundError) Error() string {
 }
 
 type ConflictError struct {
-	Message string
+	Message string `json:"message"`
 }
 
 func (e *ConflictError) Error() string {
@@ -43,19 +65,6 @@ func IsNotFoundError(err error) bool {
 func IsConflictError(err error) bool {
 	var conflictError *ConflictError
 	return errors.As(err, &conflictError)
-}
-
-func GetErrorType(err error) string {
-	switch {
-	case IsValidationError(err):
-		return "validation_error"
-	case IsNotFoundError(err):
-		return "not_found"
-	case IsConflictError(err):
-		return "conflict"
-	default:
-		return "internal_error"
-	}
 }
 
 func Must[T any](value T, err error) T {
@@ -78,11 +87,11 @@ func MustNotError(err error) {
 	}
 }
 
-// WarnErr Only for non critical, unlikely errors (eg decoding object that is typed to always be decoded etc)
+// WarnErr Only for non-critical, unlikely errors (eg decoding object that is typed to always be decoded etc)
 func WarnErr(err error) {
 	if err == nil {
 		return
 	}
-	
+
 	slog.Warn("Error: %v", "err", err)
 }
