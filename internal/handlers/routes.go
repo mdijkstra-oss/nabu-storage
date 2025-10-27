@@ -29,7 +29,7 @@ func SetupHTTPHandlers(r chi.Router, publisher *cqrs.InMemoryPublisher) {
 	r.Route("/queries", func(r chi.Router) {
 
 		r.Route("/files", func(r chi.Router) {
-			r.Get("/", tq.RouteWithMap(fileview.Store, tq.GetAll, func(f []file.File) []file.BaseFile {
+			r.Get("/", tq.QueryRouteWithMap(fileview.Store, tq.GetAll, func(f []file.File) []file.BaseFile {
 				return utils.Map(f, func(f file.File) file.BaseFile {
 					return f.BaseFile
 				})
@@ -37,19 +37,19 @@ func SetupHTTPHandlers(r chi.Router, publisher *cqrs.InMemoryPublisher) {
 
 			r.Get("/{id}",
 				http.WithHeaders(http.MarkDownHeaders)(
-					tq.RouteWithMap(fileview.Store, tq.GetById, func(f *file.File) string {
+					tq.QueryRouteWithMap(fileview.Store, tq.GetById, func(f *file.File) string {
 						return f.Content
 					}),
 				).ServeHTTP,
 			)
 
-			r.Get("/{id}/chunks/{index}", tq.Route(fileview.Store, fileview.GetFileChunk))
+			r.Get("/{id}/chunks/{index}", tq.QueryRoute(fileview.Store, fileview.GetFileChunk))
 		})
 
 		r.Route("/codes", func(r chi.Router) {
-			r.Get("/", tq.Route(codeview.Store, tq.GetAll))
-			r.Get("/{id}", tq.Route(codeview.Store, tq.GetById))
-			r.Get("/slug/{slug}", tq.Route(codeview.Store, codeview.GetBySlug))
+			r.Get("/", tq.QueryRoute(codeview.Store, tq.GetAll))
+			r.Get("/{id}", tq.QueryRoute(codeview.Store, tq.GetById))
+			r.Get("/slug/{slug}", tq.QueryRoute(codeview.Store, codeview.GetBySlug))
 		})
 
 	})

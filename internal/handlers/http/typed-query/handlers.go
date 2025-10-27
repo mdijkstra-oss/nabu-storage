@@ -53,14 +53,14 @@ func ToRoute(processor ProcessorFunc) http.HandlerFunc {
 	}
 }
 
-func Route[T, Q, R any](
+func QueryRoute[T, Q, R any](
 	store *projection.Store[T],
 	queryFn QueryFunc[T, Q, R],
 ) http.HandlerFunc {
 	return ToRoute(Query[T, Q, R](store, queryFn))
 }
 
-func RouteWithMap[T, Q, R, Y any](
+func QueryRouteWithMap[T, Q, R, Y any](
 	store *projection.Store[T],
 	queryFn QueryFunc[T, Q, R],
 	mapFn func(R) Y,
