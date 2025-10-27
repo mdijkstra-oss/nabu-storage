@@ -31,8 +31,9 @@ func CreatedFileReducer(_ *File, message *cqrs.AnyMessage, payload *file.Created
 
 	return &File{
 		BaseFile: file.BaseFile{
-			ID:   message.AggregateID,
-			Name: payload.Name,
+			ID:        message.AggregateID,
+			ProjectID: payload.ProjectID,
+			Name:      payload.Name,
 			Attributes: file.Attributes{
 				Title:   payload.Title,
 				Summary: payload.Summary,

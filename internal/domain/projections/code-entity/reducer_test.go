@@ -18,6 +18,7 @@ func TestCodeReducer_FullLifecycle(t *testing.T) {
 
 	// Step 1: Create
 	state = Reducer(state, newCodeDomainEvent(aggregateID, code.CreatedCode, &code.CreatedCodePayload{
+		ProjectID: "project-1",
 		Slug:      "topic:climate-change",
 		Color:     "green-500",
 		Reasoning: "Initial climate topics",
@@ -25,6 +26,7 @@ func TestCodeReducer_FullLifecycle(t *testing.T) {
 
 	th.AssertEqual(t, state, &Code{
 		ID:        aggregateID,
+		ProjectID: "project-1",
 		Slug:      "topic:climate-change",
 		Color:     "green-500",
 		Reasoning: "Initial climate topics",
@@ -37,6 +39,7 @@ func TestCodeReducer_FullLifecycle(t *testing.T) {
 
 	th.AssertEqual(t, state, &Code{
 		ID:        aggregateID,
+		ProjectID: "project-1",
 		Slug:      "topic:climate-change",
 		Color:     "emerald-600",
 		Reasoning: "Initial climate topics",
@@ -49,6 +52,7 @@ func TestCodeReducer_FullLifecycle(t *testing.T) {
 
 	th.AssertEqual(t, state, &Code{
 		ID:        aggregateID,
+		ProjectID: "project-1",
 		Slug:      "topic:climate-change",
 		Color:     "emerald-600",
 		Reasoning: "Expanded to renewable energy and sustainability",
@@ -62,6 +66,7 @@ func TestCodeReducer_FullLifecycle(t *testing.T) {
 
 	th.AssertEqual(t, state, &Code{
 		ID:        aggregateID,
+		ProjectID: "project-1",
 		Slug:      "topic:climate-change",
 		Color:     "teal-500",
 		Reasoning: "Final comprehensive environmental coverage",
@@ -75,6 +80,7 @@ func TestCodeReducer_FullLifecycle(t *testing.T) {
 
 	th.AssertEqual(t, state, &Code{
 		ID:        aggregateID,
+		ProjectID: "project-1",
 		Slug:      "topic:climate-change",
 		Color:     "teal-500",
 		Reasoning: "Final comprehensive environmental coverage",

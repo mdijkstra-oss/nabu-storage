@@ -7,6 +7,7 @@ import (
 	"hermes-relay/internal/domain/entities/file"
 	"hermes-relay/internal/domain/projections/code-entity"
 	"hermes-relay/internal/domain/projections/file-entity"
+	projectview "hermes-relay/internal/domain/projections/project-entity"
 	"hermes-relay/internal/handlers/http"
 	tq "hermes-relay/internal/handlers/http/typed-query"
 	"hermes-relay/internal/lib/utils"
@@ -50,6 +51,11 @@ func SetupHTTPHandlers(r chi.Router, publisher *cqrs.InMemoryPublisher) {
 			r.Get("/", tq.QueryRoute(codeview.Store, tq.GetAll))
 			r.Get("/{id}", tq.QueryRoute(codeview.Store, tq.GetById))
 			r.Get("/slug/{slug}", tq.QueryRoute(codeview.Store, codeview.GetBySlug))
+		})
+
+		r.Route("/projects", func(r chi.Router) {
+			r.Get("/", tq.QueryRoute(projectview.Store, tq.GetAll))
+			r.Get("/{id}", tq.QueryRoute(projectview.Store, tq.GetById))
 		})
 
 	})

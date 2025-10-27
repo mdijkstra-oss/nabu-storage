@@ -5,8 +5,10 @@ import (
 	"hermes-relay/internal/cqrs"
 	"hermes-relay/internal/domain/entities/code"
 	"hermes-relay/internal/domain/entities/file"
+	"hermes-relay/internal/domain/entities/project"
 	"hermes-relay/internal/domain/projections/code-entity"
 	"hermes-relay/internal/domain/projections/file-entity"
+	projectview "hermes-relay/internal/domain/projections/project-entity"
 	"hermes-relay/internal/handlers"
 	"hermes-relay/internal/lib/utils"
 	"hermes-relay/internal/persistence"
@@ -39,6 +41,7 @@ func setUpCommandHandlers(publisher *cqrs.InMemoryPublisher) {
 		// Entity-specific command handlers
 		code.Router,
 		file.Router,
+		project.Router,
 	)
 
 	publisher.Subscribe(commandRouter)
@@ -49,6 +52,7 @@ func setupEventHandlers(publisher *cqrs.InMemoryPublisher) {
 	publisher.Subscribe(cqrs.LimitOnType(cqrs.DomainEvent, cqrs.ReadOnlyRoutes(
 		fileview.Store.ApplyEvent,
 		codeview.Store.ApplyEvent,
+		projectview.Store.ApplyEvent,
 	)))
 
 	// Replay all persisted events on boot

@@ -9,6 +9,7 @@ func TestCodeRouter(t *testing.T) {
 	// Specific test cases
 	tests := []th.RouterTestCase{
 		th.CommandToEventCase("CreateCode with valid payload", CreateCode, CreatedCode, CreateCodePayload{
+			ProjectID: "project-1",
 			Slug:      "topic:climate",
 			Color:     "green-500",
 			Reasoning: "Environmental topics",
@@ -30,29 +31,34 @@ func TestCodeRouter(t *testing.T) {
 		th.CommandToEventCase[any]("DeleteCode", DeleteCode, DeletedCode, nil, EntityName, "code-999"),
 
 		th.ValidationErrorCase("CreateCode with missing Color and Reasoning", CreateCode, CreateCodePayload{
-			Slug: "topic:incomplete",
+			ProjectID: "project-1",
+			Slug:      "topic:incomplete",
 			// Missing Color and Reasoning
 		}, EntityName, ""),
 
 		th.ValidationErrorCase("CreateCode with invalid slug (no colon)", CreateCode, CreateCodePayload{
+			ProjectID: "project-1",
 			Slug:      "topicclimate",
 			Color:     "blue-500",
 			Reasoning: "Invalid format",
 		}, EntityName, ""),
 
 		th.ValidationErrorCase("CreateCode with invalid slug (uppercase)", CreateCode, CreateCodePayload{
+			ProjectID: "project-1",
 			Slug:      "Topic:climate",
 			Color:     "blue-500",
 			Reasoning: "Invalid format",
 		}, EntityName, ""),
 
 		th.ValidationErrorCase("CreateCode with invalid slug (empty after colon)", CreateCode, CreateCodePayload{
+			ProjectID: "project-1",
 			Slug:      "topic:",
 			Color:     "blue-500",
 			Reasoning: "Invalid format",
 		}, EntityName, ""),
 
 		th.ValidationErrorCase("CreateCode with invalid slug (starts with hyphen)", CreateCode, CreateCodePayload{
+			ProjectID: "project-1",
 			Slug:      "topic:-climate",
 			Color:     "blue-500",
 			Reasoning: "Invalid format",
@@ -61,6 +67,7 @@ func TestCodeRouter(t *testing.T) {
 
 	// Add common router test cases (wrong entity, wrong message type, wrong action)
 	tests = append(tests, th.CommonRouterTestCases(CreateCode, CreateCodePayload{
+		ProjectID: "project-1",
 		Slug:      "topic:test",
 		Color:     "blue-500",
 		Reasoning: "Test",

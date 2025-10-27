@@ -14,6 +14,7 @@ var Reducer = cqrs.CombineReducers(
 func CreatedCodeReducer(_ *Code, message *cqrs.AnyMessage, payload *code.CreatedCodePayload) *Code {
 	return &code.Code{
 		ID:        message.AggregateID,
+		ProjectID: payload.ProjectID,
 		Slug:      payload.Slug,
 		Color:     payload.Color,
 		Reasoning: payload.Reasoning,

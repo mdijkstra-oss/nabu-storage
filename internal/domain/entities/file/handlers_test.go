@@ -13,7 +13,8 @@ func TestFileRouter(t *testing.T) {
 	validCreateFile := func() CreateFileData {
 		return CreateFileData{
 			BaseFile: BaseFile{
-				Name: "test-file.txt",
+				ProjectID: "project-1",
+				Name:      "test-file.txt",
 				Attributes: Attributes{
 					Title:   "Test File",
 					Summary: "A test file",
@@ -50,7 +51,8 @@ func TestFileRouter(t *testing.T) {
 
 		th.CommandToEventCase("CreateFile with minimal required fields", Create, CreatedFile, CreateFileData{
 			BaseFile: BaseFile{
-				Name: "minimal.txt",
+				ProjectID: "project-1",
+				Name:      "minimal.txt",
 				Attributes: Attributes{
 					Title: "Minimal File",
 				},
@@ -143,6 +145,7 @@ func TestFileRouter(t *testing.T) {
 
 		th.ValidationErrorCase("CreateFile with missing Name", Create, CreateFilePayload{
 			BaseFile: BaseFile{
+				ProjectID: "project-1",
 				Attributes: Attributes{
 					Title: "No Name File",
 				},
@@ -152,7 +155,8 @@ func TestFileRouter(t *testing.T) {
 
 		th.ValidationErrorCase("CreateFile with missing Title", Create, CreateFilePayload{
 			BaseFile: BaseFile{
-				Name: "file.txt",
+				ProjectID: "project-1",
+				Name:      "file.txt",
 			},
 			Content: "Content",
 		}, EntityName, ""),

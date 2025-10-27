@@ -16,10 +16,11 @@ func newFileDomainEvent(aggregateID string, action cqrs.Action, payload any) *cq
 }
 
 // createTestFile creates a file with the given content for testing
-func createTestFile(aggregateID, name, title, summary, content string, testTime time.Time) *File {
+func createTestFile(aggregateID, projectID, name, title, summary, content string, testTime time.Time) *File {
 	return Reducer(nil, newFileDomainEvent(aggregateID, file.CreatedFile, &file.CreatedFilePayload{
 		BaseFile: file.BaseFile{
-			Name: name,
+			ProjectID: projectID,
+			Name:      name,
 			Attributes: file.Attributes{
 				Title:   title,
 				Summary: summary,
@@ -41,12 +42,13 @@ func TestFileReducer_CreatedFile(t *testing.T) {
 	testTime := time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC)
 	content := "Short test content"
 
-	state := createTestFile(aggregateID, "test.txt", "Test", "Summary", content, testTime)
+	state := createTestFile(aggregateID, "project-1", "test.txt", "Test", "Summary", content, testTime)
 
 	th.AssertEqualIgnoreFields(t, state, &File{
 		BaseFile: file.BaseFile{
-			ID:   aggregateID,
-			Name: "test.txt",
+			ID:        aggregateID,
+			ProjectID: "project-1",
+			Name:      "test.txt",
 			Attributes: file.Attributes{
 				Title:   "Test",
 				Summary: "Summary",
@@ -68,7 +70,7 @@ func TestFileReducer_Coding(t *testing.T) {
 	testTime := time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC)
 	content := "Climate change impacts global warming. Rising temperatures affect ecosystems."
 
-	state := createTestFile(aggregateID, "coding.txt", "Coding Test", "Testing all coding operations", content, testTime)
+	state := createTestFile(aggregateID, "project-1", "coding.txt", "Coding Test", "Testing all coding operations", content, testTime)
 
 	if state == nil || len(state.Chunks) == 0 {
 		t.Fatal("Failed to create initial state with chunks")
@@ -178,7 +180,7 @@ func TestFileReducer_MergeCodes(t *testing.T) {
 	testTime := time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC)
 	content := "Climate change impacts global warming. Rising temperatures affect ecosystems. More climate data here."
 
-	state := createTestFile(aggregateID, "merge.txt", "Merge Test", "Testing merge operation", content, testTime)
+	state := createTestFile(aggregateID, "project-1", "merge.txt", "Merge Test", "Testing merge operation", content, testTime)
 
 	if state == nil || len(state.Chunks) == 0 {
 		t.Fatal("Failed to create initial state with chunks")

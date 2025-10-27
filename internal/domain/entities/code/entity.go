@@ -1,7 +1,8 @@
 package code
 
 type Code struct {
-	ID string `json:"id" validate:"required"`
+	ID        string `json:"id" validate:"required"`
+	ProjectID string `json:"project_id" validate:"required"`
 
 	// eg speaker:mark-rutte
 	Slug string `json:"slug" validate:"required,min=3,max=100,code_slug" normalize:"trim,lowercase"`

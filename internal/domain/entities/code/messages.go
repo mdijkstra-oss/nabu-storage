@@ -1,6 +1,7 @@
 package code
 
 type CreateCodeData struct {
+	ProjectID string `json:"project_id" validate:"required"`
 	Slug      string `json:"slug" validate:"required,code_slug" normalize:"trim,lowercase"`
 	Color     string `json:"color" validate:"required" normalize:"trim,lowercase"`
 	Reasoning string `json:"reasoning" validate:"required"`
