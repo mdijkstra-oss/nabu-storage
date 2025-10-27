@@ -38,3 +38,19 @@ func AssertEqualIgnoreFields(t *testing.T, got, want any, msg string, ignoreType
 	t.Helper()
 	AssertEqual(t, got, want, msg, cmpopts.IgnoreFields(ignoreType, fields...))
 }
+
+func AssertNil(t *testing.T, got any, msg string) {
+	t.Helper()
+	gotVal := reflect.ValueOf(got)
+	if gotVal.IsValid() && !(gotVal.Kind() == reflect.Ptr && gotVal.IsNil()) {
+		t.Fatalf("%s: expected nil, got %v", msg, got)
+	}
+}
+
+func AssertNotNil(t *testing.T, got any, msg string) {
+	t.Helper()
+	gotVal := reflect.ValueOf(got)
+	if !gotVal.IsValid() || (gotVal.Kind() == reflect.Ptr && gotVal.IsNil()) {
+		t.Fatalf("%s: expected non-nil, got nil", msg)
+	}
+}
