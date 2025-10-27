@@ -10,223 +10,245 @@ import (
 
 const EntityName = "File"
 
-// newFileDomainEvent creates a domain event for file entity testing
-func newFileDomainEvent(aggregateID string, action cqrs.Action, payload any) *cqrs.AnyMessage {
-	return cqrs.ToAny(cqrs.NewDomainEvent(action, payload, EntityName, aggregateID, (*cqrs.AnyMessage)(nil)))
-}
+func TestFileReducer(t *testing.T) {
+	testTime := time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC)
 
-// createTestFile creates a file with the given content for testing
-func createTestFile(aggregateID, projectID, name, title, summary, content string, testTime time.Time) *File {
-	return Reducer(nil, newFileDomainEvent(aggregateID, file.CreatedFile, &file.CreatedFilePayload{
-		BaseFile: file.BaseFile{
-			ProjectID: projectID,
-			Name:      name,
-			Attributes: file.Attributes{
-				Title:   title,
-				Summary: summary,
-				Time:    testTime,
+	tests := []struct {
+		name            string
+		initial         *File
+		event           *cqrs.AnyMessage
+		expectedBase    file.BaseFile
+		expectedContent string
+		expectedChunks  []file.Chunk
+	}{
+		{
+			name:    "CreatedFile initializes file with chunks",
+			initial: nil,
+			event: newFileEvent("file-1", file.CreatedFile, &file.CreatedFilePayload{
+				BaseFile: file.BaseFile{
+					ProjectID: "project-1",
+					Name:      "test.txt",
+					Attributes: file.Attributes{
+						Title:   "Test",
+						Summary: "Summary",
+						Time:    testTime,
+					},
+				},
+				Content: "Short test content",
+			}),
+			expectedBase: file.BaseFile{
+				ID:        "file-1",
+				ProjectID: "project-1",
+				Name:      "test.txt",
+				Attributes: file.Attributes{
+					Title:   "Test",
+					Summary: "Summary",
+					Time:    testTime,
+				},
+			},
+			expectedContent: "Short test content",
+			expectedChunks: []file.Chunk{
+				{
+					Content: "Short test content\n",
+					Codes:   []file.CodedSection{},
+				},
 			},
 		},
-		Content: content,
-	}))
-}
-
-// assertChunks compares only the chunks of a file
-func assertChunks(t *testing.T, got *File, wantChunks []file.Chunk, msg string) {
-	t.Helper()
-	th.AssertEqualIgnoreFields(t, got.Chunks, wantChunks, msg, file.Chunk{}, "ID")
-}
-
-func TestFileReducer_CreatedFile(t *testing.T) {
-	aggregateID := "file-123"
-	testTime := time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC)
-	content := "Short test content"
-
-	state := createTestFile(aggregateID, "project-1", "test.txt", "Test", "Summary", content, testTime)
-
-	th.AssertEqualIgnoreFields(t, state, &File{
-		BaseFile: file.BaseFile{
-			ID:        aggregateID,
-			ProjectID: "project-1",
-			Name:      "test.txt",
-			Attributes: file.Attributes{
-				Title:   "Test",
-				Summary: "Summary",
-				Time:    testTime,
+		{
+			name: "AppendCoding adds codes to chunk",
+			initial: fileWithChunk("file-1", "project-1", "Climate change impacts global warming.", testTime),
+			event: newFileEvent("file-1", file.CodedFile, &file.CodedFilePayload{
+				Actions: []file.CodingAction{
+					{
+						CodeSlug: "topic:climate",
+						Action:   file.AppendCoding,
+						ChunkID:  "chunk-id",
+						Sections: []file.CodedSectionAttributes{
+							{Text: "Climate change", AIReason: "Climate ref"},
+						},
+					},
+				},
+			}),
+			expectedBase: file.BaseFile{
+				ID:        "file-1",
+				ProjectID: "project-1",
+				Name:      "test.txt",
+				Attributes: file.Attributes{Time: testTime},
 			},
+			expectedContent: "Climate change impacts global warming.",
+			expectedChunks: []file.Chunk{
+				{
+					Content: "Climate change impacts global warming.\n",
+					Codes: []file.CodedSection{
+						{StartIndex: 0, EndIndex: 14, CodeSlug: "topic:climate", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change", AIReason: "Climate ref"}},
+					},
+				},
+			},
+		},
+		{
+			name: "SetCoding replaces existing codes with same slug",
+			initial: fileWithCodes("file-1", "project-1", "Climate change impacts global warming.", testTime, []file.CodedSection{
+				{StartIndex: 0, EndIndex: 14, CodeSlug: "topic:climate", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change", AIReason: "Old"}},
+				{StartIndex: 23, EndIndex: 38, CodeSlug: "topic:climate", CodedSectionAttributes: file.CodedSectionAttributes{Text: "global warming", AIReason: "Old"}},
+			}),
+			event: newFileEvent("file-1", file.CodedFile, &file.CodedFilePayload{
+				Actions: []file.CodingAction{
+					{
+						CodeSlug: "topic:climate",
+						Action:   file.SetCoding,
+						ChunkID:  "chunk-id",
+						Sections: []file.CodedSectionAttributes{
+							{Text: "warming", AIReason: "New"},
+						},
+					},
+				},
+			}),
+			expectedBase: file.BaseFile{
+				ID:        "file-1",
+				ProjectID: "project-1",
+				Name:      "test.txt",
+				Attributes: file.Attributes{Time: testTime},
+			},
+			expectedContent: "Climate change impacts global warming.",
+			expectedChunks: []file.Chunk{
+				{
+					Content: "Climate change impacts global warming.\n",
+					Codes: []file.CodedSection{
+						{StartIndex: 30, EndIndex: 38, CodeSlug: "topic:climate", CodedSectionAttributes: file.CodedSectionAttributes{Text: "warming", AIReason: "New"}},
+					},
+				},
+			},
+		},
+		{
+			name: "RemoveCoding removes all codes with slug",
+			initial: fileWithCodes("file-1", "project-1", "Climate change impacts global warming.", testTime, []file.CodedSection{
+				{StartIndex: 0, EndIndex: 14, CodeSlug: "topic:climate", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change"}},
+				{StartIndex: 23, EndIndex: 38, CodeSlug: "topic:temperature", CodedSectionAttributes: file.CodedSectionAttributes{Text: "global warming"}},
+			}),
+			event: newFileEvent("file-1", file.CodedFile, &file.CodedFilePayload{
+				Actions: []file.CodingAction{
+					{
+						CodeSlug: "topic:climate",
+						Action:   file.RemoveCoding,
+						ChunkID:  "chunk-id",
+						Sections: []file.CodedSectionAttributes{{Text: "dummy"}},
+					},
+				},
+			}),
+			expectedBase: file.BaseFile{
+				ID:        "file-1",
+				ProjectID: "project-1",
+				Name:      "test.txt",
+				Attributes: file.Attributes{Time: testTime},
+			},
+			expectedContent: "Climate change impacts global warming.",
+			expectedChunks: []file.Chunk{
+				{
+					Content: "Climate change impacts global warming.\n",
+					Codes: []file.CodedSection{
+						{StartIndex: 23, EndIndex: 38, CodeSlug: "topic:temperature", CodedSectionAttributes: file.CodedSectionAttributes{Text: "global warming"}},
+					},
+				},
+			},
+		},
+		{
+			name: "ClearedCoding removes all codes from all chunks",
+			initial: fileWithCodes("file-1", "project-1", "Test content", testTime, []file.CodedSection{
+				{StartIndex: 0, EndIndex: 4, CodeSlug: "topic:climate", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Test"}},
+			}),
+			event: newFileEvent("file-1", file.ClearedCoding, nil),
+			expectedBase: file.BaseFile{
+				ID:        "file-1",
+				ProjectID: "project-1",
+				Name:      "test.txt",
+				Attributes: file.Attributes{Time: testTime},
+			},
+			expectedContent: "Test content",
+			expectedChunks: []file.Chunk{
+				{
+					Content: "Test content\n",
+					Codes:   []file.CodedSection{},
+				},
+			},
+		},
+		{
+			name: "MergedCodes changes slug across all chunks",
+			initial: fileWithCodes("file-1", "project-1", "Climate change", testTime, []file.CodedSection{
+				{StartIndex: 0, EndIndex: 14, CodeSlug: "topic:climate-old", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change", AIReason: "Old"}},
+			}),
+			event: newFileEvent("file-1", file.MergedCodes, &file.MergedCodesPayload{
+				Source: "topic:climate-old",
+				Target: "topic:climate",
+			}),
+			expectedBase: file.BaseFile{
+				ID:        "file-1",
+				ProjectID: "project-1",
+				Name:      "test.txt",
+				Attributes: file.Attributes{Time: testTime},
+			},
+			expectedContent: "Climate change",
+			expectedChunks: []file.Chunk{
+				{
+					Content: "Climate change\n",
+					Codes: []file.CodedSection{
+						{StartIndex: 0, EndIndex: 14, CodeSlug: "topic:climate", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change", AIReason: "Old"}},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := Reducer(tt.initial, tt.event)
+
+			th.AssertEqualIgnoreFields(t, result.BaseFile, tt.expectedBase, "BaseFile", file.BaseFile{}, "ID")
+			th.AssertEqualSimple(t, result.Content, tt.expectedContent)
+			th.AssertEqualIgnoreFields(t, result.Chunks, tt.expectedChunks, "Chunks", file.Chunk{}, "ID")
+		})
+	}
+}
+
+// Helper to create a file with a single chunk (no codes)
+func fileWithChunk(id, projectID, content string, testTime time.Time) *File {
+	return &File{
+		BaseFile: file.BaseFile{
+			ID:         id,
+			ProjectID:  projectID,
+			Name:       "test.txt",
+			Attributes: file.Attributes{Time: testTime},
 		},
 		Content: content,
 		Chunks: []file.Chunk{
 			{
+				ID:      "chunk-id",
 				Content: content + "\n",
 				Codes:   []file.CodedSection{},
 			},
 		},
-	}, "After create", file.Chunk{}, "ID")
+	}
 }
 
-func TestFileReducer_Coding(t *testing.T) {
-	aggregateID := "file-coding"
-	testTime := time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC)
-	content := "Climate change impacts global warming. Rising temperatures affect ecosystems."
-
-	state := createTestFile(aggregateID, "project-1", "coding.txt", "Coding Test", "Testing all coding operations", content, testTime)
-
-	if state == nil || len(state.Chunks) == 0 {
-		t.Fatal("Failed to create initial state with chunks")
+// Helper to create a file with codes
+func fileWithCodes(id, projectID, content string, testTime time.Time, codes []file.CodedSection) *File {
+	return &File{
+		BaseFile: file.BaseFile{
+			ID:         id,
+			ProjectID:  projectID,
+			Name:       "test.txt",
+			Attributes: file.Attributes{Time: testTime},
+		},
+		Content: content,
+		Chunks: []file.Chunk{
+			{
+				ID:      "chunk-id",
+				Content: content + "\n",
+				Codes:   codes,
+			},
+		},
 	}
-
-	chunkID := state.Chunks[0].ID
-
-	// Step 1: AppendCoding - add initial codes
-	state = Reducer(state, newFileDomainEvent(aggregateID, file.CodedFile, &file.CodedFilePayload{
-		Actions: []file.CodingAction{
-			{
-				CodeSlug: "topic:climate",
-				Action:   file.AppendCoding,
-				ChunkID:  chunkID,
-				Sections: []file.CodedSectionAttributes{
-					{Text: "Climate change", AIReason: "Climate reference 1"},
-					{Text: "global warming", AIReason: "Climate reference 2"},
-				},
-			},
-		},
-	}))
-
-	assertChunks(t, state, []file.Chunk{
-		{
-			Content: content + "\n",
-			Codes: []file.CodedSection{
-				{StartIndex: 0, EndIndex: 14, CodeSlug: "topic:climate", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change", AIReason: "Climate reference 1"}},
-				{StartIndex: 23, EndIndex: 38, CodeSlug: "topic:climate", CodedSectionAttributes: file.CodedSectionAttributes{Text: "global warming", AIReason: "Climate reference 2"}},
-			},
-		},
-	}, "After append two climate codes")
-
-	// Step 2: AppendCoding - add different code slug
-	state = Reducer(state, newFileDomainEvent(aggregateID, file.CodedFile, &file.CodedFilePayload{
-		Actions: []file.CodingAction{
-			{
-				CodeSlug: "topic:temperature",
-				Action:   file.AppendCoding,
-				ChunkID:  chunkID,
-				Sections: []file.CodedSectionAttributes{
-					{Text: "Rising temperatures", AIReason: "Temperature topic"},
-				},
-			},
-		},
-	}))
-
-	th.AssertEqual(t, len(state.Chunks[0].Codes), 3, "Should have 3 codes total")
-
-	// Step 3: SetCoding - replace one slug's codes
-	state = Reducer(state, newFileDomainEvent(aggregateID, file.CodedFile, &file.CodedFilePayload{
-		Actions: []file.CodingAction{
-			{
-				CodeSlug: "topic:climate",
-				Action:   file.SetCoding,
-				ChunkID:  chunkID,
-				Sections: []file.CodedSectionAttributes{
-					{Text: "ecosystems", AIReason: "New climate reference"},
-				},
-			},
-		},
-	}))
-
-	assertChunks(t, state, []file.Chunk{
-		{
-			Content: content + "\n",
-			Codes: []file.CodedSection{
-				{StartIndex: 39, EndIndex: 58, CodeSlug: "topic:temperature", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Rising temperatures", AIReason: "Temperature topic"}},
-				{StartIndex: 66, EndIndex: 77, CodeSlug: "topic:climate", CodedSectionAttributes: file.CodedSectionAttributes{Text: "ecosystems", AIReason: "New climate reference"}},
-			},
-		},
-	}, "After SetCoding climate (should replace 2 with 1, keep temperature)")
-
-	// Step 4: RemoveCoding - remove all codes with specific slug
-	state = Reducer(state, newFileDomainEvent(aggregateID, file.CodedFile, &file.CodedFilePayload{
-		Actions: []file.CodingAction{
-			{
-				CodeSlug: "topic:temperature",
-				Action:   file.RemoveCoding,
-				ChunkID:  chunkID,
-				Sections: []file.CodedSectionAttributes{{Text: "dummy"}}, // Required by validation but not used
-			},
-		},
-	}))
-
-	assertChunks(t, state, []file.Chunk{
-		{
-			Content: content + "\n",
-			Codes: []file.CodedSection{
-				{StartIndex: 66, EndIndex: 77, CodeSlug: "topic:climate", CodedSectionAttributes: file.CodedSectionAttributes{Text: "ecosystems", AIReason: "New climate reference"}},
-			},
-		},
-	}, "After RemoveCoding temperature (should remove temperature code, keep climate)")
-
-	// Clear coding
-	state = Reducer(state, newFileDomainEvent(aggregateID, file.ClearedCoding, nil))
-
-	assertChunks(t, state, []file.Chunk{
-		{
-			Content: content + "\n",
-			Codes:   []file.CodedSection{},
-		},
-	}, "After clearing all codes")
 }
 
-func TestFileReducer_MergeCodes(t *testing.T) {
-	aggregateID := "file-merge"
-	testTime := time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC)
-	content := "Climate change impacts global warming. Rising temperatures affect ecosystems. More climate data here."
-
-	state := createTestFile(aggregateID, "project-1", "merge.txt", "Merge Test", "Testing merge operation", content, testTime)
-
-	if state == nil || len(state.Chunks) == 0 {
-		t.Fatal("Failed to create initial state with chunks")
-	}
-
-	chunkID := state.Chunks[0].ID
-
-	// Add codes with different slugs across the file
-	state = Reducer(state, newFileDomainEvent(aggregateID, file.CodedFile, &file.CodedFilePayload{
-		Actions: []file.CodingAction{
-			{
-				CodeSlug: "topic:climate-old",
-				Action:   file.AppendCoding,
-				ChunkID:  chunkID,
-				Sections: []file.CodedSectionAttributes{
-					{Text: "Climate change", AIReason: "Old climate slug 1"},
-					{Text: "climate data", AIReason: "Old climate slug 2"},
-				},
-			},
-			{
-				CodeSlug: "topic:temperature",
-				Action:   file.AppendCoding,
-				ChunkID:  chunkID,
-				Sections: []file.CodedSectionAttributes{
-					{Text: "Rising temperatures", AIReason: "Temperature topic"},
-				},
-			},
-		},
-	}))
-
-	th.AssertEqual(t, len(state.Chunks[0].Codes), 3, "Should have 3 codes before merge")
-
-	// Merge topic:climate-old into topic:climate
-	state = Reducer(state, newFileDomainEvent(aggregateID, file.MergedCodes, &file.MergedCodesPayload{
-		Source: "topic:climate-old",
-		Target: "topic:climate",
-	}))
-
-	assertChunks(t, state, []file.Chunk{
-		{
-			Content: content + "\n",
-			Codes: []file.CodedSection{
-				{StartIndex: 0, EndIndex: 14, CodeSlug: "topic:climate", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change", AIReason: "Old climate slug 1"}},
-				{StartIndex: 83, EndIndex: 95, CodeSlug: "topic:climate", CodedSectionAttributes: file.CodedSectionAttributes{Text: "climate data", AIReason: "Old climate slug 2"}},
-				{StartIndex: 39, EndIndex: 58, CodeSlug: "topic:temperature", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Rising temperatures", AIReason: "Temperature topic"}},
-			},
-		},
-	}, "After merging climate-old to climate (should change slug but keep other attributes)")
+func newFileEvent(aggregateID string, action cqrs.Action, payload any) *cqrs.AnyMessage {
+	return cqrs.ToAny(cqrs.NewDomainEvent(action, payload, EntityName, aggregateID, (*cqrs.AnyMessage)(nil)))
 }
