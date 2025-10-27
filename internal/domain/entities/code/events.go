@@ -10,3 +10,4 @@ const (
 
 type CreatedCodePayload = CreateCodeData
 type UpdatedCodePayload = UpdateCodeData
+type DeletedCodePayload = DeleteCodeData

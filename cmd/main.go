@@ -48,6 +48,9 @@ func setUpCommandHandlers(publisher *cqrs.InMemoryPublisher) {
 }
 
 func setupEventHandlers(publisher *cqrs.InMemoryPublisher) {
+	// Cross-entity event handlers (publish derived events)
+	publisher.Subscribe(project.EventHandlers)
+
 	// Domain event handlers (readonly routes)
 	publisher.Subscribe(cqrs.LimitOnType(cqrs.DomainEvent, cqrs.ReadOnlyRoutes(
 		fileview.Store.ApplyEvent,

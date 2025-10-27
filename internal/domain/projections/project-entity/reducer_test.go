@@ -2,8 +2,6 @@ package projectview
 
 import (
 	"hermes-relay/internal/cqrs"
-	"hermes-relay/internal/domain/entities/code"
-	"hermes-relay/internal/domain/entities/file"
 	"hermes-relay/internal/domain/entities/project"
 	th "hermes-relay/internal/lib/test-helpers"
 	"testing"
@@ -28,15 +26,16 @@ func TestProjectReducer(t *testing.T) {
 			},
 		},
 		{
-			name: "FileCreated appends to FileIDs when ProjectID matches",
+			name: "AddedFileToProject appends to FileIDs",
 			initial: &Project{
 				ID:      "project-1",
 				Name:    "Research",
 				CodeIDs: []string{},
 				FileIDs: []string{},
 			},
-			event: newFileEvent("file-1", file.CreatedFile, &file.CreatedFilePayload{
-				BaseFile: file.BaseFile{ProjectID: "project-1", Name: "doc.txt"},
+			event: newProjectEvent("project-1", project.AddedFileToProject, &project.AddedFileToProjectPayload{
+				FileID:    "file-1",
+				ProjectID: "project-1",
 			}),
 			expected: &Project{
 				ID:      "project-1",
@@ -46,15 +45,16 @@ func TestProjectReducer(t *testing.T) {
 			},
 		},
 		{
-			name: "FileCreated with multiple files",
+			name: "AddedFileToProject with multiple files",
 			initial: &Project{
 				ID:      "project-1",
 				Name:    "Research",
 				CodeIDs: []string{},
 				FileIDs: []string{"file-1"},
 			},
-			event: newFileEvent("file-2", file.CreatedFile, &file.CreatedFilePayload{
-				BaseFile: file.BaseFile{ProjectID: "project-1", Name: "doc2.txt"},
+			event: newProjectEvent("project-1", project.AddedFileToProject, &project.AddedFileToProjectPayload{
+				FileID:    "file-2",
+				ProjectID: "project-1",
 			}),
 			expected: &Project{
 				ID:      "project-1",
@@ -64,36 +64,16 @@ func TestProjectReducer(t *testing.T) {
 			},
 		},
 		{
-			name: "FileCreated ignores when ProjectID doesn't match",
+			name: "AddedCodeToProject appends to CodeIDs",
 			initial: &Project{
 				ID:      "project-1",
 				Name:    "Research",
 				CodeIDs: []string{},
 				FileIDs: []string{},
 			},
-			event: newFileEvent("file-1", file.CreatedFile, &file.CreatedFilePayload{
-				BaseFile: file.BaseFile{ProjectID: "project-2", Name: "doc.txt"},
-			}),
-			expected: &Project{
-				ID:      "project-1",
-				Name:    "Research",
-				CodeIDs: []string{},
-				FileIDs: []string{},
-			},
-		},
-		{
-			name: "CodeCreated appends to CodeIDs when ProjectID matches",
-			initial: &Project{
-				ID:      "project-1",
-				Name:    "Research",
-				CodeIDs: []string{},
-				FileIDs: []string{},
-			},
-			event: newCodeEvent("code-1", code.CreatedCode, &code.CreatedCodePayload{
+			event: newProjectEvent("project-1", project.AddedCodeToProject, &project.AddedCodeToProjectPayload{
+				CodeID:    "code-1",
 				ProjectID: "project-1",
-				Slug:      "topic:climate",
-				Color:     "green",
-				Reasoning: "Climate",
 			}),
 			expected: &Project{
 				ID:      "project-1",
@@ -103,18 +83,16 @@ func TestProjectReducer(t *testing.T) {
 			},
 		},
 		{
-			name: "CodeCreated with multiple codes",
+			name: "AddedCodeToProject with multiple codes",
 			initial: &Project{
 				ID:      "project-1",
 				Name:    "Research",
 				CodeIDs: []string{"code-1"},
 				FileIDs: []string{},
 			},
-			event: newCodeEvent("code-2", code.CreatedCode, &code.CreatedCodePayload{
+			event: newProjectEvent("project-1", project.AddedCodeToProject, &project.AddedCodeToProjectPayload{
+				CodeID:    "code-2",
 				ProjectID: "project-1",
-				Slug:      "topic:policy",
-				Color:     "blue",
-				Reasoning: "Policy",
 			}),
 			expected: &Project{
 				ID:      "project-1",
@@ -124,35 +102,17 @@ func TestProjectReducer(t *testing.T) {
 			},
 		},
 		{
-			name: "CodeCreated ignores when ProjectID doesn't match",
-			initial: &Project{
-				ID:      "project-1",
-				Name:    "Research",
-				CodeIDs: []string{},
-				FileIDs: []string{},
-			},
-			event: newCodeEvent("code-1", code.CreatedCode, &code.CreatedCodePayload{
-				ProjectID: "project-2",
-				Slug:      "topic:other",
-				Color:     "red",
-				Reasoning: "Other",
-			}),
-			expected: &Project{
-				ID:      "project-1",
-				Name:    "Research",
-				CodeIDs: []string{},
-				FileIDs: []string{},
-			},
-		},
-		{
-			name: "CodeDeleted removes from CodeIDs",
+			name: "RemovedCodeFromProject removes from CodeIDs",
 			initial: &Project{
 				ID:      "project-1",
 				Name:    "Research",
 				CodeIDs: []string{"code-1", "code-2", "code-3"},
 				FileIDs: []string{},
 			},
-			event: newCodeEvent("code-2", code.DeletedCode, nil),
+			event: newProjectEvent("project-1", project.RemovedCodeFromProject, &project.RemovedCodeFromProjectPayload{
+				CodeID:    "code-2",
+				ProjectID: "project-1",
+			}),
 			expected: &Project{
 				ID:      "project-1",
 				Name:    "Research",
@@ -161,14 +121,17 @@ func TestProjectReducer(t *testing.T) {
 			},
 		},
 		{
-			name: "CodeDeleted on non-existent code is safe",
+			name: "RemovedCodeFromProject on non-existent code is safe",
 			initial: &Project{
 				ID:      "project-1",
 				Name:    "Research",
 				CodeIDs: []string{"code-1"},
 				FileIDs: []string{},
 			},
-			event: newCodeEvent("code-999", code.DeletedCode, nil),
+			event: newProjectEvent("project-1", project.RemovedCodeFromProject, &project.RemovedCodeFromProjectPayload{
+				CodeID:    "code-999",
+				ProjectID: "project-1",
+			}),
 			expected: &Project{
 				ID:      "project-1",
 				Name:    "Research",
@@ -184,7 +147,10 @@ func TestProjectReducer(t *testing.T) {
 				CodeIDs: []string{"code-1", "code-2"},
 				FileIDs: []string{"file-1", "file-2"},
 			},
-			event: newCodeEvent("code-1", code.DeletedCode, nil),
+			event: newProjectEvent("project-1", project.RemovedCodeFromProject, &project.RemovedCodeFromProjectPayload{
+				CodeID:    "code-1",
+				ProjectID: "project-1",
+			}),
 			expected: &Project{
 				ID:      "project-1",
 				Name:    "Research",
@@ -203,13 +169,5 @@ func TestProjectReducer(t *testing.T) {
 }
 
 func newProjectEvent(aggregateID string, action cqrs.Action, payload any) *cqrs.AnyMessage {
-	return cqrs.ToAny(cqrs.NewDomainEvent(action, payload, project.EntityName, aggregateID, (*cqrs.AnyMessage)(nil)))
-}
-
-func newFileEvent(aggregateID string, action cqrs.Action, payload any) *cqrs.AnyMessage {
-	return cqrs.ToAny(cqrs.NewDomainEvent(action, payload, file.EntityName, aggregateID, (*cqrs.AnyMessage)(nil)))
-}
-
-func newCodeEvent(aggregateID string, action cqrs.Action, payload any) *cqrs.AnyMessage {
-	return cqrs.ToAny(cqrs.NewDomainEvent(action, payload, code.EntityName, aggregateID, (*cqrs.AnyMessage)(nil)))
+	return cqrs.ToAny(cqrs.NewDomainEvent[any, any](action, payload, project.EntityName, aggregateID, nil))
 }

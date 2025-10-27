@@ -2,17 +2,15 @@ package projectview
 
 import (
 	"hermes-relay/internal/cqrs"
-	"hermes-relay/internal/domain/entities/code"
-	"hermes-relay/internal/domain/entities/file"
 	"hermes-relay/internal/domain/entities/project"
 	"hermes-relay/internal/lib/utils"
 )
 
 var Reducer = cqrs.CombineReducers(
 	cqrs.For(project.CreatedProject, CreatedProjectReducer),
-	cqrs.For(file.CreatedFile, FileCreatedReducer),
-	cqrs.For(code.CreatedCode, CodeCreatedReducer),
-	cqrs.For(code.DeletedCode, CodeDeletedReducer),
+	cqrs.For(project.AddedFileToProject, AddedFileToProjectReducer),
+	cqrs.For(project.AddedCodeToProject, AddedCodeToProjectReducer),
+	cqrs.For(project.RemovedCodeFromProject, RemovedCodeFromProjectReducer),
 )
 
 func CreatedProjectReducer(_ *Project, message *cqrs.AnyMessage, payload *project.CreatedProjectPayload) *Project {
@@ -24,31 +22,31 @@ func CreatedProjectReducer(_ *Project, message *cqrs.AnyMessage, payload *projec
 	}
 }
 
-func FileCreatedReducer(current *Project, message *cqrs.AnyMessage, payload *file.CreatedFilePayload) *Project {
-	if current == nil || current.ID != payload.ProjectID {
+func AddedFileToProjectReducer(current *Project, message *cqrs.AnyMessage, payload *project.AddedFileToProjectPayload) *Project {
+	if current == nil {
 		return current
 	}
 
-	current.FileIDs = append(current.FileIDs, message.AggregateID)
+	current.FileIDs = append(current.FileIDs, payload.FileID)
 	return current
 }
 
-func CodeCreatedReducer(current *Project, message *cqrs.AnyMessage, payload *code.CreatedCodePayload) *Project {
-	if current == nil || current.ID != payload.ProjectID {
+func AddedCodeToProjectReducer(current *Project, message *cqrs.AnyMessage, payload *project.AddedCodeToProjectPayload) *Project {
+	if current == nil {
 		return current
 	}
 
-	current.CodeIDs = append(current.CodeIDs, message.AggregateID)
+	current.CodeIDs = append(current.CodeIDs, payload.CodeID)
 	return current
 }
 
-func CodeDeletedReducer(current *Project, message *cqrs.AnyMessage, payload any) *Project {
+func RemovedCodeFromProjectReducer(current *Project, message *cqrs.AnyMessage, payload *project.RemovedCodeFromProjectPayload) *Project {
 	if current == nil {
 		return current
 	}
 
 	current.CodeIDs = utils.Filter(current.CodeIDs, func(id string) bool {
-		return id != message.AggregateID
+		return id != payload.CodeID
 	})
 	return current
 }
