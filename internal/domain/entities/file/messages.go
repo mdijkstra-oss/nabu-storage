@@ -10,10 +10,8 @@ type CodingMutation string
 const (
 	SetCoding    CodingMutation = "SetCoding"
 	AppendCoding CodingMutation = "AppendCoding"
-	//RemoveCoding CodingMutation = "RemoveCoding"
+	RemoveCoding CodingMutation = "RemoveCoding"
 )
-
-// Todo: Remove by uuid
 
 type CodingAction struct {
 	CodeSlug string                   `json:"code_slug" validate:"required,code_slug"`

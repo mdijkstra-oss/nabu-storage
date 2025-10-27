@@ -61,14 +61,15 @@ func CodedFileReducer(current *File, message *cqrs.AnyMessage, payload *file.Cod
 		chunk := &current.Chunks[chunkIdx]
 
 		switch action.Action {
+		case file.RemoveCoding:
+			chunk.Codes = utils.Filter(chunk.Codes, func(code file.CodedSection) bool {
+				return code.CodeSlug != action.CodeSlug
+			})
+
 		case file.SetCoding:
-			newCodes := []file.CodedSection{}
-			for _, code := range chunk.Codes {
-				if code.CodeSlug != action.CodeSlug {
-					newCodes = append(newCodes, code)
-				}
-			}
-			chunk.Codes = newCodes
+			chunk.Codes = utils.Filter(chunk.Codes, func(code file.CodedSection) bool {
+				return code.CodeSlug != action.CodeSlug
+			})
 			fallthrough
 
 		case file.AppendCoding:

@@ -119,6 +119,21 @@ func TestFileRouter(t *testing.T) {
 			},
 		}, EntityName, "file-append"),
 
+		th.CommandToEventCase("CodeFile with RemoveCoding action", CodeFile, CodedFile, CodeFileData{
+			Actions: []CodingAction{
+				{
+					CodeSlug: "topic:remove",
+					Action:   RemoveCoding,
+					Sections: []CodedSectionAttributes{
+						{
+							Text: "Dummy text",
+						},
+					},
+					ChunkID: "chunk-1",
+				},
+			},
+		}, EntityName, "file-remove"),
+
 		th.CommandToEventCase[any]("ClearCoding", ClearCoding, ClearedCoding, nil, EntityName, "file-clear"),
 
 		th.ValidationErrorCase("CreateFile with missing Name", Create, CreateFilePayload{

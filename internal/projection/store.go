@@ -25,7 +25,6 @@ func NewStore[T any](reducer cqrs.Reducer[T]) *Store[T] {
 
 func NewStoreWithDefaults[T any](reducer cqrs.Reducer[T], defaults map[string]T) *Store[T] {
 	data := make(map[string]T)
-
 	for k, v := range defaults {
 		data[k] = v
 	}

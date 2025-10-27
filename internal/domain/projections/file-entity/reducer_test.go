@@ -141,6 +141,27 @@ func TestFileReducer_Coding(t *testing.T) {
 		},
 	}, "After SetCoding climate (should replace 2 with 1, keep temperature)")
 
+	// Step 4: RemoveCoding - remove all codes with specific slug
+	state = Reducer(state, newFileDomainEvent(aggregateID, file.CodedFile, &file.CodedFilePayload{
+		Actions: []file.CodingAction{
+			{
+				CodeSlug: "topic:temperature",
+				Action:   file.RemoveCoding,
+				ChunkID:  chunkID,
+				Sections: []file.CodedSectionAttributes{{Text: "dummy"}}, // Required by validation but not used
+			},
+		},
+	}))
+
+	assertChunks(t, state, []file.Chunk{
+		{
+			Content: content + "\n",
+			Codes: []file.CodedSection{
+				{StartIndex: 66, EndIndex: 77, CodeSlug: "topic:climate", CodedSectionAttributes: file.CodedSectionAttributes{Text: "ecosystems", AIReason: "New climate reference"}},
+			},
+		},
+	}, "After RemoveCoding temperature (should remove temperature code, keep climate)")
+
 	// Clear coding
 	state = Reducer(state, newFileDomainEvent(aggregateID, file.ClearedCoding, nil))
 
