@@ -1,7 +1,6 @@
 package fileview
 
 import (
-	"context"
 	"errors"
 	"hermes-relay/internal/domain/entities/file"
 	"hermes-relay/internal/projection"
@@ -19,7 +18,7 @@ type ChunkResult struct {
 	HasNext     bool       `json:"has_next"`
 }
 
-func GetFileChunk(ctx context.Context, store *projection.Store[File], q ChunkQuery) (*ChunkResult, error) {
+func GetFileChunk(store *projection.Store[File], q ChunkQuery) (*ChunkResult, error) {
 	file, err := store.GetByID(q.ID)
 
 	if err != nil {

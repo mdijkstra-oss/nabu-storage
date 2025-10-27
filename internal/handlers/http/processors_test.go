@@ -1,7 +1,6 @@
 package http
 
 import (
-	"context"
 	"errors"
 	"hermes-relay/internal/cqrs"
 	th "hermes-relay/internal/lib/test-helpers"
@@ -21,7 +20,7 @@ func TestProcessCommand(t *testing.T) {
 		{
 			name: "valid command returns 200",
 			body: `{"type":"Command","action":"UpdateDocument","payload":{}}`,
-			publish: func(ctx context.Context, msg *cqrs.AnyMessage) (*cqrs.AnyMessage, error) {
+			publish: func(msg *cqrs.AnyMessage) (*cqrs.AnyMessage, error) {
 				return &cqrs.AnyMessage{Action: "DocumentUpdated"}, nil
 			},
 			expectStatus: http.StatusOK,
@@ -30,7 +29,7 @@ func TestProcessCommand(t *testing.T) {
 		{
 			name: "created action returns 201",
 			body: `{"type":"Command","action":"CreateDocument","payload":{}}`,
-			publish: func(ctx context.Context, msg *cqrs.AnyMessage) (*cqrs.AnyMessage, error) {
+			publish: func(msg *cqrs.AnyMessage) (*cqrs.AnyMessage, error) {
 				return &cqrs.AnyMessage{Action: "DocumentCreated"}, nil
 			},
 			expectStatus: http.StatusCreated,
@@ -53,7 +52,7 @@ func TestProcessCommand(t *testing.T) {
 		{
 			name: "validation error returns 400 with fields",
 			body: `{"type":"Command","action":"CreateDocument","payload":{}}`,
-			publish: func(ctx context.Context, msg *cqrs.AnyMessage) (*cqrs.AnyMessage, error) {
+			publish: func(msg *cqrs.AnyMessage) (*cqrs.AnyMessage, error) {
 				return nil, &utils.ValidationError{
 					Message: "validation failed",
 					Fields: map[string]string{
@@ -67,7 +66,7 @@ func TestProcessCommand(t *testing.T) {
 		{
 			name: "not found error returns 404",
 			body: `{"type":"Command","action":"UpdateDocument","payload":{}}`,
-			publish: func(ctx context.Context, msg *cqrs.AnyMessage) (*cqrs.AnyMessage, error) {
+			publish: func(msg *cqrs.AnyMessage) (*cqrs.AnyMessage, error) {
 				return nil, &utils.NotFoundError{Message: "document not found"}
 			},
 			expectStatus: http.StatusNotFound,
@@ -76,7 +75,7 @@ func TestProcessCommand(t *testing.T) {
 		{
 			name: "conflict error returns 409",
 			body: `{"type":"Command","action":"CreateDocument","payload":{}}`,
-			publish: func(ctx context.Context, msg *cqrs.AnyMessage) (*cqrs.AnyMessage, error) {
+			publish: func(msg *cqrs.AnyMessage) (*cqrs.AnyMessage, error) {
 				return nil, &utils.ConflictError{Message: "document already exists"}
 			},
 			expectStatus: http.StatusConflict,
@@ -85,7 +84,7 @@ func TestProcessCommand(t *testing.T) {
 		{
 			name: "generic error returns 500",
 			body: `{"type":"Command","action":"UpdateDocument","payload":{}}`,
-			publish: func(ctx context.Context, msg *cqrs.AnyMessage) (*cqrs.AnyMessage, error) {
+			publish: func(msg *cqrs.AnyMessage) (*cqrs.AnyMessage, error) {
 				return nil, errors.New("something went wrong")
 			},
 			expectStatus: http.StatusInternalServerError,
@@ -96,7 +95,7 @@ func TestProcessCommand(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			request := Request{Body: []byte(tt.body)}
-			response := ProcessCommand(context.Background(), request, tt.publish)
+			response := ProcessCommand(request, tt.publish)
 
 			th.AssertEqualSimple(t, tt.expectStatus, response.StatusCode)
 			th.AssertEqualSimple(t, tt.expectBody, string(response.Body))

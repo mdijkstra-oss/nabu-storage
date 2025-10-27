@@ -1,7 +1,6 @@
 package typedquery
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,7 +14,7 @@ import (
 
 var validate = validator.New()
 
-type QueryFunc[T, Q, R any] = func(ctx context.Context, store *projection.Store[T], q Q) (R, error)
+type QueryFunc[T, Q, R any] = func(store *projection.Store[T], q Q) (R, error)
 
 func Query[T, Q, R any](
 	store *projection.Store[T],
@@ -29,7 +28,7 @@ func QueryWithMap[T, Q, R, Y any](
 	queryFn QueryFunc[T, Q, R],
 	mapFn func(R) Y,
 ) ProcessorFunc {
-	return func(ctx context.Context, request httphandlers.Request) httphandlers.Response {
+	return func(request httphandlers.Request) httphandlers.Response {
 		var query Q
 
 		if err := bindPathParams(request.Path, &query); err != nil {
@@ -48,7 +47,7 @@ func QueryWithMap[T, Q, R, Y any](
 			}
 		}
 
-		result, err := queryFn(ctx, store, query)
+		result, err := queryFn(store, query)
 		if err != nil {
 			body, _ := json.Marshal(map[string]string{"message": err.Error()})
 			return httphandlers.Response{

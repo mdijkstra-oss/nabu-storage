@@ -1,7 +1,6 @@
 package http
 
 import (
-	"context"
 	"hermes-relay/internal/cqrs"
 	"hermes-relay/internal/lib/utils"
 	"io"
@@ -16,7 +15,7 @@ func CommandHandler(publish cqrs.PublishFunc) http.HandlerFunc {
 //	return httpHandler(ProcessEvent, publish)
 //}
 
-func httpHandler(processor func(context.Context, Request, cqrs.PublishFunc) Response, publish cqrs.PublishFunc) http.HandlerFunc {
+func httpHandler(processor func(Request, cqrs.PublishFunc) Response, publish cqrs.PublishFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -24,7 +23,7 @@ func httpHandler(processor func(context.Context, Request, cqrs.PublishFunc) Resp
 			return
 		}
 
-		response := processor(r.Context(), Request{Body: body}, publish)
+		response := processor(Request{Body: body}, publish)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(response.StatusCode)

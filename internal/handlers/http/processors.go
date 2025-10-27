@@ -2,7 +2,6 @@ package http
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
 	"hermes-relay/internal/cqrs"
@@ -11,24 +10,24 @@ import (
 	"time"
 )
 
-func ProcessCommand(ctx context.Context, request Request, publish cqrs.PublishFunc) Response {
-	return processMessage(ctx, request, publish, false, []cqrs.MessageType{cqrs.Command})
+func ProcessCommand(request Request, publish cqrs.PublishFunc) Response {
+	return processMessage(request, publish, false, []cqrs.MessageType{cqrs.Command})
 }
 
 // - No tests yet but unused too, could share tests with above
-//func ProcessEvent(ctx context.Context, request Request, publish cqrs.PublishFunc) Response {
-//	return processMessage(ctx, request, publish, true, []cqrs.MessageType{cqrs.DomainEvent, cqrs.SystemEvent})
+//func ProcessEvent(request Request, publish cqrs.PublishFunc) Response {
+//	return processMessage(request, publish, true, []cqrs.MessageType{cqrs.DomainEvent, cqrs.SystemEvent})
 //}
 
-func processMessage(ctx context.Context, request Request, publish cqrs.PublishFunc, acceptedOnly bool, allowedTypes []cqrs.MessageType) Response {
+func processMessage(request Request, publish cqrs.PublishFunc, acceptedOnly bool, allowedTypes []cqrs.MessageType) Response {
 	trimmed := bytes.TrimSpace(request.Body)
 	if bytes.HasPrefix(trimmed, []byte("[")) {
-		return processBatch(ctx, request, publish, acceptedOnly, allowedTypes)
+		return processBatch(request, publish, acceptedOnly, allowedTypes)
 	}
-	return processSingle(ctx, request, publish, acceptedOnly, allowedTypes)
+	return processSingle(request, publish, acceptedOnly, allowedTypes)
 }
 
-func processSingle(ctx context.Context, request Request, publish cqrs.PublishFunc, acceptedOnly bool, allowedTypes []cqrs.MessageType) Response {
+func processSingle(request Request, publish cqrs.PublishFunc, acceptedOnly bool, allowedTypes []cqrs.MessageType) Response {
 	var msg cqrs.AnyMessage
 	if err := json.Unmarshal(request.Body, &msg); err != nil {
 		return errorOutput(http.StatusBadRequest, err)
@@ -39,7 +38,7 @@ func processSingle(ctx context.Context, request Request, publish cqrs.PublishFun
 	}
 
 	msg.Timestamp = time.Now()
-	result, err := publish(ctx, &msg)
+	result, err := publish(&msg)
 	if err != nil {
 		return typedErrorOutput(err)
 	}
@@ -47,7 +46,7 @@ func processSingle(ctx context.Context, request Request, publish cqrs.PublishFun
 	return successOutput(result, acceptedOnly)
 }
 
-func processBatch(ctx context.Context, request Request, publish cqrs.PublishFunc, acceptedOnly bool, allowedTypes []cqrs.MessageType) Response {
+func processBatch(request Request, publish cqrs.PublishFunc, acceptedOnly bool, allowedTypes []cqrs.MessageType) Response {
 	var messages []cqrs.AnyMessage
 	if err := json.Unmarshal(request.Body, &messages); err != nil {
 		return errorOutput(http.StatusBadRequest, err)
@@ -71,7 +70,7 @@ func processBatch(ctx context.Context, request Request, publish cqrs.PublishFunc
 		}
 
 		msg.Timestamp = now
-		result, err := publish(ctx, &msg)
+		result, err := publish(&msg)
 
 		if err != nil {
 			results[i].Success = false

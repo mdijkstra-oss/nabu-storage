@@ -1,14 +1,13 @@
 package cqrs
 
 import (
-	"context"
 	"github.com/google/uuid"
 	"time"
 )
 
 func ToCreateEntityEvent[P any](commandAction, eventAction Action) CommandRouter {
 
-	return func(ctx context.Context, message *AnyMessage, publisher PublishFunc) (*AnyMessage, error) {
+	return func(message *AnyMessage, publisher PublishFunc) (*AnyMessage, error) {
 
 		// Copies struct, so all good
 		withID := *message
@@ -16,12 +15,12 @@ func ToCreateEntityEvent[P any](commandAction, eventAction Action) CommandRouter
 		withID.Timestamp = time.Now()
 
 		// What is a create but an update with more fields
-		return ToUpdateEntityEvent[P](commandAction, eventAction)(ctx, message, publisher)
+		return ToUpdateEntityEvent[P](commandAction, eventAction)(message, publisher)
 	}
 }
 
 func ToUpdateEntityEvent[P any](commandAction, eventAction Action) CommandRouter {
-	return func(ctx context.Context, message *AnyMessage, publisher PublishFunc) (*AnyMessage, error) {
+	return func(message *AnyMessage, publisher PublishFunc) (*AnyMessage, error) {
 		if message.Action != commandAction {
 			return nil, nil
 		}
@@ -37,7 +36,7 @@ func ToUpdateEntityEvent[P any](commandAction, eventAction Action) CommandRouter
 }
 
 func ToEmptyDomainEvent(commandAction, eventAction Action) CommandRouter {
-	return func(ctx context.Context, message *AnyMessage, publisher PublishFunc) (*AnyMessage, error) {
+	return func(message *AnyMessage, publisher PublishFunc) (*AnyMessage, error) {
 		if message.Action != commandAction {
 			return nil, nil
 		}

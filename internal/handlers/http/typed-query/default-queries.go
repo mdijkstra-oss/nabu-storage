@@ -1,7 +1,6 @@
 package typedquery
 
 import (
-	"context"
 	"hermes-relay/internal/projection"
 )
 
@@ -11,7 +10,7 @@ type GetByIDQuery struct {
 
 type EmptyQuery struct{}
 
-func GetById[T any](ctx context.Context, store *projection.Store[T], q GetByIDQuery) (*T, error) {
+func GetById[T any](store *projection.Store[T], q GetByIDQuery) (*T, error) {
 	file, err := store.GetByID(q.ID)
 	if err != nil {
 		return nil, err
@@ -20,7 +19,7 @@ func GetById[T any](ctx context.Context, store *projection.Store[T], q GetByIDQu
 	return file, nil
 }
 
-func GetAll[T any](ctx context.Context, store *projection.Store[T], q EmptyQuery) ([]T, error) {
+func GetAll[T any](store *projection.Store[T], q EmptyQuery) ([]T, error) {
 	all := store.GetAll()
 	return all, nil
 }

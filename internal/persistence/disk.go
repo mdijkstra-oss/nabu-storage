@@ -1,7 +1,6 @@
 package persistence
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"hermes-relay/internal/cqrs"
@@ -197,7 +196,7 @@ func ReplayAllEvents(publisher *cqrs.InMemoryPublisher) error {
 	slog.Info("replaying events", "count", len(events))
 
 	for i, event := range events {
-		if _, err := publisher.Publish(context.Background(), &event); err != nil {
+		if _, err := publisher.Publish(&event); err != nil {
 			return fmt.Errorf("failed to replay event %d: %w", i, err)
 		}
 	}

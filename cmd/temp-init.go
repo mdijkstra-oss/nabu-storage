@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"hermes-relay/internal/cqrs"
 	"hermes-relay/internal/domain/entities/file"
 	"log/slog"
@@ -24,7 +23,7 @@ func PublishNewSourceFiles(publish cqrs.PublishFunc) error {
 			continue
 		}
 
-		if _, err := publish(context.Background(), msg); err != nil {
+		if _, err := publish(msg); err != nil {
 			slog.Warn("Publish failed", "path", path, "error", err)
 		}
 	}

@@ -1,7 +1,6 @@
 package http
 
 import (
-	"context"
 	"github.com/gorilla/websocket"
 	"hermes-relay/internal/cqrs"
 	"hermes-relay/internal/lib/utils"
@@ -28,9 +27,6 @@ func WebSocketHandler(publish cqrs.PublishFunc, subscribe func(cqrs.CommandRoute
 }
 
 func handleWebSocket(conn *websocket.Conn, publish cqrs.PublishFunc, subscribe func(cqrs.CommandRouter)) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
 	// Forward domain/system events to client
 	subscribe(cqrs.LimitOnType(
 		cqrs.DomainEvent,
@@ -44,7 +40,9 @@ func handleWebSocket(conn *websocket.Conn, publish cqrs.PublishFunc, subscribe f
 			return // Connection closed
 		}
 
-		response := ProcessCommand(ctx, Request{Body: message}, publish)
+		// Commands do not need ctx, if something is async it will time out on its own
+		// Only fast acting things mostly, and video encoding etc would still need to continue even if user loses connection
+		response := ProcessCommand(Request{Body: message}, publish)
 
 		// Send response (errors or results)
 		if len(response.Body) > 0 {
@@ -54,7 +52,7 @@ func handleWebSocket(conn *websocket.Conn, publish cqrs.PublishFunc, subscribe f
 }
 
 func forwardToWebSocket(conn *websocket.Conn) cqrs.CommandRouter {
-	return func(ctx context.Context, msg *cqrs.AnyMessage, pub cqrs.PublishFunc) (*cqrs.AnyMessage, error) {
+	return func(msg *cqrs.AnyMessage, pub cqrs.PublishFunc) (*cqrs.AnyMessage, error) {
 		utils.WarnErr(conn.WriteJSON(msg))
 		return nil, nil
 	}

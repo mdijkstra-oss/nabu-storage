@@ -1,7 +1,6 @@
 package typedquery
 
 import (
-	"context"
 	"hermes-relay/internal/cqrs"
 	httphandlers "hermes-relay/internal/handlers/http"
 	th "hermes-relay/internal/lib/test-helpers"
@@ -27,7 +26,7 @@ type MinValueQuery struct {
 	MinValue int `path:"minValue" validate:"min=0"`
 }
 
-func getByMinValue(ctx context.Context, store *projection.Store[TestEntity], q MinValueQuery) ([]TestEntity, error) {
+func getByMinValue(store *projection.Store[TestEntity], q MinValueQuery) ([]TestEntity, error) {
 	all := store.GetAll()
 	var result []TestEntity
 	for _, e := range all {
@@ -120,7 +119,7 @@ func TestQuery(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httphandlers.Request{Path: tt.pathParams}
-			response := tt.processor(context.Background(), request)
+			response := tt.processor(request)
 
 			th.AssertEqualSimple(t, tt.expectStatus, response.StatusCode)
 			th.AssertEqualSimple(t, tt.expectBody, string(response.Body))
@@ -165,11 +164,10 @@ func TestQueryWithMap(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httphandlers.Request{Path: tt.pathParams}
-			response := tt.processor(context.Background(), request)
+			response := tt.processor(request)
 
 			th.AssertEqualSimple(t, tt.expectStatus, response.StatusCode)
 			th.AssertEqualSimple(t, tt.expectBody, string(response.Body))
 		})
 	}
 }
-

@@ -1,7 +1,6 @@
 package test_helpers
 
 import (
-	"context"
 	"hermes-relay/internal/cqrs"
 	"testing"
 )
@@ -20,12 +19,12 @@ func TestRouter(t *testing.T, router cqrs.CommandRouter, tc RouterTestCase) {
 	t.Helper()
 
 	var published []*cqrs.AnyMessage
-	mockPublisher := func(ctx context.Context, event *cqrs.AnyMessage) (*cqrs.AnyMessage, error) {
+	mockPublisher := func(event *cqrs.AnyMessage) (*cqrs.AnyMessage, error) {
 		published = append(published, event)
 		return event, nil
 	}
 
-	result, err := router(context.Background(), tc.InputMessage, mockPublisher)
+	result, err := router(tc.InputMessage, mockPublisher)
 
 	if tc.ExpectError {
 		if err == nil {

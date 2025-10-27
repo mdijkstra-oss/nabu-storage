@@ -1,7 +1,6 @@
 package codeview
 
 import (
-	"context"
 	"hermes-relay/internal/domain/entities/code"
 	"hermes-relay/internal/lib/utils"
 	"hermes-relay/internal/projection"
@@ -13,7 +12,7 @@ type SlugQuery struct {
 	Slug string `path:"slug" validate:"required,code_slug"`
 }
 
-func GetBySlug(ctx context.Context, store *projection.Store[Code], q SlugQuery) (*Code, error) {
+func GetBySlug(store *projection.Store[Code], q SlugQuery) (*Code, error) {
 	found, err := utils.Find(store.GetAll(), func(c Code) bool {
 		return c.Slug == q.Slug
 	})
