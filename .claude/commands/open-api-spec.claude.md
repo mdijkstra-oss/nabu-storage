@@ -1,60 +1,108 @@
 # OpenAPI Spec
-You should generate an open api spec for this repository according to the following definitions
 
-- Name: hermes-relay-api
-- servers: http://localhost:8080
-- version: 1
+Generate a complete OpenAPI 3.0 specification for this repository.
 
-These are the endpoints for a CQRS system. Build in Go. When giving samples. Create them where they make sense in the context of Qualitative Coding. 
+## Output Configuration
 
-Write output to `open-api-spec.generated.yml` in root (override existing if needed)
+- **Output file**: `open-api-spec.generated.yml` (in repository root)
+- **Name**: hermes-relay-api
+- **Version**: 1
+- **Servers**: http://localhost:8080
+- **Always override existing file** - use Write tool to replace
 
-## Authentication
-As of now, no authentication
+## System Overview
 
-## Endpoints
+This is a CQRS (Command Query Responsibility Segregation) system for qualitative coding research. All examples should use realistic qualitative coding contexts (interviews, transcripts, climate research, policy analysis, etc.).
 
-### /commands/
-Look for the `Message` type in this repository, every command follows this format. `Message.Type` always is of the Command type
+## Key Files to Reference
 
-In the `domain/entities` folder, you can find the entities for which commands can be exposed.
-For each command set the appropriate `AggregateType` to the entity (as per struct name, eg Uppercase) and AggregateId should be required when it makes sense in context (eg updates, deletes etc).
+### Core CQRS Structure
+- **Message type**: `internal/cqrs/message.go` - defines `Message[T]` and `AnyMessage` structure
+  - All commands/events follow this structure
+  - Key fields: `action`, `type`, `aggregateId`, `aggregateType`, `payload`, `timestamp`
 
-Sample for AggregateType `Code`
-Sample for action `Command`
+### HTTP Handlers & Routes
+- **Routes definition**: `internal/handlers/routes.go` - contains ALL endpoint definitions
+- **Handler logic**: `internal/handlers/http/handlers.go` - command/query processing
+- **Error handling**: `internal/handlers/http/processors.go` - error response format
 
-Each entity has a `commands.go` file. From there you can find the commands to apply. 
-Be sure to also check the corresponding entity definition in the `view.go` folder. 
+### Entities (Commands & Payloads)
+For each entity in `internal/domain/entities/{entity}/`:
+- **commands.go** - command action constants (e.g., `CreateCode`, `UpdateCode`)
+- **messages.go** - payload type definitions (e.g., `CreateCodeData`, `UpdateCodeData`)
+- **events.go** - event action constants and payload type aliases
+- **entity.go** - entity structure definition
 
-Supports both single and batch commands
+Current entities: `code`, `file`, `project`
 
----
-For now just assume proper header responses for errors (400, 500 etc) and 200 range for success. (only 200 and 201 atm)
----
+### Queries (Return Types)
+For each projection in `internal/domain/projections/{entity}-entity/`:
+- **view.go** - return type structure for queries
+- **query.go** - query-specific logic (if exists)
 
-### /queries/
+## Endpoints Structure
 
-For each entity if there is a `query.go` file there is a way to query them. Return value is the `view.go` format.
+### POST /commands
+- **Single command**: Accepts one `AnyMessage` with `type: "Command"`
+- **Batch commands**: Accepts array of `AnyMessage` objects
+- **Request body**: Command with appropriate `aggregateType`, `action`, and `payload`
+- **Response**:
+  - Single: Returns `AnyMessage` with `type: "DomainEvent"`
+  - Batch: Returns `batchResponse` object (see `internal/handlers/http/handlers.go`)
+- **Error responses**: 400 (validation), 500 (server error) with `ErrorResponse` format
 
-The format for the endpoint will be lowercased-snakerized entity eg `/queries/file/`
+**Important Command Rules**:
+- `aggregateId`: Empty string for CREATE operations, required for UPDATE/DELETE
+- `aggregateType`: Must be entity name (capitalized: "Code", "File", "Project")
+- `action`: Must match command constant from entity's `commands.go`
+- `payload`: Structure from entity's `messages.go`
 
-For now only two features on queries:
+### GET /queries/{entity}/
+Query endpoints defined in `internal/handlers/routes.go`:
 
-- fetch all (no pagination)
-- fetch by id
+### GET /ws/
+WebSocket endpoint for bidirectional communication (commands in, events out).
 
----FOR FILE ONLY
-For file there is a query like this
+## Schema Generation Instructions
 
-/queries/files/{id}?chunk_index={index}
+1. **Read core CQRS types** from `internal/cqrs/message.go`
+2. **For each entity** in `internal/domain/entities/`:
+   - Read `commands.go` for command actions
+   - Read `messages.go` for payload structures with validation tags
+   - Read `entity.go` for complete entity structure
+   - Create command examples using realistic qualitative coding data
+3. **For query responses**:
+   - Read projection `view.go` files for return types
+   - Read `internal/handlers/routes.go` for exact endpoint paths
+4. **Include all validation constraints** from struct tags (`validate:"required"`, `maxLength`, patterns, etc.)
+5. **Create realistic examples** in qualitative coding context:
+   - Codes: `topic:climate`, `sentiment:positive`, `method:interview`
+   - Files: Interview transcripts, field notes
+   - Projects: Research studies, policy analysis
+6. **Document error responses** (400, 404, 500) with `ErrorResponse` schema
+7. **Include batch command format** and `batchResponse` structure
 
-with return format like
+## Validation Patterns to Include
 
-{
-"id": "rutte-lang",
-"chunk": "#### RUTTE\n\nNee, die vragen wij natuurlijk ook om verstandig zich te bewegen in de samenleving. Drukte te vermijden en zich te realiseren dat je als zeventigplusser gemiddeld genomen, na een besmetting met corona, veel groter risico hebt dat je in het ziekenhuis komt, ernstig ziek wordt, dan wat jongere mensen. Dus ook tegen zeventigplussers zeggen we dat en het is niet zo dat we de scholen sluiten zodat de kinderen dan naar opa en oma kunnen met de kerst. Nee we zeggen, het is verstandig om met de kerst echt dat te beperken en als het niet anders kan, in ieder geval anderhalve meter en testen en noem maar op. We doen dit omdat we weten dat niet alle kindjes opa en oma zullen vermijden. Dus daar is altijd een risico dat het toch gebeurt en dat is ook een keuze die mensen maken. En naast de Delta-variant, de risico's van Omikron en de noodzaak om verspreiding te vertragen. Het noodzakelijk is om deze maatregel te nemen.",
-"chunk_index": 177,
-"next_chunk_index": 178
-}
+- **Code slugs**: Pattern `^[a-z0-9-]+:[a-z0-9-]+$` (category:value format, lowercase)
+- **Required fields**: Check `validate:"required"` tags in `messages.go` files
+- **String lengths**: Check `maxLength` constraints (e.g., title max 200, summary max 1500)
+- **Normalization**: Fields with `normalize:"trim,lowercase"` should document expected format
+- etc
 
-will 404 on invalid, will have -1 next_chunk_index when no more next chunks
+## Quality Checks
+
+Before writing output:
+- [ ] All entities (Code, File, Project, etc) included with their commands
+- [ ] All query endpoints from `routes.go` documented
+- [ ] Command examples show both single and batch format
+- [ ] Payload schemas match exact struct definitions from `messages.go`
+- [ ] Chunk query endpoint properly documented with `ChunkResult` response
+- [ ] Error response format included
+- [ ] Batch response format included
+- [ ] All validation constraints from struct tags present
+- [ ] Examples use qualitative coding domain language
+
+## Final Step
+
+Write complete specification to `open-api-spec.generated.yml` in repository root using Write tool (override existing).
