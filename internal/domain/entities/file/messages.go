@@ -23,3 +23,8 @@ type CodingAction struct {
 type CodeFileData struct {
 	Actions []CodingAction `json:"actions" validate:"required,min=1,dive,required"`
 }
+
+type MergeCodesData struct {
+	Source string `json:"source" validate:"required,code_slug" normalize:"trim,lowercase"`
+	Target string `json:"target" validate:"required,code_slug" normalize:"trim,lowercase"`
+}

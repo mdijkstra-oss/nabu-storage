@@ -172,3 +172,59 @@ func TestFileReducer_Coding(t *testing.T) {
 		},
 	}, "After clearing all codes")
 }
+
+func TestFileReducer_MergeCodes(t *testing.T) {
+	aggregateID := "file-merge"
+	testTime := time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC)
+	content := "Climate change impacts global warming. Rising temperatures affect ecosystems. More climate data here."
+
+	state := createTestFile(aggregateID, "merge.txt", "Merge Test", "Testing merge operation", content, testTime)
+
+	if state == nil || len(state.Chunks) == 0 {
+		t.Fatal("Failed to create initial state with chunks")
+	}
+
+	chunkID := state.Chunks[0].ID
+
+	// Add codes with different slugs across the file
+	state = Reducer(state, newFileDomainEvent(aggregateID, file.CodedFile, &file.CodedFilePayload{
+		Actions: []file.CodingAction{
+			{
+				CodeSlug: "topic:climate-old",
+				Action:   file.AppendCoding,
+				ChunkID:  chunkID,
+				Sections: []file.CodedSectionAttributes{
+					{Text: "Climate change", AIReason: "Old climate slug 1"},
+					{Text: "climate data", AIReason: "Old climate slug 2"},
+				},
+			},
+			{
+				CodeSlug: "topic:temperature",
+				Action:   file.AppendCoding,
+				ChunkID:  chunkID,
+				Sections: []file.CodedSectionAttributes{
+					{Text: "Rising temperatures", AIReason: "Temperature topic"},
+				},
+			},
+		},
+	}))
+
+	th.AssertEqual(t, len(state.Chunks[0].Codes), 3, "Should have 3 codes before merge")
+
+	// Merge topic:climate-old into topic:climate
+	state = Reducer(state, newFileDomainEvent(aggregateID, file.MergedCodes, &file.MergedCodesPayload{
+		Source: "topic:climate-old",
+		Target: "topic:climate",
+	}))
+
+	assertChunks(t, state, []file.Chunk{
+		{
+			Content: content + "\n",
+			Codes: []file.CodedSection{
+				{StartIndex: 0, EndIndex: 14, CodeSlug: "topic:climate", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change", AIReason: "Old climate slug 1"}},
+				{StartIndex: 83, EndIndex: 95, CodeSlug: "topic:climate", CodedSectionAttributes: file.CodedSectionAttributes{Text: "climate data", AIReason: "Old climate slug 2"}},
+				{StartIndex: 39, EndIndex: 58, CodeSlug: "topic:temperature", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Rising temperatures", AIReason: "Temperature topic"}},
+			},
+		},
+	}, "After merging climate-old to climate (should change slug but keep other attributes)")
+}

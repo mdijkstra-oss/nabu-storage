@@ -14,6 +14,7 @@ var Reducer = cqrs.CombineReducers(
 	cqrs.For(file.CreatedFile, CreatedFileReducer),
 	cqrs.For(file.CodedFile, CodedFileReducer),
 	cqrs.For(file.ClearedCoding, ClearedCodingReducer),
+	cqrs.For(file.MergedCodes, MergedCodesReducer),
 )
 
 func CreatedFileReducer(_ *File, message *cqrs.AnyMessage, payload *file.CreatedFilePayload) *File {
@@ -99,6 +100,17 @@ func CodedFileReducer(current *File, message *cqrs.AnyMessage, payload *file.Cod
 func ClearedCodingReducer(current *File, message *cqrs.AnyMessage, payload any) *File {
 	for i := range current.Chunks {
 		current.Chunks[i].Codes = []file.CodedSection{}
+	}
+	return current
+}
+
+func MergedCodesReducer(current *File, message *cqrs.AnyMessage, payload *file.MergeCodesPayload) *File {
+	for i := range current.Chunks {
+		for j := range current.Chunks[i].Codes {
+			if current.Chunks[i].Codes[j].CodeSlug == payload.Source {
+				current.Chunks[i].Codes[j].CodeSlug = payload.Target
+			}
+		}
 	}
 	return current
 }

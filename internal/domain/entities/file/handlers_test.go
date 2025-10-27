@@ -136,6 +136,11 @@ func TestFileRouter(t *testing.T) {
 
 		th.CommandToEventCase[any]("ClearCoding", ClearCoding, ClearedCoding, nil, EntityName, "file-clear"),
 
+		th.CommandToEventCase("MergeCodes with valid payload", MergeCodes, MergedCodes, MergeCodesData{
+			Source: "topic:climate-old",
+			Target: "topic:climate",
+		}, EntityName, "file-merge"),
+
 		th.ValidationErrorCase("CreateFile with missing Name", Create, CreateFilePayload{
 			BaseFile: BaseFile{
 				Attributes: Attributes{
@@ -229,6 +234,24 @@ func TestFileRouter(t *testing.T) {
 				},
 			},
 		}, EntityName, "file-123"),
+
+		th.ValidationErrorCase("MergeCodes with missing Source", MergeCodes, MergeCodesPayload{
+			Target: "topic:climate",
+		}, EntityName, "file-merge"),
+
+		th.ValidationErrorCase("MergeCodes with missing Target", MergeCodes, MergeCodesPayload{
+			Source: "topic:climate-old",
+		}, EntityName, "file-merge"),
+
+		th.ValidationErrorCase("MergeCodes with invalid Source slug", MergeCodes, MergeCodesPayload{
+			Source: "invalid-slug",
+			Target: "topic:climate",
+		}, EntityName, "file-merge"),
+
+		th.ValidationErrorCase("MergeCodes with invalid Target slug", MergeCodes, MergeCodesPayload{
+			Source: "topic:climate-old",
+			Target: "InvalidSlug",
+		}, EntityName, "file-merge"),
 	}
 
 	// Add common router test cases (wrong entity, wrong message type, wrong action)
