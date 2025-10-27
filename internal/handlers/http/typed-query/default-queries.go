@@ -6,7 +6,7 @@ import (
 )
 
 type GetByIDQuery struct {
-	ID string `path:"id"`
+	ID string `path:"id" validate:"required"`
 }
 
 type EmptyQuery struct{}

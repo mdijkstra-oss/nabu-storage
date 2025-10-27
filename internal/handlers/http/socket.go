@@ -44,11 +44,11 @@ func handleWebSocket(conn *websocket.Conn, publish cqrs.PublishFunc, subscribe f
 			return // Connection closed
 		}
 
-		output := ProcessCommand(ctx, Input{Body: message}, publish)
+		response := ProcessCommand(ctx, Request{Body: message}, publish)
 
 		// Send response (errors or results)
-		if len(output.Body) > 0 {
-			utils.WarnErr(conn.WriteMessage(websocket.TextMessage, output.Body))
+		if len(response.Body) > 0 {
+			utils.WarnErr(conn.WriteMessage(websocket.TextMessage, response.Body))
 		}
 	}
 }

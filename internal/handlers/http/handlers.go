@@ -16,7 +16,7 @@ func CommandHandler(publish cqrs.PublishFunc) http.HandlerFunc {
 //	return httpHandler(ProcessEvent, publish)
 //}
 
-func httpHandler(processor func(context.Context, Input, cqrs.PublishFunc) Output, publish cqrs.PublishFunc) http.HandlerFunc {
+func httpHandler(processor func(context.Context, Request, cqrs.PublishFunc) Response, publish cqrs.PublishFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -24,10 +24,10 @@ func httpHandler(processor func(context.Context, Input, cqrs.PublishFunc) Output
 			return
 		}
 
-		output := processor(r.Context(), Input{Body: body}, publish)
+		response := processor(r.Context(), Request{Body: body}, publish)
 
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(output.StatusCode)
-		utils.Must(w.Write(output.Body))
+		w.WriteHeader(response.StatusCode)
+		utils.Must(w.Write(response.Body))
 	}
 }

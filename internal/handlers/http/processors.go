@@ -11,26 +11,26 @@ import (
 	"time"
 )
 
-func ProcessCommand(ctx context.Context, input Input, publish cqrs.PublishFunc) Output {
-	return processMessage(ctx, input, publish, false, []cqrs.MessageType{cqrs.Command})
+func ProcessCommand(ctx context.Context, request Request, publish cqrs.PublishFunc) Response {
+	return processMessage(ctx, request, publish, false, []cqrs.MessageType{cqrs.Command})
 }
 
 // - No tests yet but unused too, could share tests with above
-//func ProcessEvent(ctx context.Context, input Input, publish cqrs.PublishFunc) Output {
-//	return processMessage(ctx, input, publish, true, []cqrs.MessageType{cqrs.DomainEvent, cqrs.SystemEvent})
+//func ProcessEvent(ctx context.Context, request Request, publish cqrs.PublishFunc) Response {
+//	return processMessage(ctx, request, publish, true, []cqrs.MessageType{cqrs.DomainEvent, cqrs.SystemEvent})
 //}
 
-func processMessage(ctx context.Context, input Input, publish cqrs.PublishFunc, acceptedOnly bool, allowedTypes []cqrs.MessageType) Output {
-	trimmed := bytes.TrimSpace(input.Body)
+func processMessage(ctx context.Context, request Request, publish cqrs.PublishFunc, acceptedOnly bool, allowedTypes []cqrs.MessageType) Response {
+	trimmed := bytes.TrimSpace(request.Body)
 	if bytes.HasPrefix(trimmed, []byte("[")) {
-		return processBatch(ctx, input, publish, acceptedOnly, allowedTypes)
+		return processBatch(ctx, request, publish, acceptedOnly, allowedTypes)
 	}
-	return processSingle(ctx, input, publish, acceptedOnly, allowedTypes)
+	return processSingle(ctx, request, publish, acceptedOnly, allowedTypes)
 }
 
-func processSingle(ctx context.Context, input Input, publish cqrs.PublishFunc, acceptedOnly bool, allowedTypes []cqrs.MessageType) Output {
+func processSingle(ctx context.Context, request Request, publish cqrs.PublishFunc, acceptedOnly bool, allowedTypes []cqrs.MessageType) Response {
 	var msg cqrs.AnyMessage
-	if err := json.Unmarshal(input.Body, &msg); err != nil {
+	if err := json.Unmarshal(request.Body, &msg); err != nil {
 		return errorOutput(http.StatusBadRequest, err)
 	}
 
@@ -47,9 +47,9 @@ func processSingle(ctx context.Context, input Input, publish cqrs.PublishFunc, a
 	return successOutput(result, acceptedOnly)
 }
 
-func processBatch(ctx context.Context, input Input, publish cqrs.PublishFunc, acceptedOnly bool, allowedTypes []cqrs.MessageType) Output {
+func processBatch(ctx context.Context, request Request, publish cqrs.PublishFunc, acceptedOnly bool, allowedTypes []cqrs.MessageType) Response {
 	var messages []cqrs.AnyMessage
-	if err := json.Unmarshal(input.Body, &messages); err != nil {
+	if err := json.Unmarshal(request.Body, &messages); err != nil {
 		return errorOutput(http.StatusBadRequest, err)
 	}
 
@@ -93,7 +93,7 @@ func processBatch(ctx context.Context, input Input, publish cqrs.PublishFunc, ac
 	}
 
 	body, _ := json.Marshal(response)
-	return Output{
+	return Response{
 		StatusCode: batchStatus(len(results), successCount, acceptedOnly),
 		Body:       body,
 	}

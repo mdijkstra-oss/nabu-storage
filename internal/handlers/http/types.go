@@ -2,11 +2,12 @@ package http
 
 import "hermes-relay/internal/cqrs"
 
-type Input struct {
+type Request struct {
+	Path map[string]string
 	Body []byte
 }
 
-type Output struct {
+type Response struct {
 	StatusCode int
 	Body       []byte
 }

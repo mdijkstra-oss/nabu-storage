@@ -3,6 +3,7 @@ package typedquery
 import (
 	"context"
 	"fmt"
+	httphandlers "hermes-relay/internal/handlers/http"
 	"hermes-relay/internal/lib/utils"
 	"hermes-relay/internal/projection"
 	"io"
@@ -11,17 +12,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-type Input struct {
-	Path map[string]string
-	Body []byte
-}
-
-type Output struct {
-	StatusCode int
-	Body       []byte
-}
-
-type ProcessorFunc func(ctx context.Context, in Input) Output
+type ProcessorFunc func(ctx context.Context, in httphandlers.Request) httphandlers.Response
 
 func ToRoute(processor ProcessorFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -51,15 +42,15 @@ func ToRoute(processor ProcessorFunc) http.HandlerFunc {
 			}
 		}
 
-		input := Input{
+		request := httphandlers.Request{
 			Path: pathParams,
 			Body: body,
 		}
 
-		output := processor(r.Context(), input)
+		response := processor(r.Context(), request)
 
-		w.WriteHeader(output.StatusCode)
-		utils.Must(w.Write(output.Body))
+		w.WriteHeader(response.StatusCode)
+		utils.Must(w.Write(response.Body))
 	}
 }
 

@@ -8,9 +8,9 @@ import (
 	"strings"
 )
 
-func successOutput(result *cqrs.AnyMessage, acceptedOnly bool) Output {
+func successOutput(result *cqrs.AnyMessage, acceptedOnly bool) Response {
 	if acceptedOnly {
-		return Output{StatusCode: http.StatusAccepted}
+		return Response{StatusCode: http.StatusAccepted}
 	}
 
 	status := http.StatusOK
@@ -23,13 +23,13 @@ func successOutput(result *cqrs.AnyMessage, acceptedOnly bool) Output {
 		body, _ = json.Marshal(result)
 	}
 
-	return Output{
+	return Response{
 		StatusCode: status,
 		Body:       body,
 	}
 }
 
-func typedErrorOutput(err error) Output {
+func typedErrorOutput(err error) Response {
 	switch {
 	case utils.IsValidationError(err):
 		return errorOutput(http.StatusBadRequest, err)
@@ -42,7 +42,7 @@ func typedErrorOutput(err error) Output {
 	}
 }
 
-func errorOutput(status int, err error) Output {
+func errorOutput(status int, err error) Response {
 	response := ErrorResponse{Message: err.Error()}
 
 	if ve, ok := err.(*utils.ValidationError); ok {
@@ -50,7 +50,7 @@ func errorOutput(status int, err error) Output {
 	}
 
 	body, _ := json.Marshal(response)
-	return Output{
+	return Response{
 		StatusCode: status,
 		Body:       body,
 	}

@@ -2,9 +2,9 @@ package http
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"hermes-relay/internal/cqrs"
+	th "hermes-relay/internal/lib/test-helpers"
 	"hermes-relay/internal/lib/utils"
 	"net/http"
 	"testing"
@@ -16,7 +16,7 @@ func TestProcessCommand(t *testing.T) {
 		body         string
 		publish      cqrs.PublishFunc
 		expectStatus int
-		checkBody    func(t *testing.T, body []byte)
+		expectBody   string
 	}{
 		{
 			name: "valid command returns 200",
@@ -25,7 +25,7 @@ func TestProcessCommand(t *testing.T) {
 				return &cqrs.AnyMessage{Action: "DocumentUpdated"}, nil
 			},
 			expectStatus: http.StatusOK,
-			checkBody:    expectAction("DocumentUpdated"),
+			expectBody:   `{"action":"DocumentUpdated","type":"","Timestamp":"0001-01-01T00:00:00Z"}`,
 		},
 		{
 			name: "created action returns 201",
@@ -34,21 +34,21 @@ func TestProcessCommand(t *testing.T) {
 				return &cqrs.AnyMessage{Action: "DocumentCreated"}, nil
 			},
 			expectStatus: http.StatusCreated,
-			checkBody:    expectAction("DocumentCreated"),
+			expectBody:   `{"action":"DocumentCreated","type":"","Timestamp":"0001-01-01T00:00:00Z"}`,
 		},
 		{
 			name:         "invalid json returns 400",
 			body:         `{invalid json`,
 			publish:      nil,
 			expectStatus: http.StatusBadRequest,
-			checkBody:    expectErrorWithMessage(),
+			expectBody:   `{"message":"invalid character 'i' looking for beginning of object key string"}`,
 		},
 		{
 			name:         "wrong message type returns 400",
 			body:         `{"type":"DomainEvent","action":"Something","payload":{}}`,
 			publish:      nil,
 			expectStatus: http.StatusBadRequest,
-			checkBody:    expectErrorMessage("message type not allowed"),
+			expectBody:   `{"message":"message type not allowed"}`,
 		},
 		{
 			name: "validation error returns 400 with fields",
@@ -62,9 +62,7 @@ func TestProcessCommand(t *testing.T) {
 				}
 			},
 			expectStatus: http.StatusBadRequest,
-			checkBody: expectValidationError("validation failed", map[string]string{
-				"Title": "required",
-			}),
+			expectBody:   `{"message":"validation failed","fields":{"Title":"required"}}`,
 		},
 		{
 			name: "not found error returns 404",
@@ -73,7 +71,7 @@ func TestProcessCommand(t *testing.T) {
 				return nil, &utils.NotFoundError{Message: "document not found"}
 			},
 			expectStatus: http.StatusNotFound,
-			checkBody:    expectErrorMessage("document not found"),
+			expectBody:   `{"message":"document not found"}`,
 		},
 		{
 			name: "conflict error returns 409",
@@ -82,7 +80,7 @@ func TestProcessCommand(t *testing.T) {
 				return nil, &utils.ConflictError{Message: "document already exists"}
 			},
 			expectStatus: http.StatusConflict,
-			checkBody:    expectErrorMessage("document already exists"),
+			expectBody:   `{"message":"document already exists"}`,
 		},
 		{
 			name: "generic error returns 500",
@@ -91,78 +89,17 @@ func TestProcessCommand(t *testing.T) {
 				return nil, errors.New("something went wrong")
 			},
 			expectStatus: http.StatusInternalServerError,
-			checkBody:    expectErrorMessage("something went wrong"),
+			expectBody:   `{"message":"something went wrong"}`,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			input := Input{Body: []byte(tt.body)}
-			output := ProcessCommand(context.Background(), input, tt.publish)
+			request := Request{Body: []byte(tt.body)}
+			response := ProcessCommand(context.Background(), request, tt.publish)
 
-			assertEqual(t, tt.expectStatus, output.StatusCode)
-
-			if tt.checkBody != nil {
-				tt.checkBody(t, output.Body)
-			}
+			th.AssertEqualSimple(t, tt.expectStatus, response.StatusCode)
+			th.AssertEqualSimple(t, tt.expectBody, string(response.Body))
 		})
-	}
-}
-
-// Expectation helpers
-func expectAction(action string) func(*testing.T, []byte) {
-	return func(t *testing.T, body []byte) {
-		var result cqrs.AnyMessage
-		mustUnmarshal(t, body, &result)
-		assertEqual(t, action, string(result.Action))
-	}
-}
-
-func expectErrorMessage(msg string) func(*testing.T, []byte) {
-	return func(t *testing.T, body []byte) {
-		var errResp ErrorResponse
-		mustUnmarshal(t, body, &errResp)
-		assertEqual(t, msg, errResp.Message)
-	}
-}
-
-func expectErrorWithMessage() func(*testing.T, []byte) {
-	return func(t *testing.T, body []byte) {
-		var errResp ErrorResponse
-		mustUnmarshal(t, body, &errResp)
-		assertNotEmpty(t, errResp.Message)
-	}
-}
-
-func expectValidationError(msg string, fields map[string]string) func(*testing.T, []byte) {
-	return func(t *testing.T, body []byte) {
-		var errResp ErrorResponse
-		mustUnmarshal(t, body, &errResp)
-		assertEqual(t, msg, errResp.Message)
-		for field, expected := range fields {
-			assertEqual(t, expected, errResp.Fields[field])
-		}
-	}
-}
-
-// Test helpers
-func mustUnmarshal(t *testing.T, data []byte, v any) {
-	t.Helper()
-	if err := json.Unmarshal(data, v); err != nil {
-		t.Fatalf("failed to unmarshal: %v", err)
-	}
-}
-
-func assertEqual(t *testing.T, expected, actual any) {
-	t.Helper()
-	if expected != actual {
-		t.Errorf("expected %v, got %v", expected, actual)
-	}
-}
-
-func assertNotEmpty(t *testing.T, s string) {
-	t.Helper()
-	if s == "" {
-		t.Error("expected non-empty string")
 	}
 }

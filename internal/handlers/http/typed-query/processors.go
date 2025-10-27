@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	httphandlers "hermes-relay/internal/handlers/http"
 	"hermes-relay/internal/projection"
 	"reflect"
 	"strconv"
@@ -28,28 +29,31 @@ func QueryWithMap[T, Q, R, Y any](
 	queryFn QueryFunc[T, Q, R],
 	mapFn func(R) Y,
 ) ProcessorFunc {
-	return func(ctx context.Context, in Input) Output {
+	return func(ctx context.Context, request httphandlers.Request) httphandlers.Response {
 		var query Q
 
-		if err := bindPathParams(in.Path, &query); err != nil {
-			return Output{
+		if err := bindPathParams(request.Path, &query); err != nil {
+			body, _ := json.Marshal(map[string]string{"message": err.Error()})
+			return httphandlers.Response{
 				StatusCode: 400,
-				Body:       []byte(err.Error()),
+				Body:       body,
 			}
 		}
 
 		if err := validate.Struct(query); err != nil {
-			return Output{
+			body, _ := json.Marshal(map[string]string{"message": err.Error()})
+			return httphandlers.Response{
 				StatusCode: 400,
-				Body:       []byte(err.Error()),
+				Body:       body,
 			}
 		}
 
 		result, err := queryFn(ctx, store, query)
 		if err != nil {
-			return Output{
+			body, _ := json.Marshal(map[string]string{"message": err.Error()})
+			return httphandlers.Response{
 				StatusCode: 404,
-				Body:       []byte(err.Error()),
+				Body:       body,
 			}
 		}
 
@@ -57,13 +61,14 @@ func QueryWithMap[T, Q, R, Y any](
 
 		body, err := json.Marshal(mapped)
 		if err != nil {
-			return Output{
+			errBody, _ := json.Marshal(map[string]string{"message": err.Error()})
+			return httphandlers.Response{
 				StatusCode: 500,
-				Body:       []byte(err.Error()),
+				Body:       errBody,
 			}
 		}
 
-		return Output{
+		return httphandlers.Response{
 			StatusCode: 200,
 			Body:       body,
 		}
