@@ -53,17 +53,18 @@ func ToRoute(processor ProcessorFunc) http.HandlerFunc {
 	}
 }
 
-func QueryRoute[T, Q, R any](
+func QueryRoute[T projection.Entity, Q, R any](
 	store *projection.Store[T],
-	queryFn QueryFunc[T, Q, R],
+	filterFunc projection.FilterFunc[T, Q, R],
 ) http.HandlerFunc {
-	return ToRoute(Query[T, Q, R](store, queryFn))
+	exec := projection.BindQuery(store, filterFunc)
+	return ToRoute(Query[Q, []R](exec))
 }
 
-func QueryRouteWithMap[T, Q, R, Y any](
+func QueryOneRoute[T projection.Entity, Q, R any](
 	store *projection.Store[T],
-	queryFn QueryFunc[T, Q, R],
-	mapFn func(R) Y,
+	filterFunc projection.FilterFunc[T, Q, R],
 ) http.HandlerFunc {
-	return ToRoute(QueryWithMap[T, Q, R, Y](store, queryFn, mapFn))
+	exec := projection.BindQueryOne(store, filterFunc)
+	return ToRoute(Query[Q, *R](exec))
 }

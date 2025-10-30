@@ -14,3 +14,7 @@ type Code struct {
 	Reasoning string `json:"reasoning" validate:"required"`
 	// Notes? Eg user notes
 }
+
+func (c Code) GetID() string {
+	return c.ID
+}

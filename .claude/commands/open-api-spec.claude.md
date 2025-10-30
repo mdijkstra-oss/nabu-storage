@@ -44,7 +44,7 @@ For each projection in `internal/domain/projections/{entity}-entity/`:
 
 ### POST /commands
 - **Single command**: Accepts one `AnyMessage` with `type: "Command"`
-- **Batch commands**: Accepts array of `AnyMessage` objects
+- **Batch commands**: Accepts array of `AnyMessage` objects. On Batch, best effort. See `handlers/http/types` for structure.
 - **Request body**: Command with appropriate `aggregateType`, `action`, and `payload`
 - **Response**:
   - Single: Returns `AnyMessage` with `type: "DomainEvent"`
@@ -61,7 +61,7 @@ For each projection in `internal/domain/projections/{entity}-entity/`:
 Query endpoints defined in `internal/handlers/routes.go`:
 
 ### GET /ws/
-WebSocket endpoint for bidirectional communication (commands in, events out).
+WebSocket endpoint for bidirectional communication (commands in (same commands as accepted by /commands endpoint), events out (all DomainEvents)). 
 
 ## Schema Generation Instructions
 
@@ -81,7 +81,8 @@ WebSocket endpoint for bidirectional communication (commands in, events out).
    - Projects: Research studies, policy analysis
 6. **Document error responses** (400, 404, 500) with `ErrorResponse` schema
 7. **Include batch command format** and `batchResponse` structure
-
+8. **Describe shapes** for each command, query etc, describe what parameters, return values etc are. Not just the shape, but an explanation of what it represents
+ 
 ## Validation Patterns to Include
 
 - **Code slugs**: Pattern `^[a-z0-9-]+:[a-z0-9-]+$` (category:value format, lowercase)
@@ -97,11 +98,19 @@ Before writing output:
 - [ ] All query endpoints from `routes.go` documented
 - [ ] Command examples show both single and batch format
 - [ ] Payload schemas match exact struct definitions from `messages.go`
-- [ ] Chunk query endpoint properly documented with `ChunkResult` response
+- [ ] Chunk query endpoint properly documented with `ChunkResult` response, get chunk size from 
 - [ ] Error response format included
 - [ ] Batch response format included
 - [ ] All validation constraints from struct tags present
 - [ ] Examples use qualitative coding domain language
+
+## Colors, where colors
+
+color:
+    type: string
+    pattern: '^[a-z]+(-[a-z]+)*-(50|100|200|300|400|500|600|700|800|900|950)$'
+    example: green-500
+    description: Tailwind color class (e.g., emerald-600, light-blue-400)
 
 ## Final Step
 

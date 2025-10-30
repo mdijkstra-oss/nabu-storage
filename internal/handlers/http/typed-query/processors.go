@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	httphandlers "hermes-relay/internal/handlers/http"
+	"hermes-relay/internal/lib/utils"
 	"hermes-relay/internal/projection"
 	"reflect"
 	"strconv"
@@ -14,25 +15,14 @@ import (
 
 var validate = validator.New()
 
-type QueryFunc[T, Q, R any] = func(store *projection.Store[T], q Q) (R, error)
-
-func Query[T, Q, R any](
-	store *projection.Store[T],
-	queryFn QueryFunc[T, Q, R],
-) ProcessorFunc {
-	return QueryWithMap[T, Q, R, R](store, queryFn, func(r R) R { return r })
-}
-
-func QueryWithMap[T, Q, R, Y any](
-	store *projection.Store[T],
-	queryFn QueryFunc[T, Q, R],
-	mapFn func(R) Y,
+func Query[Q, R any](
+	exec projection.QueryExecutor[Q, R],
 ) ProcessorFunc {
 	return func(request httphandlers.Request) httphandlers.Response {
 		var query Q
 
 		if err := bindPathParams(request.Path, &query); err != nil {
-			body, _ := json.Marshal(map[string]string{"message": err.Error()})
+			body, _ := json.Marshal(utils.ValidationError{Message: err.Error()})
 			return httphandlers.Response{
 				StatusCode: 400,
 				Body:       body,
@@ -40,27 +30,28 @@ func QueryWithMap[T, Q, R, Y any](
 		}
 
 		if err := validate.Struct(query); err != nil {
-			body, _ := json.Marshal(map[string]string{"message": err.Error()})
+			body, _ := json.Marshal(utils.ToValidationError(err))
 			return httphandlers.Response{
 				StatusCode: 400,
 				Body:       body,
 			}
 		}
 
-		result, err := queryFn(store, query)
-		if err != nil {
-			body, _ := json.Marshal(map[string]string{"message": err.Error()})
+		result := exec(query)
+
+		// Runtime check for nil pointers due to generic R (which can be *R or R for slices)
+		v := reflect.ValueOf(result)
+		if v.Kind() == reflect.Ptr && v.IsNil() {
+			body, _ := json.Marshal(utils.NotFoundError{Message: "No results found"})
 			return httphandlers.Response{
 				StatusCode: 404,
 				Body:       body,
 			}
 		}
 
-		mapped := mapFn(result)
-
-		body, err := json.Marshal(mapped)
+		body, err := json.Marshal(result)
 		if err != nil {
-			errBody, _ := json.Marshal(map[string]string{"message": err.Error()})
+			errBody, _ := json.Marshal(utils.InternalError{Message: err.Error()})
 			return httphandlers.Response{
 				StatusCode: 500,
 				Body:       errBody,

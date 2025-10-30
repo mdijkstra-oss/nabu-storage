@@ -8,6 +8,10 @@ type File struct {
 	Chunks  []Chunk
 }
 
+func (f File) GetID() string {
+	return f.ID
+}
+
 type BaseFile struct {
 	ID        string `json:"id"`
 	ProjectID string `json:"project_id" validate:"required"`

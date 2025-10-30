@@ -29,7 +29,7 @@ func PublishNewSourceFiles(publish cqrs.PublishFunc) error {
 	for _, path := range files {
 		msg, err := NewCreatedFileAction(path, projectID)
 		if err != nil {
-			slog.Warn("Create failed", "path", path, "error", err)
+			slog.Warn("CreateFile failed", "path", path, "error", err)
 			continue
 		}
 
@@ -49,7 +49,7 @@ func ensureDefaultProject(publish cqrs.PublishFunc) (string, error) {
 		return projects[0].ID, nil
 	}
 
-	// Create a default project
+	// CreateFile a default project
 	msg := cqrs.ToAny(cqrs.NewCommand[project.CreateProjectPayload, any](
 		project.CreateProject,
 		project.CreateProjectPayload{
@@ -89,7 +89,7 @@ func NewCreatedFileAction(filePath string, projectID string) (*cqrs.AnyMessage, 
 	}
 
 	action := &cqrs.AnyMessage{
-		Action:        file.Create,
+		Action:        file.CreateFile,
 		Type:          cqrs.Command,
 		AggregateType: "File",
 		Payload:       payload,

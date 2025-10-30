@@ -18,7 +18,7 @@ func TestFileRouter(t *testing.T) {
 	}{
 		{
 			name: "CreateFile with valid payload",
-			input: cqrs.ToAny(cqrs.NewCommand[CreateFilePayload, any](Create, CreateFilePayload{
+			input: cqrs.ToAny(cqrs.NewCommand[CreateFilePayload, any](CreateFile, CreateFilePayload{
 				BaseFile: BaseFile{
 					ProjectID: "project-1",
 					Name:      "test-file.txt",
@@ -46,7 +46,7 @@ func TestFileRouter(t *testing.T) {
 		},
 		{
 			name: "CreateFile with minimal required fields",
-			input: cqrs.ToAny(cqrs.NewCommand[CreateFilePayload, any](Create, CreateFilePayload{
+			input: cqrs.ToAny(cqrs.NewCommand[CreateFilePayload, any](CreateFile, CreateFilePayload{
 				BaseFile: BaseFile{
 					ProjectID: "project-1",
 					Name:      "minimal.txt",
@@ -224,7 +224,7 @@ func TestFileRouter(t *testing.T) {
 		},
 		{
 			name: "CreateFile with missing Name",
-			input: cqrs.ToAny(cqrs.NewCommand[CreateFilePayload, any](Create, CreateFilePayload{
+			input: cqrs.ToAny(cqrs.NewCommand[CreateFilePayload, any](CreateFile, CreateFilePayload{
 				BaseFile: BaseFile{
 					ProjectID: "project-1",
 					Attributes: Attributes{
@@ -237,7 +237,7 @@ func TestFileRouter(t *testing.T) {
 		},
 		{
 			name: "CreateFile with missing Title",
-			input: cqrs.ToAny(cqrs.NewCommand[CreateFilePayload, any](Create, CreateFilePayload{
+			input: cqrs.ToAny(cqrs.NewCommand[CreateFilePayload, any](CreateFile, CreateFilePayload{
 				BaseFile: BaseFile{
 					ProjectID: "project-1",
 					Name:      "file.txt",
@@ -353,7 +353,7 @@ func TestFileRouter(t *testing.T) {
 		},
 		{
 			name: "Wrong entity type returns nil",
-			input: cqrs.ToAny(cqrs.NewCommand[CreateFilePayload, any](Create, CreateFilePayload{
+			input: cqrs.ToAny(cqrs.NewCommand[CreateFilePayload, any](CreateFile, CreateFilePayload{
 				BaseFile: BaseFile{
 					ProjectID: "project-1",
 					Name:      "test.txt",
@@ -368,7 +368,7 @@ func TestFileRouter(t *testing.T) {
 		},
 		{
 			name: "Wrong message type returns nil",
-			input: cqrs.ToAny(cqrs.NewDomainEvent[CreateFilePayload, any](Create, CreateFilePayload{
+			input: cqrs.ToAny(cqrs.NewDomainEvent[CreateFilePayload, any](CreateFile, CreateFilePayload{
 				BaseFile: BaseFile{
 					ProjectID: "project-1",
 					Name:      "test.txt",

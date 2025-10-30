@@ -6,3 +6,7 @@ type Project struct {
 	CodeIDs []string `json:"code_ids"`
 	FileIDs []string `json:"file_ids"`
 }
+
+func (p Project) GetID() string {
+	return p.ID
+}

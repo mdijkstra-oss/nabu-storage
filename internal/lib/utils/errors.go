@@ -51,6 +51,15 @@ func (e *ConflictError) Error() string {
 	return e.Message
 }
 
+type InternalError struct {
+	Message string `json:"message"`
+}
+
+// Todo: Not in prod
+func (e *InternalError) Error() string {
+	return e.Message
+}
+
 func IsValidationError(err error) bool {
 	var validationError *ValidationError
 	return errors.As(err, &validationError)
@@ -71,13 +80,6 @@ func Must[T any](value T, err error) T {
 		panic(err)
 	}
 	return value
-}
-
-func Must2[T any, D any](value T, secondV D, err error) (T, D) {
-	if err != nil {
-		panic(err)
-	}
-	return value, secondV
 }
 
 func MustNotError(err error) {

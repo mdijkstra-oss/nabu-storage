@@ -1,14 +1,13 @@
 package fileview
 
 import (
-	"errors"
 	"hermes-relay/internal/domain/entities/file"
 	"hermes-relay/internal/projection"
 )
 
 type ChunkQuery struct {
-	ID    string `path:"id" validate:"required"`
-	Index int    `path:"index" validate:"required,gte=1"`
+	projection.GetByIDQuery
+	Index int `path:"index" validate:"gte=0"`
 }
 
 type ChunkResult struct {
@@ -18,25 +17,29 @@ type ChunkResult struct {
 	HasNext     bool       `json:"has_next"`
 }
 
-func GetFileChunk(store *projection.Store[File], q ChunkQuery) (*ChunkResult, error) {
-	file, err := store.GetByID(q.ID)
+func ByChunk(files []File, q ChunkQuery) []ChunkResult {
+	// Reuse the generic ByID filter
+	filtered := projection.ByID(files, q.GetByIDQuery)
 
-	if err != nil {
-		return nil, err
+	if len(filtered) == 0 {
+		return nil
 	}
 
+	file := filtered[0]
 	idx := q.Index - 1
 
-	chunks := file.Chunks
-
-	if idx >= len(chunks) {
-		return nil, errors.New("chunk not found")
+	if idx >= len(file.Chunks) || idx < 0 {
+		return nil
 	}
 
-	return &ChunkResult{
-		Chunk:       chunks[idx],
-		ChunkIndex:  q.Index, // display index
-		TotalChunks: len(chunks),
-		HasNext:     idx < len(chunks)-1,
-	}, nil
+	return []ChunkResult{{
+		Chunk:       file.Chunks[idx],
+		ChunkIndex:  q.Index,
+		TotalChunks: len(file.Chunks),
+		HasNext:     idx < len(file.Chunks)-1,
+	}}
+}
+
+func ToContent(file File) string {
+	return file.Content
 }

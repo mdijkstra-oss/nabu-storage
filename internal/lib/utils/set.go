@@ -10,18 +10,6 @@ func Values[K comparable, V any](m map[K]V) []V {
 	return result
 }
 
-func KeyBy[T any, K comparable](slice []T, keyFunc func(T) K) map[K]T {
-	result := make(map[K]T, len(slice))
-	for _, item := range slice {
-		key := keyFunc(item)
-		if _, exists := result[key]; exists {
-			continue
-		}
-		result[key] = item
-	}
-	return result
-}
-
 func Map[T, U any](slice []T, fn func(T) U) []U {
 	if slice == nil {
 		return nil
@@ -54,30 +42,4 @@ func Find[T any](items []T, predicate func(T) bool) (T, error) {
 	}
 	var zero T
 	return zero, errors.New("item not found")
-}
-
-func Unique[T comparable](arr []T) []T {
-	seen := make(map[T]bool)
-	result := []T{}
-	for _, v := range arr {
-		if !seen[v] {
-			seen[v] = true
-			result = append(result, v)
-		}
-	}
-	return result
-}
-
-func Subtract[T comparable](a, b []T) []T {
-	bMap := make(map[T]bool)
-	for _, v := range b {
-		bMap[v] = true
-	}
-	result := []T{}
-	for _, v := range a {
-		if !bMap[v] {
-			result = append(result, v)
-		}
-	}
-	return result
 }

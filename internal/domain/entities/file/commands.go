@@ -3,10 +3,10 @@ package file
 const EntityName = "File"
 
 const (
-	Create      = "Create" // point to file prob in future, not whole contents
+	CreateFile  = "CreateFile"
 	CodeFile    = "CodeFile"
-	ClearCoding = "ClearCoding"
-	MergeCodes  = "MergeCodes"
+	ClearCoding = "ClearCoding" // Remove all coding from given file
+	MergeCodes  = "MergeCodes"  // Merge code S & T into set T
 )
 
 type CreateFilePayload = CreateFileData
