@@ -66,7 +66,7 @@ func TestQuery(t *testing.T) {
 			processor:    Query(projection.BindQueryOne(emptyStore, projection.ByID[TestEntity])),
 			pathParams:   map[string]string{"id": "nonexistent"},
 			expectStatus: 404,
-			expectBody:   `{"resource":"No results found"}`,
+			expectBody:   `{"message":"No results found"}`,
 		},
 		{
 			name:         "GetByID with empty ID returns 400 validation error",
@@ -160,7 +160,7 @@ func TestQueryWithMap(t *testing.T) {
 			processor:    Query(projection.BindQueryOne(emptyStore, projection.ThenMap(projection.ByID[TestEntity], mapFn))),
 			pathParams:   map[string]string{"id": "nonexistent"},
 			expectStatus: 404,
-			expectBody:   `{"resource":"No results found"}`,
+			expectBody:   `{"message":"No results found"}`,
 		},
 	}
 

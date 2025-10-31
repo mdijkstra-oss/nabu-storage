@@ -36,7 +36,7 @@ func ToValidationError(err error) *ValidationError {
 }
 
 type NotFoundError struct {
-	Message string `json:"resource"`
+	Message string `json:"message"`
 }
 
 func (e *NotFoundError) Error() string {

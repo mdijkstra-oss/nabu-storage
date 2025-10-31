@@ -15,7 +15,7 @@ func (f File) GetID() string {
 type BaseFile struct {
 	ID        string `json:"id"`
 	ProjectID string `json:"project_id" validate:"required"`
-	Name      string `json:"name" validate:"required" normalize:"trim"`
+	Name      string `json:"name" validate:"required,max=255" normalize:"trim"`
 
 	Attributes
 }
