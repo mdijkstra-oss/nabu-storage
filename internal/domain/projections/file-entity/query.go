@@ -18,7 +18,6 @@ type ChunkResult struct {
 }
 
 func ByChunk(files []File, q ChunkQuery) []ChunkResult {
-	// Reuse the generic ByID filter
 	filtered := projection.ByID(files, q.GetByIDQuery)
 
 	if len(filtered) == 0 {

@@ -6,7 +6,6 @@ import (
 	"net/http"
 )
 
-// WithProjectView is a middleware that extracts projectId from URL and injects ProjectView into context
 func WithProjectView(registry *projection.ProjectViewRegistry) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

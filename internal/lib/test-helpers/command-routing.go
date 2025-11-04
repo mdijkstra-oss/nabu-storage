@@ -5,7 +5,6 @@ import (
 	"testing"
 )
 
-// RouterTestCase defines a single test case for a CommandRouter
 type RouterTestCase struct {
 	Name              string
 	InputMessage      *cqrs.AnyMessage
@@ -14,7 +13,6 @@ type RouterTestCase struct {
 	ExpectError       bool
 }
 
-// TestRouter executes a CommandRouter test case
 func TestRouter(t *testing.T, router cqrs.CommandRouter, tc RouterTestCase) {
 	t.Helper()
 
@@ -48,7 +46,6 @@ func TestRouter(t *testing.T, router cqrs.CommandRouter, tc RouterTestCase) {
 	}
 }
 
-// CommandToEventCase creates a test case for a command that transforms into an event with the same payload
 func CommandToEventCase[T any](name string, commandAction, eventAction cqrs.Action, payload T, entityType cqrs.AggregateType, aggregateID string) RouterTestCase {
 	return RouterTestCase{
 		Name:              name,
@@ -58,7 +55,6 @@ func CommandToEventCase[T any](name string, commandAction, eventAction cqrs.Acti
 	}
 }
 
-// WrongEntityTypeCase creates a test case verifying a router ignores commands for different entities
 func WrongEntityTypeCase[T any](action cqrs.Action, payload T, correctEntityType cqrs.AggregateType) RouterTestCase {
 	return RouterTestCase{
 		Name:              "Wrong entity type should return nil",
@@ -68,7 +64,6 @@ func WrongEntityTypeCase[T any](action cqrs.Action, payload T, correctEntityType
 	}
 }
 
-// WrongMessageTypeCase creates a test case verifying a router ignores non-command messages
 func WrongMessageTypeCase[T any](action cqrs.Action, payload T, entityType cqrs.AggregateType, aggregateID string) RouterTestCase {
 	return RouterTestCase{
 		Name:              "Wrong message type should return nil",
@@ -78,7 +73,6 @@ func WrongMessageTypeCase[T any](action cqrs.Action, payload T, entityType cqrs.
 	}
 }
 
-// WrongActionCase creates a test case verifying a router ignores commands with different actions
 func WrongActionCase[T any](correctAction cqrs.Action, payload T, entityType cqrs.AggregateType, aggregateID string) RouterTestCase {
 	return RouterTestCase{
 		Name:              "Wrong action should return nil",
@@ -88,7 +82,6 @@ func WrongActionCase[T any](correctAction cqrs.Action, payload T, entityType cqr
 	}
 }
 
-// ValidationErrorCase creates a test case expecting a validation error (missing/invalid required fields)
 func ValidationErrorCase[T any](name string, action cqrs.Action, payload T, entityType cqrs.AggregateType, aggregateID string) RouterTestCase {
 	return RouterTestCase{
 		Name:              name,
@@ -96,14 +89,5 @@ func ValidationErrorCase[T any](name string, action cqrs.Action, payload T, enti
 		ExpectedReturn:    nil,
 		ExpectedPublished: nil,
 		ExpectError:       true,
-	}
-}
-
-// CommonRouterTestCases generates standard test cases for wrong entity, wrong message type, and wrong action
-func CommonRouterTestCases[T any](action cqrs.Action, payload T, entityType cqrs.AggregateType) []RouterTestCase {
-	return []RouterTestCase{
-		WrongEntityTypeCase(action, payload, entityType),
-		WrongMessageTypeCase(action, payload, entityType, "test-aggregate-id"),
-		WrongActionCase(action, payload, entityType, "test-aggregate-id"),
 	}
 }

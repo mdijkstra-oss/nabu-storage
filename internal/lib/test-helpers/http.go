@@ -4,7 +4,6 @@ import (
 	"testing"
 )
 
-// AssertEqualSimple asserts that two values are equal using simple == comparison
 func AssertEqualSimple(t *testing.T, expected, actual any) {
 	t.Helper()
 	if expected != actual {
@@ -12,7 +11,6 @@ func AssertEqualSimple(t *testing.T, expected, actual any) {
 	}
 }
 
-// AssertNotEmpty asserts that a string is not empty
 func AssertNotEmpty(t *testing.T, s string) {
 	t.Helper()
 	if s == "" {
@@ -20,7 +18,6 @@ func AssertNotEmpty(t *testing.T, s string) {
 	}
 }
 
-// AssertContains asserts that a string contains a substring
 func AssertContains(t *testing.T, s, substr string) {
 	t.Helper()
 	if substr != "" && len(s) > 0 {

@@ -8,7 +8,6 @@ import (
 	"testing"
 )
 
-// Test entity
 type TestEntity struct {
 	ID    string `json:"id"`
 	Name  string `json:"name"`
@@ -19,13 +18,11 @@ func (t TestEntity) GetID() string {
 	return t.ID
 }
 
-// Test mapped response
 type MappedEntity struct {
 	Name  string `json:"name"`
 	Value int    `json:"value"`
 }
 
-// Custom query for testing validation
 type MinValueQuery struct {
 	MinValue int `path:"minValue" validate:"min=0"`
 }

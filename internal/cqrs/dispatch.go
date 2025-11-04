@@ -13,7 +13,7 @@ func CombineRouters(handlers ...CommandRouter) CommandRouter {
 				return ch, nil
 			}
 		}
-		return nil, nil // No handler matched
+		return nil, nil
 	}
 }
 

@@ -8,7 +8,6 @@ import (
 	"testing"
 )
 
-// AssertMessage compares messages ignoring auto-generated fields (ID, Timestamp, CausationID)
 func AssertMessage(t *testing.T, got, want *cqrs.AnyMessage, msg string) {
 	t.Helper()
 	AssertEqualIgnoreFields(t, got, want, msg, cqrs.AnyMessage{}, "ID", "Timestamp", "CausationID")
@@ -32,8 +31,6 @@ func AssertEqual(t *testing.T, got, want any, msg string, opts ...cmp.Option) {
 	}
 }
 
-// AssertEqualIgnoreFields compares two values but ignores specified fields in the given struct type
-// Usage: th.AssertEqualIgnoreFields(t, got, want, "msg", file.Chunk{}, "ID")
 func AssertEqualIgnoreFields(t *testing.T, got, want any, msg string, ignoreType any, fields ...string) {
 	t.Helper()
 	AssertEqual(t, got, want, msg, cmpopts.IgnoreFields(ignoreType, fields...))

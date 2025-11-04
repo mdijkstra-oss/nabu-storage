@@ -39,9 +39,7 @@ func Query[Q, R any](
 
 		result := exec(query)
 
-		// Runtime check for nil pointers due to generic R (which can be *R or R for slices)
-		v := reflect.ValueOf(result)
-		if v.Kind() == reflect.Ptr && v.IsNil() {
+		if utils.IsNilPtr(result) {
 			body, _ := json.Marshal(utils.NotFoundError{Message: "No results found"})
 			return httphandlers.Response{
 				StatusCode: 404,

@@ -1,7 +1,6 @@
 package projection
 
 import (
-	"fmt"
 	"hermes-relay/internal/cqrs"
 	"hermes-relay/internal/lib/utils"
 	"sync"
@@ -43,17 +42,13 @@ func NewStoreWithDefaults[T Entity](reducer cqrs.Reducer[T], defaults []T) *Stor
 }
 
 // Event application
-func (s *Store[T]) ApplyEvent(message *cqrs.AnyMessage) error {
-	return s.ApplyEvents([]cqrs.AnyMessage{*message})
+func (s *Store[T]) ApplyEvent(message *cqrs.AnyMessage) {
+	s.ApplyEvents([]cqrs.AnyMessage{*message})
 }
 
-func (s *Store[T]) ApplyEvents(events []cqrs.AnyMessage) error {
+func (s *Store[T]) ApplyEvents(events []cqrs.AnyMessage) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-
-	if s.reducer == nil {
-		return fmt.Errorf("no reducer registered for store")
-	}
 
 	grouped := make(map[string][]cqrs.AnyMessage)
 	for _, event := range events {
@@ -76,8 +71,6 @@ func (s *Store[T]) ApplyEvents(events []cqrs.AnyMessage) error {
 			s.data[id] = *currentState
 		}
 	}
-
-	return nil
 }
 
 // Direct accessors

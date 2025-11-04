@@ -55,7 +55,7 @@ func TestFileReducer(t *testing.T) {
 			},
 		},
 		{
-			name: "AppendCoding adds codes to chunk",
+			name:    "AppendCoding adds codes to chunk",
 			initial: fileWithChunk("file-1", "project-1", "Climate change impacts global warming.", testTime),
 			event: newFileEvent("file-1", file.CodedFile, &file.CodedFilePayload{
 				Actions: []file.CodingAction{
@@ -70,9 +70,9 @@ func TestFileReducer(t *testing.T) {
 				},
 			}),
 			expectedBase: file.BaseFile{
-				ID:        "file-1",
-				ProjectID: "project-1",
-				Name:      "test.txt",
+				ID:         "file-1",
+				ProjectID:  "project-1",
+				Name:       "test.txt",
 				Attributes: file.Attributes{Time: testTime},
 			},
 			expectedContent: "Climate change impacts global warming.",
@@ -104,9 +104,9 @@ func TestFileReducer(t *testing.T) {
 				},
 			}),
 			expectedBase: file.BaseFile{
-				ID:        "file-1",
-				ProjectID: "project-1",
-				Name:      "test.txt",
+				ID:         "file-1",
+				ProjectID:  "project-1",
+				Name:       "test.txt",
 				Attributes: file.Attributes{Time: testTime},
 			},
 			expectedContent: "Climate change impacts global warming.",
@@ -136,9 +136,9 @@ func TestFileReducer(t *testing.T) {
 				},
 			}),
 			expectedBase: file.BaseFile{
-				ID:        "file-1",
-				ProjectID: "project-1",
-				Name:      "test.txt",
+				ID:         "file-1",
+				ProjectID:  "project-1",
+				Name:       "test.txt",
 				Attributes: file.Attributes{Time: testTime},
 			},
 			expectedContent: "Climate change impacts global warming.",
@@ -158,9 +158,9 @@ func TestFileReducer(t *testing.T) {
 			}),
 			event: newFileEvent("file-1", file.ClearedCoding, nil),
 			expectedBase: file.BaseFile{
-				ID:        "file-1",
-				ProjectID: "project-1",
-				Name:      "test.txt",
+				ID:         "file-1",
+				ProjectID:  "project-1",
+				Name:       "test.txt",
 				Attributes: file.Attributes{Time: testTime},
 			},
 			expectedContent: "Test content",
@@ -181,9 +181,9 @@ func TestFileReducer(t *testing.T) {
 				Target: "topic:climate",
 			}),
 			expectedBase: file.BaseFile{
-				ID:        "file-1",
-				ProjectID: "project-1",
-				Name:      "test.txt",
+				ID:         "file-1",
+				ProjectID:  "project-1",
+				Name:       "test.txt",
 				Attributes: file.Attributes{Time: testTime},
 			},
 			expectedContent: "Climate change",
@@ -209,7 +209,6 @@ func TestFileReducer(t *testing.T) {
 	}
 }
 
-// Helper to create a file with a single chunk (no codes)
 func fileWithChunk(id, projectID, content string, testTime time.Time) *File {
 	return &File{
 		BaseFile: file.BaseFile{
@@ -229,7 +228,6 @@ func fileWithChunk(id, projectID, content string, testTime time.Time) *File {
 	}
 }
 
-// Helper to create a file with codes
 func fileWithCodes(id, projectID, content string, testTime time.Time, codes []file.CodedSection) *File {
 	return &File{
 		BaseFile: file.BaseFile{

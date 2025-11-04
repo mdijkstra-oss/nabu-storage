@@ -14,7 +14,6 @@ import (
 )
 
 func PublishNewSourceFiles(publish cqrs.PublishFunc) error {
-	// Ensure a project exists
 	projectID, err := ensureDefaultProject(publish)
 	if err != nil {
 		return fmt.Errorf("failed to ensure default project: %w", err)

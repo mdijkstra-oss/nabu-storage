@@ -41,7 +41,6 @@ func main() {
 
 func setUpCommandHandlers(publisher *cqrs.InMemoryPublisher) {
 	var commandRouter = cqrs.CombineRouters(
-		// Entity-specific command handlers
 		code.Router,
 		file.Router,
 		project.Router,
@@ -51,10 +50,8 @@ func setUpCommandHandlers(publisher *cqrs.InMemoryPublisher) {
 }
 
 func setupEventHandlers(publisher *cqrs.InMemoryPublisher) {
-	// Cross-entity event handlers (publish derived events)
 	publisher.Subscribe(project.EventHandlers)
 
-	// Replay all persisted events on boot
 	utils.MustNotError(persistence.ReplayAllEvents(publisher))
 
 	// Persist must be after replay ⚠️
@@ -64,11 +61,9 @@ func setupEventHandlers(publisher *cqrs.InMemoryPublisher) {
 func setupProjectViewRegistry(publisher *cqrs.InMemoryPublisher) *projection.ProjectViewRegistry {
 	registry := projection.NewProjectViewRegistry()
 
-	// Get all project IDs from disk
 	projectIDs, err := persistence.GetProjectIDs()
 	utils.MustNotError(err)
 
-	// Create empty stores for each project
 	for _, projectID := range projectIDs {
 		view := &projection.ProjectView{
 			ProjectStore: projection.NewStore(projectview.Reducer),
@@ -78,28 +73,18 @@ func setupProjectViewRegistry(publisher *cqrs.InMemoryPublisher) *projection.Pro
 		registry.AddProject(projectID, view)
 	}
 
-	// Subscribe router that routes domain events to correct project stores based on projectID
 	publisher.Subscribe(cqrs.LimitOnType(cqrs.DomainEvent, cqrs.ReadOnlyRoutes(func(message *cqrs.AnyMessage) error {
 		projectID := extractProjectID(message)
 		if projectID == "" {
 			return nil
 		}
 
-		view := registry.GetProject(projectID)
-		if view == nil {
+		projectRegistry := registry.GetProject(projectID)
+		if projectRegistry == nil {
 			return nil
 		}
 
-		// Apply to all stores - reducers will filter by entity type
-		if err := view.ProjectStore.ApplyEvent(message); err != nil {
-			return err
-		}
-		if err := view.CodeStore.ApplyEvent(message); err != nil {
-			return err
-		}
-		if err := view.FileStore.ApplyEvent(message); err != nil {
-			return err
-		}
+		projectRegistry.ApplyEventToAllStores(message)
 
 		return nil
 	})))
@@ -108,14 +93,11 @@ func setupProjectViewRegistry(publisher *cqrs.InMemoryPublisher) *projection.Pro
 	return registry
 }
 
-// extractProjectID extracts the project ID from an event
 func extractProjectID(message *cqrs.AnyMessage) string {
-	// For Project events, the aggregateID is the projectID
 	if message.AggregateType == "Project" {
 		return message.AggregateID
 	}
 
-	// For Code/File events, extract from payload
 	if payload, ok := message.Payload.(map[string]any); ok {
 		if projectID, ok := payload["project_id"].(string); ok {
 			return projectID
