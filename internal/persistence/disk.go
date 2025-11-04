@@ -181,6 +181,37 @@ func Apply(message *cqrs.AnyMessage) error {
 	return nil
 }
 
+// GetProjectIDs reads all project IDs from disk
+func GetProjectIDs() ([]string, error) {
+	basePath := getBasePath()
+	projectPath := filepath.Join(basePath, "Project")
+
+	// Check if Project directory exists
+	if _, err := os.Stat(projectPath); os.IsNotExist(err) {
+		slog.Info("no projects directory found", "path", projectPath)
+		return []string{}, nil
+	}
+
+	entries, err := os.ReadDir(projectPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read projects directory: %w", err)
+	}
+
+	var projectIDs []string
+	for _, entry := range entries {
+		if entry.IsDir() || filepath.Ext(entry.Name()) != ".jsonl" {
+			continue
+		}
+
+		// Remove .jsonl extension to get project ID
+		projectID := entry.Name()[:len(entry.Name())-len(".jsonl")]
+		projectIDs = append(projectIDs, projectID)
+	}
+
+	slog.Info("found projects on disk", "count", len(projectIDs))
+	return projectIDs, nil
+}
+
 // ReplayAllEvents loads all events from disk and publishes them to the publisher
 func ReplayAllEvents(publisher *cqrs.InMemoryPublisher) error {
 	events, err := LoadAllEvents()

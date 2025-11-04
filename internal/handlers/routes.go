@@ -6,7 +6,6 @@ import (
 	"hermes-relay/internal/cqrs"
 	"hermes-relay/internal/domain/projections/code-entity"
 	fileview "hermes-relay/internal/domain/projections/file-entity"
-	projectview "hermes-relay/internal/domain/projections/project-entity"
 	"hermes-relay/internal/handlers/http"
 	tq "hermes-relay/internal/handlers/http/typed-query"
 	"hermes-relay/internal/lib/utils"
@@ -15,7 +14,7 @@ import (
 	net "net/http"
 )
 
-func SetupHTTPHandlers(r chi.Router, publisher *cqrs.InMemoryPublisher) {
+func SetupHTTPHandlers(r chi.Router, publisher *cqrs.InMemoryPublisher, registry *projection.ProjectViewRegistry) {
 	r.Use(middleware.Logger) // Todo: log level
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.RequestID)
@@ -32,30 +31,34 @@ func SetupHTTPHandlers(r chi.Router, publisher *cqrs.InMemoryPublisher) {
 	r.Route("/queries/projects", func(r chi.Router) {
 		// Todo: r.Use(middleware.RequireAuth)
 
-		r.Get("/", tq.QueryRoute(projectview.Store, projection.Paginate))
+		// List all projects - query registry for all project stores
+		r.Get("/", func(w net.ResponseWriter, r *net.Request) {
+			// TODO: Implement listing all projects from registry
+			net.Error(w, "Not implemented yet", net.StatusNotImplemented)
+		})
 
 		r.Route("/{projectId}", func(r chi.Router) {
 			// Todo: r.Use(middleware.RequireProjectAccess)
-			// Todo: r.Use(middleware.WithProjectStores)
+			r.Use(http.WithProjectView(registry))
 
-			r.Get("/", tq.QueryOneRoute(projectview.Store, projection.ByID))
+			r.Get("/", tq.QueryOneRoute(projection.ProjectStoreFromRequest, projection.ByID))
 
 			r.Route("/files", func(r chi.Router) {
-				r.Get("/", tq.QueryRoute(fileview.Store, projection.ByAll))
+				r.Get("/", tq.QueryRoute(projection.FileStoreFromRequest, projection.ByAll))
 
 				r.Get("/{id}",
 					http.WithHeaders(http.MarkDownHeaders)(
-						tq.QueryOneRoute(fileview.Store, projection.ThenMap(projection.ByID, fileview.ToContent)),
+						tq.QueryOneRoute(projection.FileStoreFromRequest, projection.ThenMap(projection.ByID, fileview.ToContent)),
 					).ServeHTTP,
 				)
 
-				r.Get("/{id}/chunks/{index}", tq.QueryOneRoute(fileview.Store, fileview.ByChunk))
+				r.Get("/{id}/chunks/{index}", tq.QueryOneRoute(projection.FileStoreFromRequest, fileview.ByChunk))
 			})
 
 			r.Route("/codes", func(r chi.Router) {
-				r.Get("/", tq.QueryRoute(codeview.Store, projection.Paginate))
-				r.Get("/{id}", tq.QueryOneRoute(codeview.Store, projection.ByID))
-				r.Get("/slug/{slug}", tq.QueryOneRoute(codeview.Store, codeview.BySlug))
+				r.Get("/", tq.QueryRoute(projection.CodeStoreFromRequest, projection.Paginate))
+				r.Get("/{id}", tq.QueryOneRoute(projection.CodeStoreFromRequest, projection.ByID))
+				r.Get("/slug/{slug}", tq.QueryOneRoute(projection.CodeStoreFromRequest, codeview.BySlug))
 			})
 		})
 	})

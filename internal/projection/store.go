@@ -123,17 +123,6 @@ func BindQueryOne[T Entity, Q, R any](s *Store[T], filter FilterFunc[T, Q, R]) Q
 	}
 }
 
-// Chain filters of the same type
-func Chain[T Entity, Q any](filters ...FilterFunc[T, Q, T]) FilterFunc[T, Q, T] {
-	return func(items []T, q Q) []T {
-		result := items
-		for _, filter := range filters {
-			result = filter(result, q)
-		}
-		return result
-	}
-}
-
 func ThenMap[T Entity, Q, R any](
 	filter FilterFunc[T, Q, T],
 	mapper func(T) R,

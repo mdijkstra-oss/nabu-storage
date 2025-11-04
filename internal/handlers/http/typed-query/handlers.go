@@ -53,18 +53,36 @@ func ToRoute(processor ProcessorFunc) http.HandlerFunc {
 	}
 }
 
+func withStoreFromRequest[T projection.Entity](
+	getStore func(r *http.Request) *projection.Store[T],
+	handler func(*projection.Store[T]) http.HandlerFunc,
+) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		store := getStore(r)
+		if store == nil {
+			http.Error(w, "store not available", http.StatusInternalServerError)
+			return
+		}
+		handler(store)(w, r)
+	}
+}
+
 func QueryRoute[T projection.Entity, Q, R any](
-	store *projection.Store[T],
+	getStore func(r *http.Request) *projection.Store[T],
 	filterFunc projection.FilterFunc[T, Q, R],
 ) http.HandlerFunc {
-	exec := projection.BindQuery(store, filterFunc)
-	return ToRoute(Query[Q, []R](exec))
+	return withStoreFromRequest(getStore, func(store *projection.Store[T]) http.HandlerFunc {
+		exec := projection.BindQuery(store, filterFunc)
+		return ToRoute(Query[Q, []R](exec))
+	})
 }
 
 func QueryOneRoute[T projection.Entity, Q, R any](
-	store *projection.Store[T],
+	getStore func(r *http.Request) *projection.Store[T],
 	filterFunc projection.FilterFunc[T, Q, R],
 ) http.HandlerFunc {
-	exec := projection.BindQueryOne(store, filterFunc)
-	return ToRoute(Query[Q, *R](exec))
+	return withStoreFromRequest(getStore, func(store *projection.Store[T]) http.HandlerFunc {
+		exec := projection.BindQueryOne(store, filterFunc)
+		return ToRoute(Query[Q, *R](exec))
+	})
 }
