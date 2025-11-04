@@ -35,5 +35,11 @@ for _, tt := range tests {
     })
 }
 ```
-Write test helper functions! 
+Write test helper functions!
 
+# Comments
+Do NOT write redundant comments that just restate what the code does.
+Bad: `// fetch user from db` above `fetchUser(id)`
+Bad: `// loop through items` above `for _, item := range items`
+Good: Comments that explain WHY, not WHAT. Only when the intent isn't obvious from the code itself.
+If the code is self-explanatory, no comment needed.
