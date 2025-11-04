@@ -26,13 +26,20 @@ func main() {
 
 	var publisher = cqrs.NewInMemoryPublisher()
 
-	setUpCommandHandlers(publisher)
-	setupEventHandlers(publisher)
-
 	//utils.MustNotError(PublishNewSourceFiles(publisher.Publish))
 
 	registry := setupProjectViewRegistry(publisher)
 
+	// All except views / projections must be after replay ⚠️
+	utils.MustNotError(persistence.ReplayAllEvents(publisher))
+
+	setUpCommandHandlers(publisher)
+
+	publisher.Subscribe(cqrs.LimitOnType(cqrs.DomainEvent, cqrs.ReadOnlyRoutes(persistence.Apply)))
+
+	slog.Info("Initializing command persistence")
+
+	slog.Info("Initializing http endpoints")
 	r := chi.NewRouter()
 	handlers.SetupHTTPHandlers(r, publisher, registry)
 
@@ -40,6 +47,8 @@ func main() {
 }
 
 func setUpCommandHandlers(publisher *cqrs.InMemoryPublisher) {
+	slog.Info("Setting up command handlers for new incoming messages")
+
 	var commandRouter = cqrs.CombineRouters(
 		code.Router,
 		file.Router,
@@ -49,29 +58,12 @@ func setUpCommandHandlers(publisher *cqrs.InMemoryPublisher) {
 	publisher.Subscribe(commandRouter)
 }
 
-func setupEventHandlers(publisher *cqrs.InMemoryPublisher) {
-	publisher.Subscribe(project.EventHandlers)
-
-	utils.MustNotError(persistence.ReplayAllEvents(publisher))
-
-	// Persist must be after replay ⚠️
-	publisher.Subscribe(cqrs.LimitOnType(cqrs.DomainEvent, cqrs.ReadOnlyRoutes(persistence.Apply)))
-}
-
 func setupProjectViewRegistry(publisher *cqrs.InMemoryPublisher) *projection.ProjectViewRegistry {
-	registry := projection.NewProjectViewRegistry()
-
-	projectIDs, err := persistence.GetProjectIDs()
-	utils.MustNotError(err)
-
-	for _, projectID := range projectIDs {
-		view := &projection.ProjectView{
-			ProjectStore: projection.NewStore(projectview.Reducer),
-			CodeStore:    projection.NewStore(codeview.Reducer),
-			FileStore:    projection.NewStore(fileview.Reducer),
-		}
-		registry.AddProject(projectID, view)
-	}
+	registry := projection.NewProjectViewRegistry(
+		projectview.Reducer,
+		codeview.Reducer,
+		fileview.Reducer,
+	)
 
 	publisher.Subscribe(cqrs.LimitOnType(cqrs.DomainEvent, cqrs.ReadOnlyRoutes(func(message *cqrs.AnyMessage) error {
 		projectID := extractProjectID(message)
@@ -79,17 +71,14 @@ func setupProjectViewRegistry(publisher *cqrs.InMemoryPublisher) *projection.Pro
 			return nil
 		}
 
-		projectRegistry := registry.GetProject(projectID)
-		if projectRegistry == nil {
-			return nil
+		projectRegistry := registry.EnsureProjectExists(message, projectID)
+		if projectRegistry != nil {
+			projectRegistry.ApplyEventToAllStores(message)
 		}
-
-		projectRegistry.ApplyEventToAllStores(message)
 
 		return nil
 	})))
 
-	slog.Info("initialized project view registry", "projectCount", len(projectIDs))
 	return registry
 }
 

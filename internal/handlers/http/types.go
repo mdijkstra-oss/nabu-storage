@@ -3,8 +3,9 @@ package http
 import "hermes-relay/internal/cqrs"
 
 type Request struct {
-	Path map[string]string
-	Body []byte
+	Path  map[string]string
+	Query map[string]string
+	Body  []byte
 }
 
 type Response struct {

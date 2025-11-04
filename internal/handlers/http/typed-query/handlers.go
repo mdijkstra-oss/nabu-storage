@@ -31,6 +31,13 @@ func ToRoute(processor ProcessorFunc) http.HandlerFunc {
 			}
 		}
 
+		queryParams := make(map[string]string)
+		for key, values := range r.URL.Query() {
+			if len(values) > 0 {
+				queryParams[key] = values[0]
+			}
+		}
+
 		var body []byte
 		if r.ContentLength > 0 {
 			var err error
@@ -42,8 +49,9 @@ func ToRoute(processor ProcessorFunc) http.HandlerFunc {
 		}
 
 		request := httphandlers.Request{
-			Path: pathParams,
-			Body: body,
+			Path:  pathParams,
+			Query: queryParams,
+			Body:  body,
 		}
 
 		response := processor(request)

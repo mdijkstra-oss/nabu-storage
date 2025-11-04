@@ -22,6 +22,14 @@ func Map[T, U any](slice []T, fn func(T) U) []U {
 	return result
 }
 
+func FlatMap[T any, U any](slice []T, fn func(T) []U) []U {
+	result := []U{}
+	for _, item := range slice {
+		result = append(result, fn(item)...)
+	}
+	return result
+}
+
 func Filter[T any](slice []T, predicate func(T) bool) []T {
 	result := make([]T, 0, len(slice)) // Pre-allocate with capacity
 
@@ -42,4 +50,14 @@ func Find[T any](items []T, predicate func(T) bool) (T, error) {
 	}
 	var zero T
 	return zero, errors.New("item not found")
+}
+
+func Sort[T any](slice []T, less func(a, b T) bool) {
+	for i := 0; i < len(slice); i++ {
+		for j := i + 1; j < len(slice); j++ {
+			if !less(slice[i], slice[j]) {
+				slice[i], slice[j] = slice[j], slice[i]
+			}
+		}
+	}
 }

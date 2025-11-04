@@ -6,7 +6,6 @@ import (
 	"hermes-relay/internal/cqrs"
 	"hermes-relay/internal/domain/entities/file"
 	"hermes-relay/internal/domain/entities/project"
-	"hermes-relay/internal/persistence"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -42,10 +41,12 @@ func PublishNewSourceFiles(publish cqrs.PublishFunc) error {
 
 func ensureDefaultProject(publish cqrs.PublishFunc) (string, error) {
 	// Get all project IDs from disk
-	projectIDs, err := persistence.GetProjectIDs()
-	if err != nil {
-		return "", fmt.Errorf("failed to get project IDs: %w", err)
-	}
+	//projectIDs, err := persistence.GetProjectIDs()
+	//if err != nil {
+	//	return "", fmt.Errorf("failed to get project IDs: %w", err)
+	//}
+
+	projectIDs := []string{}
 
 	// If a project already exists, return its ID
 	if len(projectIDs) > 0 {

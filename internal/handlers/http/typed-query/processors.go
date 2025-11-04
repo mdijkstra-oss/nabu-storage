@@ -29,6 +29,14 @@ func Query[Q, R any](
 			}
 		}
 
+		if err := bindQueryParams(request.Query, &query); err != nil {
+			body, _ := json.Marshal(utils.ValidationError{Message: err.Error()})
+			return httphandlers.Response{
+				StatusCode: 400,
+				Body:       body,
+			}
+		}
+
 		if err := validate.Struct(query); err != nil {
 			body, _ := json.Marshal(utils.ToValidationError(err))
 			return httphandlers.Response{
@@ -65,6 +73,14 @@ func Query[Q, R any](
 
 // Todo: refactor this?
 func bindPathParams(pathParams map[string]string, dst any) error {
+	return bindParams(pathParams, dst, "path")
+}
+
+func bindQueryParams(queryParams map[string]string, dst any) error {
+	return bindParams(queryParams, dst, "query")
+}
+
+func bindParams(params map[string]string, dst any, tagName string) error {
 	v := reflect.ValueOf(dst)
 	if v.Kind() != reflect.Ptr {
 		return errors.New("dst must be a pointer")
@@ -78,14 +94,14 @@ func bindPathParams(pathParams map[string]string, dst any) error {
 	t := v.Type()
 	for i := 0; i < v.NumField(); i++ {
 		field := t.Field(i)
-		pathTag := field.Tag.Get("path")
+		tag := field.Tag.Get(tagName)
 
-		if pathTag == "" {
+		if tag == "" {
 			continue
 		}
 
-		pathValue, ok := pathParams[pathTag]
-		if !ok || pathValue == "" {
+		value, ok := params[tag]
+		if !ok || value == "" {
 			continue
 		}
 
@@ -96,17 +112,17 @@ func bindPathParams(pathParams map[string]string, dst any) error {
 
 		switch fieldValue.Kind() {
 		case reflect.String:
-			fieldValue.SetString(pathValue)
+			fieldValue.SetString(value)
 		case reflect.Int, reflect.Int64, reflect.Int32:
-			intVal, err := strconv.ParseInt(pathValue, 10, 64)
+			intVal, err := strconv.ParseInt(value, 10, 64)
 			if err != nil {
-				return fmt.Errorf("invalid int value for %s: %w", pathTag, err)
+				return fmt.Errorf("invalid int value for %s: %w", tag, err)
 			}
 			fieldValue.SetInt(intVal)
 		case reflect.Bool:
-			boolVal, err := strconv.ParseBool(pathValue)
+			boolVal, err := strconv.ParseBool(value)
 			if err != nil {
-				return fmt.Errorf("invalid bool value for %s: %w", pathTag, err)
+				return fmt.Errorf("invalid bool value for %s: %w", tag, err)
 			}
 			fieldValue.SetBool(boolVal)
 		default:

@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"hermes-relay/internal/cqrs"
+	"hermes-relay/internal/lib/utils"
 	"log/slog"
 	"os"
 	"path/filepath"
-	"sort"
 )
 
 // getBasePath returns the base path for event persistence
@@ -45,41 +45,42 @@ func PersistEvent(message *cqrs.AnyMessage) error {
 	return nil
 }
 
-// LoadAllEvents reads all persisted events from disk
-// Returns events sorted by timestamp
-func LoadAllEvents() ([]cqrs.AnyMessage, error) {
-	var allEvents []cqrs.AnyMessage
+func AggregateTypes() ([]string, error) {
 	basePath := getBasePath()
 
-	// Check if base path exists
-	if _, err := os.Stat(basePath); os.IsNotExist(err) {
-		slog.Info("no persistence directory found, starting fresh", "path", basePath)
-		return allEvents, nil
-	}
-
-	// Walk through all aggregate type directories
 	entries, err := os.ReadDir(basePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read persistence directory: %w", err)
 	}
 
+	var aggregateTypes []string
 	for _, entry := range entries {
 		if !entry.IsDir() {
 			continue
 		}
-
-		aggregateType := entry.Name()
-		typeEvents, err := loadEventsForType(aggregateType)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load events for type %s: %w", aggregateType, err)
-		}
-
-		allEvents = append(allEvents, typeEvents...)
+		aggregateTypes = append(aggregateTypes, entry.Name())
 	}
 
-	// Sort by timestamp
-	sort.Slice(allEvents, func(i, j int) bool {
-		return allEvents[i].Timestamp.Before(allEvents[j].Timestamp)
+	// Project is special and should always be loaded first to setup registry
+	utils.Sort(aggregateTypes, func(a, b string) bool {
+		return a == "Project"
+	})
+
+	return aggregateTypes, nil
+}
+
+func LoadAllEvents() ([]cqrs.AnyMessage, error) {
+	allTypes, err := AggregateTypes()
+	if err != nil {
+		return nil, err
+	}
+
+	allEvents := utils.FlatMap(allTypes, func(aggregateType string) []cqrs.AnyMessage {
+		loaded, err := loadEventsForType(aggregateType)
+		if err != nil {
+			slog.Error("failed to load events for type", "aggregateType", aggregateType, "error", err)
+		}
+		return loaded
 	})
 
 	slog.Info("loaded events from disk", "count", len(allEvents))
@@ -179,37 +180,6 @@ func Apply(message *cqrs.AnyMessage) error {
 		return err
 	}
 	return nil
-}
-
-// GetProjectIDs reads all project IDs from disk
-func GetProjectIDs() ([]string, error) {
-	basePath := getBasePath()
-	projectPath := filepath.Join(basePath, "Project")
-
-	// Check if Project directory exists
-	if _, err := os.Stat(projectPath); os.IsNotExist(err) {
-		slog.Info("no projects directory found", "path", projectPath)
-		return []string{}, nil
-	}
-
-	entries, err := os.ReadDir(projectPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read projects directory: %w", err)
-	}
-
-	var projectIDs []string
-	for _, entry := range entries {
-		if entry.IsDir() || filepath.Ext(entry.Name()) != ".jsonl" {
-			continue
-		}
-
-		// Remove .jsonl extension to get project ID
-		projectID := entry.Name()[:len(entry.Name())-len(".jsonl")]
-		projectIDs = append(projectIDs, projectID)
-	}
-
-	slog.Info("found projects on disk", "count", len(projectIDs))
-	return projectIDs, nil
 }
 
 // ReplayAllEvents loads all events from disk and publishes them to the publisher
