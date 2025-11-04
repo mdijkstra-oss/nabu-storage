@@ -10,7 +10,7 @@ func TestProjectRouter(t *testing.T) {
 	tests := []struct {
 		name        string
 		input       *cqrs.AnyMessage
-		expectErr   bool
+		expectErr   string
 		expectEvent *cqrs.AnyMessage
 	}{
 		{
@@ -18,7 +18,7 @@ func TestProjectRouter(t *testing.T) {
 			input: cqrs.ToAny(cqrs.NewCommand[CreateProjectPayload, any](CreateProject, CreateProjectPayload{
 				Name: "My Research Project",
 			}, EntityName, "", nil)),
-			expectErr: false,
+			expectErr: "",
 			expectEvent: cqrs.ToAny(cqrs.NewDomainEvent[CreatedProjectPayload, any](CreatedProject, CreatedProjectPayload{
 				Name: "My Research Project",
 			}, EntityName, "", nil)),
@@ -26,14 +26,14 @@ func TestProjectRouter(t *testing.T) {
 		{
 			name: "CreateProject with missing Name",
 			input: cqrs.ToAny(cqrs.NewCommand[CreateProjectPayload, any](CreateProject, CreateProjectPayload{}, EntityName, "", nil)),
-			expectErr: true,
+			expectErr: "validation failed: Name is required",
 		},
 		{
 			name: "Wrong entity type returns nil",
 			input: cqrs.ToAny(cqrs.NewCommand[CreateProjectPayload, any](CreateProject, CreateProjectPayload{
 				Name: "Test Project",
 			}, "DifferentEntity", "", nil)),
-			expectErr:   false,
+			expectErr:   "",
 			expectEvent: nil,
 		},
 		{
@@ -41,7 +41,7 @@ func TestProjectRouter(t *testing.T) {
 			input: cqrs.ToAny(cqrs.NewDomainEvent[CreateProjectPayload, any](CreateProject, CreateProjectPayload{
 				Name: "Test Project",
 			}, EntityName, "", nil)),
-			expectErr:   false,
+			expectErr:   "",
 			expectEvent: nil,
 		},
 		{
@@ -49,7 +49,7 @@ func TestProjectRouter(t *testing.T) {
 			input: cqrs.ToAny(cqrs.NewCommand[CreateProjectPayload, any]("DifferentAction", CreateProjectPayload{
 				Name: "Test Project",
 			}, EntityName, "test-aggregate-id", nil)),
-			expectErr:   false,
+			expectErr:   "",
 			expectEvent: nil,
 		},
 	}
@@ -58,13 +58,10 @@ func TestProjectRouter(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			result, err := Router(tt.input, nil)
 
-			if tt.expectErr {
-				th.AssertNotNil(t, err, "should return error")
-				return
+			th.AssertError(t, err, tt.expectErr, "error")
+			if tt.expectErr == "" {
+				th.AssertMessage(t, result, tt.expectEvent, "event")
 			}
-
-			th.AssertNil(t, err, "should not return error")
-			th.AssertMessage(t, result, tt.expectEvent, "event")
 		})
 	}
 }

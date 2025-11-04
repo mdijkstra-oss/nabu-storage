@@ -70,14 +70,14 @@ func TestQuery(t *testing.T) {
 			processor:    Query(projection.BindQueryOne(singleEntityStore, projection.ByID[TestEntity])),
 			pathParams:   map[string]string{"id": ""},
 			expectStatus: 400,
-			expectBody:   `{"message":"validation failed","fields":{"ID":"required"}}`,
+			expectBody:   `{"message":"validation failed: ID is required","fields":{"ID":"required"}}`,
 		},
 		{
 			name:         "GetByID without path param returns 400 validation error",
 			processor:    Query(projection.BindQueryOne(emptyStore, projection.ByID[TestEntity])),
 			pathParams:   map[string]string{},
 			expectStatus: 400,
-			expectBody:   `{"message":"validation failed","fields":{"ID":"required"}}`,
+			expectBody:   `{"message":"validation failed: ID is required","fields":{"ID":"required"}}`,
 		},
 		{
 			name:         "GetAll with single entity returns 200",
@@ -112,7 +112,7 @@ func TestQuery(t *testing.T) {
 			processor:    Query(projection.BindQuery(emptyStore, getByMinValue)),
 			pathParams:   map[string]string{"minValue": "-10"},
 			expectStatus: 400,
-			expectBody:   `{"message":"validation failed","fields":{"MinValue":"min"}}`,
+			expectBody:   `{"message":"validation failed: MinValue must be at least 0 characters","fields":{"MinValue":"min"}}`,
 		},
 	}
 

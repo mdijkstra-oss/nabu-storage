@@ -15,6 +15,31 @@ func (e *ValidationError) Error() string {
 	return e.Message
 }
 
+func formatFieldError(fe validator.FieldError) string {
+	field := fe.Field()
+	tag := fe.Tag()
+	param := fe.Param()
+
+	switch tag {
+	case "required":
+		return field + " is required"
+	case "min":
+		return field + " must be at least " + param + " characters"
+	case "max":
+		return field + " must be at most " + param + " characters"
+	case "code_slug":
+		return field + " must match code slug format (lowercase with colon and optional dashes)"
+	case "lte":
+		return field + " must not be in the future"
+	case "gtfield":
+		return field + " must be greater than " + param
+	case "gte":
+		return field + " must be at least " + param
+	default:
+		return field + " failed validation (" + tag + ")"
+	}
+}
+
 func ToValidationError(err error) *ValidationError {
 	if err == nil {
 		return nil
@@ -27,8 +52,16 @@ func ToValidationError(err error) *ValidationError {
 
 	var validationErrs validator.ValidationErrors
 	if errors.As(err, &validationErrs) {
+		var messages []string
 		for _, fe := range validationErrs {
 			ve.Fields[fe.Field()] = fe.Tag()
+			messages = append(messages, formatFieldError(fe))
+		}
+		if len(messages) > 0 {
+			ve.Message = "validation failed: " + messages[0]
+			for i := 1; i < len(messages); i++ {
+				ve.Message += ", " + messages[i]
+			}
 		}
 	}
 

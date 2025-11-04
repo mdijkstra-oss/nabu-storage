@@ -51,3 +51,22 @@ func AssertNotNil(t *testing.T, got any, msg string) {
 		t.Fatalf("%s: expected non-nil, got nil", msg)
 	}
 }
+
+func AssertError(t *testing.T, got error, wantMsg string, msg string) {
+	t.Helper()
+	if wantMsg == "" {
+		if got != nil {
+			t.Fatalf("%s: expected no error, got: %v", msg, got)
+		}
+		return
+	}
+
+	if got == nil {
+		t.Fatalf("%s: expected error '%s', got nil", msg, wantMsg)
+	}
+
+	gotMsg := got.Error()
+	if gotMsg != wantMsg {
+		t.Fatalf("%s: expected error '%s', got: '%s'", msg, wantMsg, gotMsg)
+	}
+}

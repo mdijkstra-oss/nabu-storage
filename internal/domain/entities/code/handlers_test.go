@@ -10,7 +10,7 @@ func TestCodeRouter(t *testing.T) {
 	tests := []struct {
 		name        string
 		input       *cqrs.AnyMessage
-		expectErr   bool
+		expectErr   string
 		expectEvent *cqrs.AnyMessage
 	}{
 		{
@@ -21,7 +21,7 @@ func TestCodeRouter(t *testing.T) {
 				Color:     "green-500",
 				Reasoning: "Environmental topics",
 			}, EntityName, "", nil)),
-			expectErr: false,
+			expectErr: "",
 			expectEvent: cqrs.ToAny(cqrs.NewDomainEvent[CreatedCodePayload, any](CreatedCode, CreatedCodePayload{
 				ProjectID: "project-1",
 				Slug:      "topic:climate",
@@ -35,7 +35,7 @@ func TestCodeRouter(t *testing.T) {
 				Color:     "emerald-600",
 				Reasoning: "Updated environmental coverage",
 			}, EntityName, "code-123", nil)),
-			expectErr: false,
+			expectErr: "",
 			expectEvent: cqrs.ToAny(cqrs.NewDomainEvent[UpdatedCodePayload, any](UpdatedCode, UpdatedCodePayload{
 				Color:     "emerald-600",
 				Reasoning: "Updated environmental coverage",
@@ -46,7 +46,7 @@ func TestCodeRouter(t *testing.T) {
 			input: cqrs.ToAny(cqrs.NewCommand[UpdateCodePayload, any](UpdateCode, UpdateCodePayload{
 				Color: "teal-500",
 			}, EntityName, "code-456", nil)),
-			expectErr: false,
+			expectErr: "",
 			expectEvent: cqrs.ToAny(cqrs.NewDomainEvent[UpdatedCodePayload, any](UpdatedCode, UpdatedCodePayload{
 				Color: "teal-500",
 			}, EntityName, "code-456", nil)),
@@ -56,7 +56,7 @@ func TestCodeRouter(t *testing.T) {
 			input: cqrs.ToAny(cqrs.NewCommand[UpdateCodePayload, any](UpdateCode, UpdateCodePayload{
 				Reasoning: "Comprehensive climate coverage",
 			}, EntityName, "code-789", nil)),
-			expectErr: false,
+			expectErr: "",
 			expectEvent: cqrs.ToAny(cqrs.NewDomainEvent[UpdatedCodePayload, any](UpdatedCode, UpdatedCodePayload{
 				Reasoning: "Comprehensive climate coverage",
 			}, EntityName, "code-789", nil)),
@@ -64,7 +64,7 @@ func TestCodeRouter(t *testing.T) {
 		{
 			name:        "DeleteCode",
 			input:       cqrs.ToAny(cqrs.NewCommand[any, any](DeleteCode, nil, EntityName, "code-999", nil)),
-			expectErr:   false,
+			expectErr:   "",
 			expectEvent: cqrs.ToAny(cqrs.NewDomainEvent[any, any](DeletedCode, nil, EntityName, "code-999", nil)),
 		},
 		{
@@ -73,7 +73,7 @@ func TestCodeRouter(t *testing.T) {
 				ProjectID: "project-1",
 				Slug:      "topic:incomplete",
 			}, EntityName, "", nil)),
-			expectErr: true,
+			expectErr: "validation failed: Color is required, Reasoning is required",
 		},
 		{
 			name: "CreateCode with invalid slug (no colon)",
@@ -83,7 +83,7 @@ func TestCodeRouter(t *testing.T) {
 				Color:     "blue-500",
 				Reasoning: "Invalid format",
 			}, EntityName, "", nil)),
-			expectErr: true,
+			expectErr: "validation failed: Slug must match code slug format (lowercase with colon and optional dashes)",
 		},
 		{
 			name: "CreateCode with invalid slug (uppercase)",
@@ -93,7 +93,7 @@ func TestCodeRouter(t *testing.T) {
 				Color:     "blue-500",
 				Reasoning: "Invalid format",
 			}, EntityName, "", nil)),
-			expectErr: true,
+			expectErr: "validation failed: Slug must match code slug format (lowercase with colon and optional dashes)",
 		},
 		{
 			name: "CreateCode with invalid slug (empty after colon)",
@@ -103,7 +103,7 @@ func TestCodeRouter(t *testing.T) {
 				Color:     "blue-500",
 				Reasoning: "Invalid format",
 			}, EntityName, "", nil)),
-			expectErr: true,
+			expectErr: "validation failed: Slug must match code slug format (lowercase with colon and optional dashes)",
 		},
 		{
 			name: "CreateCode with invalid slug (starts with hyphen)",
@@ -113,7 +113,7 @@ func TestCodeRouter(t *testing.T) {
 				Color:     "blue-500",
 				Reasoning: "Invalid format",
 			}, EntityName, "", nil)),
-			expectErr: true,
+			expectErr: "validation failed: Slug must match code slug format (lowercase with colon and optional dashes)",
 		},
 		{
 			name: "Wrong entity type returns nil",
@@ -123,7 +123,7 @@ func TestCodeRouter(t *testing.T) {
 				Color:     "blue-500",
 				Reasoning: "Test",
 			}, "DifferentEntity", "", nil)),
-			expectErr:   false,
+			expectErr:   "",
 			expectEvent: nil,
 		},
 		{
@@ -134,7 +134,7 @@ func TestCodeRouter(t *testing.T) {
 				Color:     "blue",
 				Reasoning: "Test",
 			}, EntityName, "", nil)),
-			expectErr:   false,
+			expectErr:   "",
 			expectEvent: nil,
 		},
 		{
@@ -145,7 +145,7 @@ func TestCodeRouter(t *testing.T) {
 				Color:     "blue-500",
 				Reasoning: "Test",
 			}, EntityName, "test-aggregate-id", nil)),
-			expectErr:   false,
+			expectErr:   "",
 			expectEvent: nil,
 		},
 	}
@@ -154,13 +154,10 @@ func TestCodeRouter(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			result, err := Router(tt.input, nil)
 
-			if tt.expectErr {
-				th.AssertNotNil(t, err, "should return error")
-				return
+			th.AssertError(t, err, tt.expectErr, "error")
+			if tt.expectErr == "" {
+				th.AssertMessage(t, result, tt.expectEvent, "event")
 			}
-
-			th.AssertNil(t, err, "should not return error")
-			th.AssertMessage(t, result, tt.expectEvent, "event")
 		})
 	}
 }

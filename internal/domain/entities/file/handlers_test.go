@@ -13,7 +13,7 @@ func TestFileRouter(t *testing.T) {
 	tests := []struct {
 		name        string
 		input       *cqrs.AnyMessage
-		expectErr   bool
+		expectErr   string
 		expectEvent *cqrs.AnyMessage
 	}{
 		{
@@ -30,7 +30,7 @@ func TestFileRouter(t *testing.T) {
 				},
 				Content: "Test content",
 			}, EntityName, "", nil)),
-			expectErr: false,
+			expectErr: "",
 			expectEvent: cqrs.ToAny(cqrs.NewDomainEvent[CreatedFilePayload, any](CreatedFile, CreatedFilePayload{
 				BaseFile: BaseFile{
 					ProjectID: "project-1",
@@ -56,7 +56,7 @@ func TestFileRouter(t *testing.T) {
 				},
 				Content: "Content",
 			}, EntityName, "", nil)),
-			expectErr: false,
+			expectErr: "",
 			expectEvent: cqrs.ToAny(cqrs.NewDomainEvent[CreatedFilePayload, any](CreatedFile, CreatedFilePayload{
 				BaseFile: BaseFile{
 					ProjectID: "project-1",
@@ -86,7 +86,7 @@ func TestFileRouter(t *testing.T) {
 					},
 				},
 			}, EntityName, "file-123", nil)),
-			expectErr: false,
+			expectErr: "",
 			expectEvent: cqrs.ToAny(cqrs.NewDomainEvent[CodedFilePayload, any](CodedFile, CodedFilePayload{
 				Actions: []CodingAction{
 					{
@@ -126,7 +126,7 @@ func TestFileRouter(t *testing.T) {
 					},
 				},
 			}, EntityName, "file-456", nil)),
-			expectErr: false,
+			expectErr: "",
 			expectEvent: cqrs.ToAny(cqrs.NewDomainEvent[CodedFilePayload, any](CodedFile, CodedFilePayload{
 				Actions: []CodingAction{
 					{
@@ -162,7 +162,7 @@ func TestFileRouter(t *testing.T) {
 					},
 				},
 			}, EntityName, "file-append", nil)),
-			expectErr: false,
+			expectErr: "",
 			expectEvent: cqrs.ToAny(cqrs.NewDomainEvent[CodedFilePayload, any](CodedFile, CodedFilePayload{
 				Actions: []CodingAction{
 					{
@@ -190,7 +190,7 @@ func TestFileRouter(t *testing.T) {
 					},
 				},
 			}, EntityName, "file-remove", nil)),
-			expectErr: false,
+			expectErr: "",
 			expectEvent: cqrs.ToAny(cqrs.NewDomainEvent[CodedFilePayload, any](CodedFile, CodedFilePayload{
 				Actions: []CodingAction{
 					{
@@ -207,7 +207,7 @@ func TestFileRouter(t *testing.T) {
 		{
 			name:        "ClearCoding",
 			input:       cqrs.ToAny(cqrs.NewCommand[any, any](ClearCoding, nil, EntityName, "file-clear", nil)),
-			expectErr:   false,
+			expectErr:   "",
 			expectEvent: cqrs.ToAny(cqrs.NewDomainEvent[any, any](ClearedCoding, nil, EntityName, "file-clear", nil)),
 		},
 		{
@@ -216,7 +216,7 @@ func TestFileRouter(t *testing.T) {
 				Source: "topic:climate-old",
 				Target: "topic:climate",
 			}, EntityName, "file-merge", nil)),
-			expectErr: false,
+			expectErr: "",
 			expectEvent: cqrs.ToAny(cqrs.NewDomainEvent[MergedCodesPayload, any](MergedCodes, MergedCodesPayload{
 				Source: "topic:climate-old",
 				Target: "topic:climate",
@@ -233,7 +233,7 @@ func TestFileRouter(t *testing.T) {
 				},
 				Content: "Content",
 			}, EntityName, "", nil)),
-			expectErr: true,
+			expectErr: "validation failed: Name is required",
 		},
 		{
 			name: "CreateFile with missing Title",
@@ -244,14 +244,14 @@ func TestFileRouter(t *testing.T) {
 				},
 				Content: "Content",
 			}, EntityName, "", nil)),
-			expectErr: true,
+			expectErr: "validation failed: Title is required",
 		},
 		{
 			name: "CodeFile with empty actions array",
 			input: cqrs.ToAny(cqrs.NewCommand[CodeFilePayload, any](CodeFile, CodeFilePayload{
 				Actions: []CodingAction{},
 			}, EntityName, "file-123", nil)),
-			expectErr: true,
+			expectErr: "validation failed: Actions must be at least 1 characters",
 		},
 		{
 			name: "CodeFile with missing CodeSlug",
@@ -264,7 +264,7 @@ func TestFileRouter(t *testing.T) {
 					},
 				},
 			}, EntityName, "file-123", nil)),
-			expectErr: true,
+			expectErr: "validation failed: CodeSlug is required",
 		},
 		{
 			name: "CodeFile with missing ChunkID",
@@ -277,7 +277,7 @@ func TestFileRouter(t *testing.T) {
 					},
 				},
 			}, EntityName, "file-123", nil)),
-			expectErr: true,
+			expectErr: "validation failed: ChunkID is required",
 		},
 		{
 			name: "CodeFile with empty sections array",
@@ -291,7 +291,7 @@ func TestFileRouter(t *testing.T) {
 					},
 				},
 			}, EntityName, "file-123", nil)),
-			expectErr: true,
+			expectErr: "validation failed: Sections must be at least 1 characters",
 		},
 		{
 			name: "CodeFile with invalid slug (no colon)",
@@ -305,7 +305,7 @@ func TestFileRouter(t *testing.T) {
 					},
 				},
 			}, EntityName, "file-123", nil)),
-			expectErr: true,
+			expectErr: "validation failed: CodeSlug must match code slug format (lowercase with colon and optional dashes)",
 		},
 		{
 			name: "CodeFile with invalid slug (uppercase)",
@@ -319,21 +319,21 @@ func TestFileRouter(t *testing.T) {
 					},
 				},
 			}, EntityName, "file-123", nil)),
-			expectErr: true,
+			expectErr: "validation failed: CodeSlug must match code slug format (lowercase with colon and optional dashes)",
 		},
 		{
 			name: "MergeCodes with missing Source",
 			input: cqrs.ToAny(cqrs.NewCommand[MergeCodesPayload, any](MergeCodes, MergeCodesPayload{
 				Target: "topic:climate",
 			}, EntityName, "file-merge", nil)),
-			expectErr: true,
+			expectErr: "validation failed: Source is required",
 		},
 		{
 			name: "MergeCodes with missing Target",
 			input: cqrs.ToAny(cqrs.NewCommand[MergeCodesPayload, any](MergeCodes, MergeCodesPayload{
 				Source: "topic:climate-old",
 			}, EntityName, "file-merge", nil)),
-			expectErr: true,
+			expectErr: "validation failed: Target is required",
 		},
 		{
 			name: "MergeCodes with invalid Source slug",
@@ -341,7 +341,7 @@ func TestFileRouter(t *testing.T) {
 				Source: "invalid-slug",
 				Target: "topic:climate",
 			}, EntityName, "file-merge", nil)),
-			expectErr: true,
+			expectErr: "validation failed: Source must match code slug format (lowercase with colon and optional dashes)",
 		},
 		{
 			name: "MergeCodes with invalid Target slug",
@@ -349,7 +349,7 @@ func TestFileRouter(t *testing.T) {
 				Source: "topic:climate-old",
 				Target: "InvalidSlug",
 			}, EntityName, "file-merge", nil)),
-			expectErr: true,
+			expectErr: "validation failed: Target must match code slug format (lowercase with colon and optional dashes)",
 		},
 		{
 			name: "Wrong entity type returns nil",
@@ -363,7 +363,7 @@ func TestFileRouter(t *testing.T) {
 				},
 				Content: "Test",
 			}, "DifferentEntity", "", nil)),
-			expectErr:   false,
+			expectErr:   "",
 			expectEvent: nil,
 		},
 		{
@@ -378,7 +378,7 @@ func TestFileRouter(t *testing.T) {
 				},
 				Content: "Test",
 			}, EntityName, "", nil)),
-			expectErr:   false,
+			expectErr:   "",
 			expectEvent: nil,
 		},
 		{
@@ -393,7 +393,7 @@ func TestFileRouter(t *testing.T) {
 				},
 				Content: "Test",
 			}, EntityName, "test-aggregate-id", nil)),
-			expectErr:   false,
+			expectErr:   "",
 			expectEvent: nil,
 		},
 	}
@@ -402,13 +402,10 @@ func TestFileRouter(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			result, err := Router(tt.input, nil)
 
-			if tt.expectErr {
-				th.AssertNotNil(t, err, "should return error")
-				return
+			th.AssertError(t, err, tt.expectErr, "error")
+			if tt.expectErr == "" {
+				th.AssertMessage(t, result, tt.expectEvent, "event")
 			}
-
-			th.AssertNil(t, err, "should not return error")
-			th.AssertMessage(t, result, tt.expectEvent, "event")
 		})
 	}
 }
