@@ -59,10 +59,14 @@ Each entity folder contains:
 
 ### Error Responses
 **`internal/lib/utils/errors.go`**
-- `ErrorResponse` - standard errors with optional `fields` map
+- `ValidationError` - validation errors with descriptive messages and field details
+  - Format: `{"message": "validation failed: {field} {description}", "fields": {"FieldName": "tag"}}`
+  - Message includes human-readable descriptions (e.g., "validation failed: Name is required")
+  - Field descriptions defined in `formatFieldError()` function
+  - Multiple field errors are comma-separated in message
 - `NotFoundError` - resource not found (404)
-- `ValidationError` - validation errors with field details
 - `ConflictError` - conflict errors (409)
+- `InternalError` - internal server errors (500)
 
 ### WebSocket
 **`internal/handlers/http/socket.go`** - WebSocket implementation details
@@ -150,6 +154,40 @@ Document all found commands in a "Supported Commands by Aggregate" section. For 
   - Should document shade range (50-950)
 - **Field lengths**: `maxLength` in OpenAPI = `max` value from validation tags
 
+### Validation Error Message Formats
+
+**Read `internal/lib/utils/errors.go`** for the `formatFieldError()` function that defines error message templates.
+
+Common validation error messages (based on validation tags):
+- `required` → "validation failed: {Field} is required"
+- `min=X` → "validation failed: {Field} must be at least X characters"
+- `max=X` → "validation failed: {Field} must be at most X characters"
+- `code_slug` → "validation failed: {Field} must match code slug format (lowercase with colon and optional dashes)"
+- `lte` → "validation failed: {Field} must not be in the future"
+- `gtfield=X` → "validation failed: {Field} must be greater than X"
+- `gte=X` → "validation failed: {Field} must be at least X"
+
+**Multiple validation errors** are combined: "validation failed: Color is required, Reasoning is required"
+
+**Example error responses in OpenAPI**:
+```yaml
+{
+  "message": "validation failed: Name is required",
+  "fields": {
+    "Name": "required"
+  }
+}
+```
+
+```yaml
+{
+  "message": "validation failed: Slug must match code slug format (lowercase with colon and optional dashes)",
+  "fields": {
+    "Slug": "code_slug"
+  }
+}
+```
+
 ## Example Domains
 
 Use diverse qualitative research contexts:
@@ -182,7 +220,10 @@ Example code slugs: `topic:patient-experience`, `emotion:anxiety`, `usability:fr
    - Read `processors.go` for batch processing behavior
    - Read `handlers.go` for `BatchResponse` format
    - Read `socket.go` for WebSocket specifics
-8. **Error Types**: Read `internal/lib/utils/errors.go` for error response formats
+8. **Error Types**: Read `internal/lib/utils/errors.go` for:
+   - Error response struct definitions
+   - `formatFieldError()` function for validation error message templates
+   - Error type distinctions (ValidationError, NotFoundError, ConflictError, InternalError)
 9. **Generate Spec**: Use discovered information to create complete, accurate spec
 
 ## Output Requirements
@@ -194,10 +235,14 @@ Example code slugs: `topic:patient-experience`, `emotion:anxiety`, `usability:fr
 - **Completeness**:
   - All endpoints from `routes.go`
   - All commands/events discovered
-  - Error responses (400, 404, 500) with correct schema references
+  - Error responses (400, 404, 409, 500) with correct schema references
   - Both single and batch command formats
   - WebSocket protocol details from `socket.go`
   - Pagination format from `queries.go`
   - Batch status codes from `responses.go`
+- **Error Examples**: Include realistic validation error examples with descriptive messages:
+  - Single field errors: `{"message": "validation failed: Name is required", "fields": {"Name": "required"}}`
+  - Multiple field errors: `{"message": "validation failed: Color is required, Reasoning is required", "fields": {"Color": "required", "Reasoning": "required"}}`
+  - Pattern validation errors: `{"message": "validation failed: Slug must match code slug format (lowercase with colon and optional dashes)", "fields": {"Slug": "code_slug"}}`
 - **Documentation**: Clear descriptions explaining what each endpoint/command does
 - **Unimplemented Commands**: Mark with ⚠️ when command constant exists but no implementation found
