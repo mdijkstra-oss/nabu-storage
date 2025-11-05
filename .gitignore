@@ -23,6 +23,7 @@ go.work.sum
 bin/
 dist/
 build/
+main
 
 # Go module cache
 go.sum

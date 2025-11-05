@@ -2,6 +2,8 @@ package projection
 
 import (
 	"hermes-relay/internal/cqrs/commands"
+	"hermes-relay/internal/cqrs/dispatch"
+	"hermes-relay/internal/cqrs/projection"
 	"hermes-relay/internal/domain/entities/code"
 	"hermes-relay/internal/domain/entities/file"
 	"hermes-relay/internal/domain/entities/project"
@@ -10,12 +12,11 @@ import (
 )
 
 type ProjectView struct {
-	ProjectStore *Store[project.Project]
-	CodeStore    *Store[code.Code]
-	FileStore    *Store[file.File]
+	ProjectStore *projection.Store[project.Project]
+	CodeStore    *projection.Store[code.Code]
+	FileStore    *projection.Store[file.File]
 }
 
-// ApplyEventToAllStores Panics are caught and logged to prevent one store's failure from affecting others
 func (pv *ProjectView) ApplyEventToAllStores(message *commands.AnyMessage) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -35,15 +36,15 @@ func (pv *ProjectView) ApplyEventToAllStores(message *commands.AnyMessage) {
 type ProjectViewRegistry struct {
 	projects       map[string]*ProjectView
 	mu             sync.RWMutex
-	projectReducer Reducer[project.Project]
-	codeReducer    Reducer[code.Code]
-	fileReducer    Reducer[file.File]
+	projectReducer projection.Reducer[project.Project]
+	codeReducer    projection.Reducer[code.Code]
+	fileReducer    projection.Reducer[file.File]
 }
 
 func NewProjectViewRegistry(
-	projectReducer Reducer[project.Project],
-	codeReducer Reducer[code.Code],
-	fileReducer Reducer[file.File],
+	projectReducer projection.Reducer[project.Project],
+	codeReducer projection.Reducer[code.Code],
+	fileReducer projection.Reducer[file.File],
 ) *ProjectViewRegistry {
 	return &ProjectViewRegistry{
 		projects:       make(map[string]*ProjectView),
@@ -102,8 +103,54 @@ func (pvr *ProjectViewRegistry) EnsureProjectExists(message *commands.AnyMessage
 
 func (pvr *ProjectViewRegistry) createProjectView() *ProjectView {
 	return &ProjectView{
-		ProjectStore: NewStore(pvr.projectReducer),
-		CodeStore:    NewStore(pvr.codeReducer),
-		FileStore:    NewStore(pvr.fileReducer),
+		ProjectStore: projection.NewStore(pvr.projectReducer),
+		CodeStore:    projection.NewStore(pvr.codeReducer),
+		FileStore:    projection.NewStore(pvr.fileReducer),
+	}
+}
+
+var globalRegistry *ProjectViewRegistry
+
+func SetRegistry(r *ProjectViewRegistry) {
+	globalRegistry = r
+}
+
+func GetRegistry() *ProjectViewRegistry {
+	return globalRegistry
+}
+
+func CodeStoreForProject(registry *ProjectViewRegistry, projectID string) *projection.Store[code.Code] {
+	view := registry.GetProject(projectID)
+	if view == nil {
+		return nil
+	}
+	return view.CodeStore
+}
+
+func FileStoreForProject(registry *ProjectViewRegistry, projectID string) *projection.Store[file.File] {
+	view := registry.GetProject(projectID)
+	if view == nil {
+		return nil
+	}
+	return view.FileStore
+}
+
+func ProjectStoreForProject(registry *ProjectViewRegistry, projectID string) *projection.Store[project.Project] {
+	view := registry.GetProject(projectID)
+	if view == nil {
+		return nil
+	}
+	return view.ProjectStore
+}
+
+func Validate(validator func(*commands.AnyMessage, *ProjectViewRegistry) error, handler dispatch.CommandRouter) dispatch.CommandRouter {
+	return func(message *commands.AnyMessage, publisher dispatch.PublishFunc) (*commands.AnyMessage, error) {
+		registry := GetRegistry()
+		if registry != nil {
+			if err := validator(message, registry); err != nil {
+				return nil, err
+			}
+		}
+		return handler(message, publisher)
 	}
 }

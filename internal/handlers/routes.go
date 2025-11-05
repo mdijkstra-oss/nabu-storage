@@ -6,6 +6,7 @@ import (
 	"hermes-relay/internal/cqrs/dispatch"
 	"hermes-relay/internal/cqrs/projection"
 	"hermes-relay/internal/domain/entities/project"
+	domainprojection "hermes-relay/internal/domain/projection"
 	codeview "hermes-relay/internal/domain/projections/code-entity"
 	fileview "hermes-relay/internal/domain/projections/file-entity"
 	"hermes-relay/internal/handlers/http"
@@ -15,7 +16,7 @@ import (
 	net "net/http"
 )
 
-func SetupHTTPHandlers(r chi.Router, publisher *dispatch.InMemoryPublisher, registry *projection.ProjectViewRegistry) {
+func SetupHTTPHandlers(r chi.Router, publisher *dispatch.InMemoryPublisher, registry *domainprojection.ProjectViewRegistry) {
 	r.Use(middleware.Logger) // Todo: log level
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.RequestID)
@@ -41,24 +42,24 @@ func SetupHTTPHandlers(r chi.Router, publisher *dispatch.InMemoryPublisher, regi
 			// Todo: r.Use(middleware.RequireProjectAccess)
 			r.Use(http.WithProjectView(registry))
 
-			r.Get("/", tq.QueryOneRoute(projection.ProjectStoreFromRequest, projection.ByID))
+			r.Get("/", tq.QueryOneRoute(http.ProjectStoreFromRequest, projection.ByID))
 
 			r.Route("/files", func(r chi.Router) {
-				r.Get("/", tq.QueryRoute(projection.FileStoreFromRequest, projection.ByAll))
+				r.Get("/", tq.QueryRoute(http.FileStoreFromRequest, projection.ByAll))
 
 				r.Get("/{id}",
 					http.WithHeaders(http.MarkDownHeaders)(
-						tq.QueryOneRoute(projection.FileStoreFromRequest, projection.ThenMap(projection.ByID, fileview.ToContent)),
+						tq.QueryOneRoute(http.FileStoreFromRequest, projection.ThenMap(projection.ByID, fileview.ToContent)),
 					).ServeHTTP,
 				)
 
-				r.Get("/{id}/chunks/{index}", tq.QueryOneRoute(projection.FileStoreFromRequest, fileview.ByChunk))
+				r.Get("/{id}/chunks/{index}", tq.QueryOneRoute(http.FileStoreFromRequest, fileview.ByChunk))
 			})
 
 			r.Route("/codes", func(r chi.Router) {
-				r.Get("/", tq.QueryRoute(projection.CodeStoreFromRequest, projection.Paginate))
-				r.Get("/{id}", tq.QueryOneRoute(projection.CodeStoreFromRequest, projection.ByID))
-				r.Get("/slug/{slug}", tq.QueryOneRoute(projection.CodeStoreFromRequest, codeview.BySlug))
+				r.Get("/", tq.QueryRoute(http.CodeStoreFromRequest, projection.Paginate))
+				r.Get("/{id}", tq.QueryOneRoute(http.CodeStoreFromRequest, projection.ByID))
+				r.Get("/slug/{slug}", tq.QueryOneRoute(http.CodeStoreFromRequest, codeview.BySlug))
 			})
 		})
 	})

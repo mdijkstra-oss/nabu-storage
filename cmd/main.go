@@ -5,10 +5,10 @@ import (
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/cqrs/dispatch"
 	"hermes-relay/internal/cqrs/persistence"
-	"hermes-relay/internal/cqrs/projection"
 	"hermes-relay/internal/domain/entities/code"
 	"hermes-relay/internal/domain/entities/file"
 	"hermes-relay/internal/domain/entities/project"
+	domainprojection "hermes-relay/internal/domain/projection"
 	codeview "hermes-relay/internal/domain/projections/code-entity"
 	fileview "hermes-relay/internal/domain/projections/file-entity"
 	projectview "hermes-relay/internal/domain/projections/project-entity"
@@ -59,15 +59,18 @@ func setUpCommandHandlers(publisher *dispatch.InMemoryPublisher) {
 	publisher.Subscribe(commandRouter)
 }
 
-func setupProjectViewRegistry(publisher *dispatch.InMemoryPublisher) *projection.ProjectViewRegistry {
-	registry := projection.NewProjectViewRegistry(
+func setupProjectViewRegistry(publisher *dispatch.InMemoryPublisher) *domainprojection.ProjectViewRegistry {
+	registry := domainprojection.NewProjectViewRegistry(
 		projectview.Reducer,
 		codeview.Reducer,
 		fileview.Reducer,
 	)
 
+	// Gives Validate access later in command handling (to compare against aggregated)
+	domainprojection.SetRegistry(registry)
+
 	publisher.Subscribe(dispatch.LimitOnType(commands.DomainEvent, dispatch.ReadOnlyRoutes(func(message *commands.AnyMessage) error {
-		projectID := extractProjectID(message)
+		projectID := commands.ExtractProjectID(message)
 		if projectID == "" {
 			return nil
 		}
@@ -81,20 +84,6 @@ func setupProjectViewRegistry(publisher *dispatch.InMemoryPublisher) *projection
 	})))
 
 	return registry
-}
-
-func extractProjectID(message *commands.AnyMessage) string {
-	if message.AggregateType == "Project" {
-		return message.AggregateID
-	}
-
-	if payload, ok := message.Payload.(map[string]any); ok {
-		if projectID, ok := payload["project_id"].(string); ok {
-			return projectID
-		}
-	}
-
-	return ""
 }
 
 func setupLogger(level slog.Level) {

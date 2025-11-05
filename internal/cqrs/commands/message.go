@@ -146,3 +146,17 @@ func ToAny[P any](m *Message[P]) *AnyMessage {
 		Payload:       m.Payload,
 	}
 }
+
+func ExtractProjectID(message *AnyMessage) string {
+	if message.AggregateType == "Project" {
+		return message.AggregateID
+	}
+
+	if payload, ok := message.Payload.(map[string]any); ok {
+		if projectID, ok := payload["project_id"].(string); ok {
+			return projectID
+		}
+	}
+
+	return ""
+}

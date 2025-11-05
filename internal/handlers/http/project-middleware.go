@@ -2,11 +2,11 @@ package http
 
 import (
 	"github.com/go-chi/chi/v5"
-	"hermes-relay/internal/cqrs/projection"
+	domainprojection "hermes-relay/internal/domain/projection"
 	"net/http"
 )
 
-func WithProjectView(registry *projection.ProjectViewRegistry) func(http.Handler) http.Handler {
+func WithProjectView(registry *domainprojection.ProjectViewRegistry) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			projectID := chi.URLParam(r, "projectId")
@@ -22,7 +22,7 @@ func WithProjectView(registry *projection.ProjectViewRegistry) func(http.Handler
 				return
 			}
 
-			ctx := projection.WithProjectView(r.Context(), view)
+			ctx := withProjectViewContext(r.Context(), view)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
