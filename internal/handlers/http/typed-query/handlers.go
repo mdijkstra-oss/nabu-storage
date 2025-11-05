@@ -2,9 +2,9 @@ package typedquery
 
 import (
 	"fmt"
+	"hermes-relay/internal/cqrs/projection"
 	httphandlers "hermes-relay/internal/handlers/http"
 	"hermes-relay/internal/lib/utils"
-	"hermes-relay/internal/projection"
 	"io"
 	"net/http"
 

@@ -3,19 +3,19 @@ package handlers
 import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"hermes-relay/internal/cqrs"
+	"hermes-relay/internal/cqrs/dispatch"
+	"hermes-relay/internal/cqrs/projection"
 	"hermes-relay/internal/domain/entities/project"
 	codeview "hermes-relay/internal/domain/projections/code-entity"
 	fileview "hermes-relay/internal/domain/projections/file-entity"
 	"hermes-relay/internal/handlers/http"
 	tq "hermes-relay/internal/handlers/http/typed-query"
 	"hermes-relay/internal/lib/utils"
-	"hermes-relay/internal/projection"
 	"log/slog"
 	net "net/http"
 )
 
-func SetupHTTPHandlers(r chi.Router, publisher *cqrs.InMemoryPublisher, registry *projection.ProjectViewRegistry) {
+func SetupHTTPHandlers(r chi.Router, publisher *dispatch.InMemoryPublisher, registry *projection.ProjectViewRegistry) {
 	r.Use(middleware.Logger) // Todo: log level
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.RequestID)

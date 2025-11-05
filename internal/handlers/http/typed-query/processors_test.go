@@ -1,10 +1,10 @@
 package typedquery
 
 import (
-	"hermes-relay/internal/cqrs"
+	"hermes-relay/internal/cqrs/commands"
+	"hermes-relay/internal/cqrs/projection"
 	httphandlers "hermes-relay/internal/handlers/http"
 	th "hermes-relay/internal/lib/test-helpers"
-	"hermes-relay/internal/projection"
 	"testing"
 )
 
@@ -39,10 +39,10 @@ func getByMinValue(items []TestEntity, q MinValueQuery) []TestEntity {
 
 func TestQuery(t *testing.T) {
 	singleEntityStore := projection.NewStoreWithDefaults(
-		func(_ *TestEntity, msg *cqrs.AnyMessage) *TestEntity { return nil },
+		func(_ *TestEntity, msg *commands.AnyMessage) *TestEntity { return nil },
 		[]TestEntity{{ID: "test-1", Name: "Entity One", Value: 100}},
 	)
-	emptyStore := projection.NewStore(func(_ *TestEntity, msg *cqrs.AnyMessage) *TestEntity { return nil })
+	emptyStore := projection.NewStore(func(_ *TestEntity, msg *commands.AnyMessage) *TestEntity { return nil })
 
 	tests := []struct {
 		name         string
@@ -129,10 +129,10 @@ func TestQuery(t *testing.T) {
 
 func TestQueryWithMap(t *testing.T) {
 	filledStore := projection.NewStoreWithDefaults(
-		func(_ *TestEntity, msg *cqrs.AnyMessage) *TestEntity { return nil },
+		func(_ *TestEntity, msg *commands.AnyMessage) *TestEntity { return nil },
 		[]TestEntity{{ID: "test-1", Name: "Entity One", Value: 100}},
 	)
-	emptyStore := projection.NewStore(func(_ *TestEntity, msg *cqrs.AnyMessage) *TestEntity { return nil })
+	emptyStore := projection.NewStore(func(_ *TestEntity, msg *commands.AnyMessage) *TestEntity { return nil })
 
 	mapFn := func(e TestEntity) MappedEntity {
 		return MappedEntity{Name: e.Name, Value: e.Value}

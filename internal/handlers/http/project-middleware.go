@@ -2,7 +2,7 @@ package http
 
 import (
 	"github.com/go-chi/chi/v5"
-	"hermes-relay/internal/projection"
+	"hermes-relay/internal/cqrs/projection"
 	"net/http"
 )
 

@@ -1,7 +1,7 @@
 package projectview
 
 import (
-	"hermes-relay/internal/cqrs"
+	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/domain/entities/project"
 	th "hermes-relay/internal/lib/test-helpers"
 	"testing"
@@ -11,7 +11,7 @@ func TestProjectReducer(t *testing.T) {
 	tests := []struct {
 		name     string
 		initial  *Project
-		event    *cqrs.AnyMessage
+		event    *commands.AnyMessage
 		expected *Project
 	}{
 		{
@@ -168,6 +168,6 @@ func TestProjectReducer(t *testing.T) {
 	}
 }
 
-func newProjectEvent(aggregateID string, action cqrs.Action, payload any) *cqrs.AnyMessage {
-	return cqrs.ToAny(cqrs.NewDomainEvent[any, any](action, payload, project.EntityName, aggregateID, nil))
+func newProjectEvent(aggregateID string, action commands.Action, payload any) *commands.AnyMessage {
+	return commands.ToAny(commands.NewDomainEvent[any, any](action, payload, project.EntityName, aggregateID, nil))
 }

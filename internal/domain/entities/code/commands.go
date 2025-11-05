@@ -1,13 +1,15 @@
 package code
 
-import "hermes-relay/internal/cqrs"
+import (
+	"hermes-relay/internal/cqrs/commands"
+)
 
-const EntityName cqrs.AggregateType = "Code"
+const EntityName commands.AggregateType = "Code"
 
 const (
-	CreateCode cqrs.Action = "CreateCode"
-	UpdateCode cqrs.Action = "UpdateCode"
-	DeleteCode cqrs.Action = "DeleteCode"
+	CreateCode commands.Action = "CreateCode"
+	UpdateCode commands.Action = "UpdateCode"
+	DeleteCode commands.Action = "DeleteCode"
 )
 
 type CreateCodePayload = CreateCodeData

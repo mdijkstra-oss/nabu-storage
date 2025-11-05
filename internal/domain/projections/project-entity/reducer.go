@@ -1,19 +1,20 @@
 package projectview
 
 import (
-	"hermes-relay/internal/cqrs"
+	"hermes-relay/internal/cqrs/commands"
+	"hermes-relay/internal/cqrs/projection"
 	"hermes-relay/internal/domain/entities/project"
 	"hermes-relay/internal/lib/utils"
 )
 
-var Reducer = cqrs.CombineReducers(
-	cqrs.For(project.CreatedProject, CreatedProjectReducer),
-	cqrs.For(project.AddedFileToProject, AddedFileToProjectReducer),
-	cqrs.For(project.AddedCodeToProject, AddedCodeToProjectReducer),
-	cqrs.For(project.RemovedCodeFromProject, RemovedCodeFromProjectReducer),
+var Reducer = projection.CombineReducers(
+	projection.For(project.CreatedProject, CreatedProjectReducer),
+	projection.For(project.AddedFileToProject, AddedFileToProjectReducer),
+	projection.For(project.AddedCodeToProject, AddedCodeToProjectReducer),
+	projection.For(project.RemovedCodeFromProject, RemovedCodeFromProjectReducer),
 )
 
-func CreatedProjectReducer(_ *Project, message *cqrs.AnyMessage, payload *project.CreatedProjectPayload) *Project {
+func CreatedProjectReducer(_ *Project, message *commands.AnyMessage, payload *project.CreatedProjectPayload) *Project {
 	return &Project{
 		ID:      message.AggregateID,
 		Name:    payload.Name,
@@ -22,7 +23,7 @@ func CreatedProjectReducer(_ *Project, message *cqrs.AnyMessage, payload *projec
 	}
 }
 
-func AddedFileToProjectReducer(current *Project, message *cqrs.AnyMessage, payload *project.AddedFileToProjectPayload) *Project {
+func AddedFileToProjectReducer(current *Project, message *commands.AnyMessage, payload *project.AddedFileToProjectPayload) *Project {
 	if current == nil {
 		return current
 	}
@@ -31,7 +32,7 @@ func AddedFileToProjectReducer(current *Project, message *cqrs.AnyMessage, paylo
 	return current
 }
 
-func AddedCodeToProjectReducer(current *Project, message *cqrs.AnyMessage, payload *project.AddedCodeToProjectPayload) *Project {
+func AddedCodeToProjectReducer(current *Project, message *commands.AnyMessage, payload *project.AddedCodeToProjectPayload) *Project {
 	if current == nil {
 		return current
 	}
@@ -40,7 +41,7 @@ func AddedCodeToProjectReducer(current *Project, message *cqrs.AnyMessage, paylo
 	return current
 }
 
-func RemovedCodeFromProjectReducer(current *Project, message *cqrs.AnyMessage, payload *project.RemovedCodeFromProjectPayload) *Project {
+func RemovedCodeFromProjectReducer(current *Project, message *commands.AnyMessage, payload *project.RemovedCodeFromProjectPayload) *Project {
 	if current == nil {
 		return current
 	}

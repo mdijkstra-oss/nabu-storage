@@ -2,7 +2,10 @@ package main
 
 import (
 	"github.com/go-chi/chi/v5"
-	"hermes-relay/internal/cqrs"
+	"hermes-relay/internal/cqrs/commands"
+	"hermes-relay/internal/cqrs/dispatch"
+	"hermes-relay/internal/cqrs/persistence"
+	"hermes-relay/internal/cqrs/projection"
 	"hermes-relay/internal/domain/entities/code"
 	"hermes-relay/internal/domain/entities/file"
 	"hermes-relay/internal/domain/entities/project"
@@ -11,8 +14,6 @@ import (
 	projectview "hermes-relay/internal/domain/projections/project-entity"
 	"hermes-relay/internal/handlers"
 	"hermes-relay/internal/lib/utils"
-	"hermes-relay/internal/persistence"
-	"hermes-relay/internal/projection"
 	"log"
 	"log/slog"
 	net "net/http"
@@ -24,7 +25,7 @@ func main() {
 	// Todo: Change to env var
 	setupLogger(slog.LevelDebug)
 
-	var publisher = cqrs.NewInMemoryPublisher()
+	var publisher = dispatch.NewInMemoryPublisher()
 
 	//utils.MustNotError(PublishNewSourceFiles(publisher.Publish))
 
@@ -35,7 +36,7 @@ func main() {
 
 	setUpCommandHandlers(publisher)
 
-	publisher.Subscribe(cqrs.LimitOnType(cqrs.DomainEvent, cqrs.ReadOnlyRoutes(persistence.Apply)))
+	publisher.Subscribe(dispatch.LimitOnType(commands.DomainEvent, dispatch.ReadOnlyRoutes(persistence.Apply)))
 
 	slog.Info("Initializing command persistence")
 
@@ -46,10 +47,10 @@ func main() {
 	log.Fatal(net.ListenAndServe(":8080", r))
 }
 
-func setUpCommandHandlers(publisher *cqrs.InMemoryPublisher) {
+func setUpCommandHandlers(publisher *dispatch.InMemoryPublisher) {
 	slog.Info("Setting up command handlers for new incoming messages")
 
-	var commandRouter = cqrs.CombineRouters(
+	var commandRouter = dispatch.CombineRouters(
 		code.Router,
 		file.Router,
 		project.Router,
@@ -58,14 +59,14 @@ func setUpCommandHandlers(publisher *cqrs.InMemoryPublisher) {
 	publisher.Subscribe(commandRouter)
 }
 
-func setupProjectViewRegistry(publisher *cqrs.InMemoryPublisher) *projection.ProjectViewRegistry {
+func setupProjectViewRegistry(publisher *dispatch.InMemoryPublisher) *projection.ProjectViewRegistry {
 	registry := projection.NewProjectViewRegistry(
 		projectview.Reducer,
 		codeview.Reducer,
 		fileview.Reducer,
 	)
 
-	publisher.Subscribe(cqrs.LimitOnType(cqrs.DomainEvent, cqrs.ReadOnlyRoutes(func(message *cqrs.AnyMessage) error {
+	publisher.Subscribe(dispatch.LimitOnType(commands.DomainEvent, dispatch.ReadOnlyRoutes(func(message *commands.AnyMessage) error {
 		projectID := extractProjectID(message)
 		if projectID == "" {
 			return nil
@@ -82,7 +83,7 @@ func setupProjectViewRegistry(publisher *cqrs.InMemoryPublisher) *projection.Pro
 	return registry
 }
 
-func extractProjectID(message *cqrs.AnyMessage) string {
+func extractProjectID(message *commands.AnyMessage) string {
 	if message.AggregateType == "Project" {
 		return message.AggregateID
 	}

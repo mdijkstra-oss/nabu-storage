@@ -1,15 +1,16 @@
 package code
 
 import (
-	"hermes-relay/internal/cqrs"
+	"hermes-relay/internal/cqrs/commands"
+	"hermes-relay/internal/cqrs/dispatch"
 )
 
-var Router = cqrs.CombineRouters(
-	cqrs.LimitOnEntity(EntityName,
-		cqrs.LimitOnType(cqrs.Command,
-			cqrs.ToCreateEntityEvent[CreateCodePayload](CreateCode, CreatedCode),
-			cqrs.ToUpdateEntityEvent[UpdateCodePayload](UpdateCode, UpdatedCode),
-			cqrs.ToEmptyDomainEvent(DeleteCode, DeletedCode),
+var Router = dispatch.CombineRouters(
+	dispatch.LimitOnEntity(EntityName,
+		dispatch.LimitOnType(commands.Command,
+			dispatch.ToCreateEntityEvent[CreateCodePayload](CreateCode, CreatedCode),
+			dispatch.ToUpdateEntityEvent[UpdateCodePayload](UpdateCode, UpdatedCode),
+			dispatch.ToEmptyDomainEvent(DeleteCode, DeletedCode),
 		),
 	),
 )

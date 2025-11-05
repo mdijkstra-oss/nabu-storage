@@ -1,8 +1,8 @@
 package fileview
 
 import (
+	"hermes-relay/internal/cqrs/projection"
 	"hermes-relay/internal/domain/entities/file"
-	"hermes-relay/internal/projection"
 )
 
 type ChunkQuery struct {

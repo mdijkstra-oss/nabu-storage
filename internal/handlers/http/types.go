@@ -1,6 +1,8 @@
 package http
 
-import "hermes-relay/internal/cqrs"
+import (
+	"hermes-relay/internal/cqrs/commands"
+)
 
 type Request struct {
 	Path  map[string]string
@@ -19,10 +21,10 @@ type ErrorResponse struct {
 }
 
 type batchResult struct {
-	Index   int              `json:"index"`
-	Success bool             `json:"success"`
-	Result  *cqrs.AnyMessage `json:"result,omitempty"`
-	Error   string           `json:"error,omitempty"`
+	Index   int                  `json:"index"`
+	Success bool                 `json:"success"`
+	Result  *commands.AnyMessage `json:"result,omitempty"`
+	Error   string               `json:"error,omitempty"`
 }
 
 type batchResponse struct {

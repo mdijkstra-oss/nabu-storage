@@ -2,13 +2,13 @@ package http
 
 import (
 	"encoding/json"
-	"hermes-relay/internal/cqrs"
+	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/lib/utils"
 	"net/http"
 	"strings"
 )
 
-func successOutput(result *cqrs.AnyMessage, acceptedOnly bool) Response {
+func successOutput(result *commands.AnyMessage, acceptedOnly bool) Response {
 	if acceptedOnly {
 		return Response{StatusCode: http.StatusAccepted}
 	}
@@ -70,7 +70,7 @@ func batchStatus(total, successCount int, acceptedOnly bool) int {
 	return http.StatusOK
 }
 
-func isCreatedAction(action cqrs.Action) bool {
+func isCreatedAction(action commands.Action) bool {
 	s := string(action)
 	return strings.HasSuffix(s, "Created") || strings.HasSuffix(s, "Added")
 }

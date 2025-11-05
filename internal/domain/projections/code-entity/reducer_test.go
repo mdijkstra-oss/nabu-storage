@@ -1,7 +1,7 @@
 package codeview
 
 import (
-	"hermes-relay/internal/cqrs"
+	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/domain/entities/code"
 	th "hermes-relay/internal/lib/test-helpers"
 	"testing"
@@ -11,7 +11,7 @@ func TestCodeReducer(t *testing.T) {
 	tests := []struct {
 		name     string
 		initial  *Code
-		event    *cqrs.AnyMessage
+		event    *commands.AnyMessage
 		expected *Code
 	}{
 		{
@@ -135,6 +135,6 @@ func TestCodeReducer(t *testing.T) {
 	}
 }
 
-func newCodeEvent(aggregateID string, action cqrs.Action, payload any) *cqrs.AnyMessage {
-	return cqrs.ToAny(cqrs.NewDomainEvent(action, payload, code.EntityName, aggregateID, (*cqrs.AnyMessage)(nil)))
+func newCodeEvent(aggregateID string, action commands.Action, payload any) *commands.AnyMessage {
+	return commands.ToAny(commands.NewDomainEvent(action, payload, code.EntityName, aggregateID, (*commands.AnyMessage)(nil)))
 }

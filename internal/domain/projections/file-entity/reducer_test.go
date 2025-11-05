@@ -1,7 +1,7 @@
 package fileview
 
 import (
-	"hermes-relay/internal/cqrs"
+	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/domain/entities/file"
 	th "hermes-relay/internal/lib/test-helpers"
 	"testing"
@@ -16,7 +16,7 @@ func TestFileReducer(t *testing.T) {
 	tests := []struct {
 		name            string
 		initial         *File
-		event           *cqrs.AnyMessage
+		event           *commands.AnyMessage
 		expectedBase    file.BaseFile
 		expectedContent string
 		expectedChunks  []file.Chunk
@@ -247,6 +247,6 @@ func fileWithCodes(id, projectID, content string, testTime time.Time, codes []fi
 	}
 }
 
-func newFileEvent(aggregateID string, action cqrs.Action, payload any) *cqrs.AnyMessage {
-	return cqrs.ToAny(cqrs.NewDomainEvent(action, payload, EntityName, aggregateID, (*cqrs.AnyMessage)(nil)))
+func newFileEvent(aggregateID string, action commands.Action, payload any) *commands.AnyMessage {
+	return commands.ToAny(commands.NewDomainEvent(action, payload, EntityName, aggregateID, (*commands.AnyMessage)(nil)))
 }

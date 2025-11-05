@@ -1,7 +1,7 @@
 package file
 
 import (
-	"hermes-relay/internal/cqrs"
+	"hermes-relay/internal/cqrs/commands"
 	th "hermes-relay/internal/lib/test-helpers"
 	"testing"
 	"time"
@@ -12,13 +12,13 @@ func TestFileRouter(t *testing.T) {
 
 	tests := []struct {
 		name        string
-		input       *cqrs.AnyMessage
+		input       *commands.AnyMessage
 		expectErr   string
-		expectEvent *cqrs.AnyMessage
+		expectEvent *commands.AnyMessage
 	}{
 		{
 			name: "CreateFile with valid payload",
-			input: cqrs.ToAny(cqrs.NewCommand[CreateFilePayload, any](CreateFile, CreateFilePayload{
+			input: commands.ToAny(commands.NewCommand[CreateFilePayload, any](CreateFile, CreateFilePayload{
 				BaseFile: BaseFile{
 					ProjectID: "project-1",
 					Name:      "test-file.txt",
@@ -31,7 +31,7 @@ func TestFileRouter(t *testing.T) {
 				Content: "Test content",
 			}, EntityName, "", nil)),
 			expectErr: "",
-			expectEvent: cqrs.ToAny(cqrs.NewDomainEvent[CreatedFilePayload, any](CreatedFile, CreatedFilePayload{
+			expectEvent: commands.ToAny(commands.NewDomainEvent[CreatedFilePayload, any](CreatedFile, CreatedFilePayload{
 				BaseFile: BaseFile{
 					ProjectID: "project-1",
 					Name:      "test-file.txt",
@@ -46,7 +46,7 @@ func TestFileRouter(t *testing.T) {
 		},
 		{
 			name: "CreateFile with minimal required fields",
-			input: cqrs.ToAny(cqrs.NewCommand[CreateFilePayload, any](CreateFile, CreateFilePayload{
+			input: commands.ToAny(commands.NewCommand[CreateFilePayload, any](CreateFile, CreateFilePayload{
 				BaseFile: BaseFile{
 					ProjectID: "project-1",
 					Name:      "minimal.txt",
@@ -57,7 +57,7 @@ func TestFileRouter(t *testing.T) {
 				Content: "Content",
 			}, EntityName, "", nil)),
 			expectErr: "",
-			expectEvent: cqrs.ToAny(cqrs.NewDomainEvent[CreatedFilePayload, any](CreatedFile, CreatedFilePayload{
+			expectEvent: commands.ToAny(commands.NewDomainEvent[CreatedFilePayload, any](CreatedFile, CreatedFilePayload{
 				BaseFile: BaseFile{
 					ProjectID: "project-1",
 					Name:      "minimal.txt",
@@ -70,7 +70,7 @@ func TestFileRouter(t *testing.T) {
 		},
 		{
 			name: "CodeFile with SetCoding action",
-			input: cqrs.ToAny(cqrs.NewCommand[CodeFilePayload, any](CodeFile, CodeFilePayload{
+			input: commands.ToAny(commands.NewCommand[CodeFilePayload, any](CodeFile, CodeFilePayload{
 				Actions: []CodingAction{
 					{
 						CodeSlug: "topic:test",
@@ -87,7 +87,7 @@ func TestFileRouter(t *testing.T) {
 				},
 			}, EntityName, "file-123", nil)),
 			expectErr: "",
-			expectEvent: cqrs.ToAny(cqrs.NewDomainEvent[CodedFilePayload, any](CodedFile, CodedFilePayload{
+			expectEvent: commands.ToAny(commands.NewDomainEvent[CodedFilePayload, any](CodedFile, CodedFilePayload{
 				Actions: []CodingAction{
 					{
 						CodeSlug: "topic:test",
@@ -106,7 +106,7 @@ func TestFileRouter(t *testing.T) {
 		},
 		{
 			name: "CodeFile with multiple actions",
-			input: cqrs.ToAny(cqrs.NewCommand[CodeFilePayload, any](CodeFile, CodeFilePayload{
+			input: commands.ToAny(commands.NewCommand[CodeFilePayload, any](CodeFile, CodeFilePayload{
 				Actions: []CodingAction{
 					{
 						CodeSlug: "topic:first",
@@ -127,7 +127,7 @@ func TestFileRouter(t *testing.T) {
 				},
 			}, EntityName, "file-456", nil)),
 			expectErr: "",
-			expectEvent: cqrs.ToAny(cqrs.NewDomainEvent[CodedFilePayload, any](CodedFile, CodedFilePayload{
+			expectEvent: commands.ToAny(commands.NewDomainEvent[CodedFilePayload, any](CodedFile, CodedFilePayload{
 				Actions: []CodingAction{
 					{
 						CodeSlug: "topic:first",
@@ -150,7 +150,7 @@ func TestFileRouter(t *testing.T) {
 		},
 		{
 			name: "CodeFile with AppendCoding action",
-			input: cqrs.ToAny(cqrs.NewCommand[CodeFilePayload, any](CodeFile, CodeFilePayload{
+			input: commands.ToAny(commands.NewCommand[CodeFilePayload, any](CodeFile, CodeFilePayload{
 				Actions: []CodingAction{
 					{
 						CodeSlug: "topic:append",
@@ -163,7 +163,7 @@ func TestFileRouter(t *testing.T) {
 				},
 			}, EntityName, "file-append", nil)),
 			expectErr: "",
-			expectEvent: cqrs.ToAny(cqrs.NewDomainEvent[CodedFilePayload, any](CodedFile, CodedFilePayload{
+			expectEvent: commands.ToAny(commands.NewDomainEvent[CodedFilePayload, any](CodedFile, CodedFilePayload{
 				Actions: []CodingAction{
 					{
 						CodeSlug: "topic:append",
@@ -178,7 +178,7 @@ func TestFileRouter(t *testing.T) {
 		},
 		{
 			name: "CodeFile with RemoveCoding action",
-			input: cqrs.ToAny(cqrs.NewCommand[CodeFilePayload, any](CodeFile, CodeFilePayload{
+			input: commands.ToAny(commands.NewCommand[CodeFilePayload, any](CodeFile, CodeFilePayload{
 				Actions: []CodingAction{
 					{
 						CodeSlug: "topic:remove",
@@ -191,7 +191,7 @@ func TestFileRouter(t *testing.T) {
 				},
 			}, EntityName, "file-remove", nil)),
 			expectErr: "",
-			expectEvent: cqrs.ToAny(cqrs.NewDomainEvent[CodedFilePayload, any](CodedFile, CodedFilePayload{
+			expectEvent: commands.ToAny(commands.NewDomainEvent[CodedFilePayload, any](CodedFile, CodedFilePayload{
 				Actions: []CodingAction{
 					{
 						CodeSlug: "topic:remove",
@@ -206,25 +206,25 @@ func TestFileRouter(t *testing.T) {
 		},
 		{
 			name:        "ClearCoding",
-			input:       cqrs.ToAny(cqrs.NewCommand[any, any](ClearCoding, nil, EntityName, "file-clear", nil)),
+			input:       commands.ToAny(commands.NewCommand[any, any](ClearCoding, nil, EntityName, "file-clear", nil)),
 			expectErr:   "",
-			expectEvent: cqrs.ToAny(cqrs.NewDomainEvent[any, any](ClearedCoding, nil, EntityName, "file-clear", nil)),
+			expectEvent: commands.ToAny(commands.NewDomainEvent[any, any](ClearedCoding, nil, EntityName, "file-clear", nil)),
 		},
 		{
 			name: "MergeCodes with valid payload",
-			input: cqrs.ToAny(cqrs.NewCommand[MergeCodesPayload, any](MergeCodes, MergeCodesPayload{
+			input: commands.ToAny(commands.NewCommand[MergeCodesPayload, any](MergeCodes, MergeCodesPayload{
 				Source: "topic:climate-old",
 				Target: "topic:climate",
 			}, EntityName, "file-merge", nil)),
 			expectErr: "",
-			expectEvent: cqrs.ToAny(cqrs.NewDomainEvent[MergedCodesPayload, any](MergedCodes, MergedCodesPayload{
+			expectEvent: commands.ToAny(commands.NewDomainEvent[MergedCodesPayload, any](MergedCodes, MergedCodesPayload{
 				Source: "topic:climate-old",
 				Target: "topic:climate",
 			}, EntityName, "file-merge", nil)),
 		},
 		{
 			name: "CreateFile with missing Name",
-			input: cqrs.ToAny(cqrs.NewCommand[CreateFilePayload, any](CreateFile, CreateFilePayload{
+			input: commands.ToAny(commands.NewCommand[CreateFilePayload, any](CreateFile, CreateFilePayload{
 				BaseFile: BaseFile{
 					ProjectID: "project-1",
 					Attributes: Attributes{
@@ -237,7 +237,7 @@ func TestFileRouter(t *testing.T) {
 		},
 		{
 			name: "CreateFile with missing Title",
-			input: cqrs.ToAny(cqrs.NewCommand[CreateFilePayload, any](CreateFile, CreateFilePayload{
+			input: commands.ToAny(commands.NewCommand[CreateFilePayload, any](CreateFile, CreateFilePayload{
 				BaseFile: BaseFile{
 					ProjectID: "project-1",
 					Name:      "file.txt",
@@ -248,14 +248,14 @@ func TestFileRouter(t *testing.T) {
 		},
 		{
 			name: "CodeFile with empty actions array",
-			input: cqrs.ToAny(cqrs.NewCommand[CodeFilePayload, any](CodeFile, CodeFilePayload{
+			input: commands.ToAny(commands.NewCommand[CodeFilePayload, any](CodeFile, CodeFilePayload{
 				Actions: []CodingAction{},
 			}, EntityName, "file-123", nil)),
 			expectErr: "validation failed: Actions must be at least 1 characters",
 		},
 		{
 			name: "CodeFile with missing CodeSlug",
-			input: cqrs.ToAny(cqrs.NewCommand[CodeFilePayload, any](CodeFile, CodeFilePayload{
+			input: commands.ToAny(commands.NewCommand[CodeFilePayload, any](CodeFile, CodeFilePayload{
 				Actions: []CodingAction{
 					{
 						Action:   SetCoding,
@@ -268,7 +268,7 @@ func TestFileRouter(t *testing.T) {
 		},
 		{
 			name: "CodeFile with missing ChunkID",
-			input: cqrs.ToAny(cqrs.NewCommand[CodeFilePayload, any](CodeFile, CodeFilePayload{
+			input: commands.ToAny(commands.NewCommand[CodeFilePayload, any](CodeFile, CodeFilePayload{
 				Actions: []CodingAction{
 					{
 						CodeSlug: "topic:test",
@@ -281,7 +281,7 @@ func TestFileRouter(t *testing.T) {
 		},
 		{
 			name: "CodeFile with empty sections array",
-			input: cqrs.ToAny(cqrs.NewCommand[CodeFilePayload, any](CodeFile, CodeFilePayload{
+			input: commands.ToAny(commands.NewCommand[CodeFilePayload, any](CodeFile, CodeFilePayload{
 				Actions: []CodingAction{
 					{
 						CodeSlug: "topic:test",
@@ -295,7 +295,7 @@ func TestFileRouter(t *testing.T) {
 		},
 		{
 			name: "CodeFile with invalid slug (no colon)",
-			input: cqrs.ToAny(cqrs.NewCommand[CodeFilePayload, any](CodeFile, CodeFilePayload{
+			input: commands.ToAny(commands.NewCommand[CodeFilePayload, any](CodeFile, CodeFilePayload{
 				Actions: []CodingAction{
 					{
 						CodeSlug: "topicclimate",
@@ -309,7 +309,7 @@ func TestFileRouter(t *testing.T) {
 		},
 		{
 			name: "CodeFile with invalid slug (uppercase)",
-			input: cqrs.ToAny(cqrs.NewCommand[CodeFilePayload, any](CodeFile, CodeFilePayload{
+			input: commands.ToAny(commands.NewCommand[CodeFilePayload, any](CodeFile, CodeFilePayload{
 				Actions: []CodingAction{
 					{
 						CodeSlug: "Topic:climate",
@@ -323,21 +323,21 @@ func TestFileRouter(t *testing.T) {
 		},
 		{
 			name: "MergeCodes with missing Source",
-			input: cqrs.ToAny(cqrs.NewCommand[MergeCodesPayload, any](MergeCodes, MergeCodesPayload{
+			input: commands.ToAny(commands.NewCommand[MergeCodesPayload, any](MergeCodes, MergeCodesPayload{
 				Target: "topic:climate",
 			}, EntityName, "file-merge", nil)),
 			expectErr: "validation failed: Source is required",
 		},
 		{
 			name: "MergeCodes with missing Target",
-			input: cqrs.ToAny(cqrs.NewCommand[MergeCodesPayload, any](MergeCodes, MergeCodesPayload{
+			input: commands.ToAny(commands.NewCommand[MergeCodesPayload, any](MergeCodes, MergeCodesPayload{
 				Source: "topic:climate-old",
 			}, EntityName, "file-merge", nil)),
 			expectErr: "validation failed: Target is required",
 		},
 		{
 			name: "MergeCodes with invalid Source slug",
-			input: cqrs.ToAny(cqrs.NewCommand[MergeCodesPayload, any](MergeCodes, MergeCodesPayload{
+			input: commands.ToAny(commands.NewCommand[MergeCodesPayload, any](MergeCodes, MergeCodesPayload{
 				Source: "invalid-slug",
 				Target: "topic:climate",
 			}, EntityName, "file-merge", nil)),
@@ -345,7 +345,7 @@ func TestFileRouter(t *testing.T) {
 		},
 		{
 			name: "MergeCodes with invalid Target slug",
-			input: cqrs.ToAny(cqrs.NewCommand[MergeCodesPayload, any](MergeCodes, MergeCodesPayload{
+			input: commands.ToAny(commands.NewCommand[MergeCodesPayload, any](MergeCodes, MergeCodesPayload{
 				Source: "topic:climate-old",
 				Target: "InvalidSlug",
 			}, EntityName, "file-merge", nil)),
@@ -353,7 +353,7 @@ func TestFileRouter(t *testing.T) {
 		},
 		{
 			name: "Wrong entity type returns nil",
-			input: cqrs.ToAny(cqrs.NewCommand[CreateFilePayload, any](CreateFile, CreateFilePayload{
+			input: commands.ToAny(commands.NewCommand[CreateFilePayload, any](CreateFile, CreateFilePayload{
 				BaseFile: BaseFile{
 					ProjectID: "project-1",
 					Name:      "test.txt",
@@ -368,7 +368,7 @@ func TestFileRouter(t *testing.T) {
 		},
 		{
 			name: "Wrong message type returns nil",
-			input: cqrs.ToAny(cqrs.NewDomainEvent[CreateFilePayload, any](CreateFile, CreateFilePayload{
+			input: commands.ToAny(commands.NewDomainEvent[CreateFilePayload, any](CreateFile, CreateFilePayload{
 				BaseFile: BaseFile{
 					ProjectID: "project-1",
 					Name:      "test.txt",
@@ -383,7 +383,7 @@ func TestFileRouter(t *testing.T) {
 		},
 		{
 			name: "Wrong action returns nil",
-			input: cqrs.ToAny(cqrs.NewCommand[CreateFilePayload, any]("DifferentAction", CreateFilePayload{
+			input: commands.ToAny(commands.NewCommand[CreateFilePayload, any]("DifferentAction", CreateFilePayload{
 				BaseFile: BaseFile{
 					ProjectID: "project-1",
 					Name:      "test.txt",

@@ -1,4 +1,4 @@
-package cqrs
+package commands
 
 import (
 	"encoding/json"

@@ -3,7 +3,8 @@ package main
 import (
 	"fmt"
 	"github.com/google/uuid"
-	"hermes-relay/internal/cqrs"
+	"hermes-relay/internal/cqrs/commands"
+	"hermes-relay/internal/cqrs/dispatch"
 	"hermes-relay/internal/domain/entities/file"
 	"hermes-relay/internal/domain/entities/project"
 	"log/slog"
@@ -12,7 +13,7 @@ import (
 	"time"
 )
 
-func PublishNewSourceFiles(publish cqrs.PublishFunc) error {
+func PublishNewSourceFiles(publish dispatch.PublishFunc) error {
 	projectID, err := ensureDefaultProject(publish)
 	if err != nil {
 		return fmt.Errorf("failed to ensure default project: %w", err)
@@ -39,7 +40,7 @@ func PublishNewSourceFiles(publish cqrs.PublishFunc) error {
 	return nil
 }
 
-func ensureDefaultProject(publish cqrs.PublishFunc) (string, error) {
+func ensureDefaultProject(publish dispatch.PublishFunc) (string, error) {
 	// Get all project IDs from disk
 	//projectIDs, err := persistence.GetProjectIDs()
 	//if err != nil {
@@ -54,7 +55,7 @@ func ensureDefaultProject(publish cqrs.PublishFunc) (string, error) {
 	}
 
 	// CreateFile a default project
-	msg := cqrs.ToAny(cqrs.NewCommand[project.CreateProjectPayload, any](
+	msg := commands.ToAny(commands.NewCommand[project.CreateProjectPayload, any](
 		project.CreateProject,
 		project.CreateProjectPayload{
 			Name: "Default Project",
@@ -72,7 +73,7 @@ func ensureDefaultProject(publish cqrs.PublishFunc) (string, error) {
 	return result.AggregateID, nil
 }
 
-func NewCreatedFileAction(filePath string, projectID string) (*cqrs.AnyMessage, error) {
+func NewCreatedFileAction(filePath string, projectID string) (*commands.AnyMessage, error) {
 	content, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, err
@@ -92,9 +93,9 @@ func NewCreatedFileAction(filePath string, projectID string) (*cqrs.AnyMessage, 
 		Content: string(content),
 	}
 
-	action := &cqrs.AnyMessage{
+	action := &commands.AnyMessage{
 		Action:        file.CreateFile,
-		Type:          cqrs.Command,
+		Type:          commands.Command,
 		AggregateType: "File",
 		Payload:       payload,
 		Timestamp:     time.Now(),

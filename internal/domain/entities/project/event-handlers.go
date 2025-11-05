@@ -1,21 +1,22 @@
 package project
 
 import (
-	"hermes-relay/internal/cqrs"
+	"hermes-relay/internal/cqrs/commands"
+	"hermes-relay/internal/cqrs/dispatch"
 	"hermes-relay/internal/domain/entities/code"
 	"hermes-relay/internal/domain/entities/file"
 )
 
-var EventHandlers = cqrs.CombineRouters(
-	cqrs.LimitOnType(cqrs.DomainEvent,
-		cqrs.ForPayload(file.CreatedFile, OnFileCreated),
-		cqrs.ForPayload(code.CreatedCode, OnCodeCreated),
-		cqrs.ForPayload(code.DeletedCode, OnCodeDeleted),
+var EventHandlers = dispatch.CombineRouters(
+	dispatch.LimitOnType(commands.DomainEvent,
+		dispatch.ForPayload(file.CreatedFile, OnFileCreated),
+		dispatch.ForPayload(code.CreatedCode, OnCodeCreated),
+		dispatch.ForPayload(code.DeletedCode, OnCodeDeleted),
 	),
 )
 
-func OnFileCreated(msg *cqrs.AnyMessage, payload file.CreatedFilePayload, publish cqrs.PublishFunc) (*cqrs.AnyMessage, error) {
-	return publish(cqrs.ToAny(cqrs.NewDomainEvent(
+func OnFileCreated(msg *commands.AnyMessage, payload file.CreatedFilePayload, publish dispatch.PublishFunc) (*commands.AnyMessage, error) {
+	return publish(commands.ToAny(commands.NewDomainEvent(
 		AddedFileToProject,
 		AddedFileToProjectPayload{
 			FileID:    msg.AggregateID,
@@ -27,8 +28,8 @@ func OnFileCreated(msg *cqrs.AnyMessage, payload file.CreatedFilePayload, publis
 	)))
 }
 
-func OnCodeCreated(msg *cqrs.AnyMessage, payload code.CreatedCodePayload, publish cqrs.PublishFunc) (*cqrs.AnyMessage, error) {
-	return publish(cqrs.ToAny(cqrs.NewDomainEvent(
+func OnCodeCreated(msg *commands.AnyMessage, payload code.CreatedCodePayload, publish dispatch.PublishFunc) (*commands.AnyMessage, error) {
+	return publish(commands.ToAny(commands.NewDomainEvent(
 		AddedCodeToProject,
 		AddedCodeToProjectPayload{
 			CodeID:    msg.AggregateID,
@@ -40,8 +41,8 @@ func OnCodeCreated(msg *cqrs.AnyMessage, payload code.CreatedCodePayload, publis
 	)))
 }
 
-func OnCodeDeleted(msg *cqrs.AnyMessage, payload code.DeletedCodePayload, publish cqrs.PublishFunc) (*cqrs.AnyMessage, error) {
-	return publish(cqrs.ToAny(cqrs.NewDomainEvent(
+func OnCodeDeleted(msg *commands.AnyMessage, payload code.DeletedCodePayload, publish dispatch.PublishFunc) (*commands.AnyMessage, error) {
+	return publish(commands.ToAny(commands.NewDomainEvent(
 		RemovedCodeFromProject,
 		RemovedCodeFromProjectPayload{
 			CodeID:    msg.AggregateID,

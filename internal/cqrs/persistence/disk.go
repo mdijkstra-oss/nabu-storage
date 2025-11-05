@@ -3,7 +3,8 @@ package persistence
 import (
 	"encoding/json"
 	"fmt"
-	"hermes-relay/internal/cqrs"
+	"hermes-relay/internal/cqrs/commands"
+	"hermes-relay/internal/cqrs/dispatch"
 	"hermes-relay/internal/lib/utils"
 	"log/slog"
 	"os"
@@ -23,7 +24,7 @@ func getBasePath() string {
 // PersistEvent writes a domain event to disk using append-only writes
 // Events are stored in JSONL format (one JSON object per line)
 // File structure: ~/Documents/hermes-persistence/{AggregateType}/{AggregateId}.jsonl
-func PersistEvent(message *cqrs.AnyMessage) error {
+func PersistEvent(message *commands.AnyMessage) error {
 	if message.AggregateType == "" {
 		return fmt.Errorf("cannot persist event without aggregate type")
 	}
@@ -69,13 +70,13 @@ func AggregateTypes() ([]string, error) {
 	return aggregateTypes, nil
 }
 
-func LoadAllEvents() ([]cqrs.AnyMessage, error) {
+func LoadAllEvents() ([]commands.AnyMessage, error) {
 	allTypes, err := AggregateTypes()
 	if err != nil {
 		return nil, err
 	}
 
-	allEvents := utils.FlatMap(allTypes, func(aggregateType string) []cqrs.AnyMessage {
+	allEvents := utils.FlatMap(allTypes, func(aggregateType string) []commands.AnyMessage {
 		loaded, err := loadEventsForType(aggregateType)
 		if err != nil {
 			slog.Error("failed to load events for type", "aggregateType", aggregateType, "error", err)
@@ -88,8 +89,8 @@ func LoadAllEvents() ([]cqrs.AnyMessage, error) {
 }
 
 // loadEventsForType loads all events for a specific aggregate type
-func loadEventsForType(aggregateType string) ([]cqrs.AnyMessage, error) {
-	var events []cqrs.AnyMessage
+func loadEventsForType(aggregateType string) ([]commands.AnyMessage, error) {
+	var events []commands.AnyMessage
 	basePath := getBasePath()
 
 	typePath := filepath.Join(basePath, aggregateType)
@@ -119,24 +120,24 @@ func loadEventsForType(aggregateType string) ([]cqrs.AnyMessage, error) {
 }
 
 // getEventFilePath constructs the file path for an aggregate's events
-func getEventFilePath(aggregateType cqrs.AggregateType, aggregateID string) string {
+func getEventFilePath(aggregateType commands.AggregateType, aggregateID string) string {
 	basePath := getBasePath()
 	return filepath.Join(basePath, string(aggregateType), aggregateID+".jsonl")
 }
 
 // readEventsFromFile reads events from a JSONL file (one JSON object per line)
-func readEventsFromFile(filePath string) ([]cqrs.AnyMessage, error) {
+func readEventsFromFile(filePath string) ([]commands.AnyMessage, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, err
 	}
 	defer file.Close()
 
-	var events []cqrs.AnyMessage
+	var events []commands.AnyMessage
 	decoder := json.NewDecoder(file)
 
 	for decoder.More() {
-		var event cqrs.AnyMessage
+		var event commands.AnyMessage
 		if err := decoder.Decode(&event); err != nil {
 			return nil, fmt.Errorf("failed to decode event: %w", err)
 		}
@@ -147,7 +148,7 @@ func readEventsFromFile(filePath string) ([]cqrs.AnyMessage, error) {
 }
 
 // appendEventToFile appends a single event to a JSONL file
-func appendEventToFile(filePath string, event *cqrs.AnyMessage) error {
+func appendEventToFile(filePath string, event *commands.AnyMessage) error {
 	// Ensure directory exists
 	dir := filepath.Dir(filePath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
@@ -171,7 +172,7 @@ func appendEventToFile(filePath string, event *cqrs.AnyMessage) error {
 }
 
 // Apply is a readonly route that persists domain events to disk
-func Apply(message *cqrs.AnyMessage) error {
+func Apply(message *commands.AnyMessage) error {
 	if err := PersistEvent(message); err != nil {
 		slog.Error("failed to persist event",
 			"action", message.Action,
@@ -183,7 +184,7 @@ func Apply(message *cqrs.AnyMessage) error {
 }
 
 // ReplayAllEvents loads all events from disk and publishes them to the publisher
-func ReplayAllEvents(publisher *cqrs.InMemoryPublisher) error {
+func ReplayAllEvents(publisher *dispatch.InMemoryPublisher) error {
 	events, err := LoadAllEvents()
 	if err != nil {
 		return fmt.Errorf("failed to load events: %w", err)

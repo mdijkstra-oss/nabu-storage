@@ -1,11 +1,13 @@
 package code
 
-import "hermes-relay/internal/cqrs"
+import (
+	"hermes-relay/internal/cqrs/commands"
+)
 
 const (
-	CreatedCode cqrs.Action = "CreatedCode"
-	UpdatedCode cqrs.Action = "UpdatedCode"
-	DeletedCode cqrs.Action = "DeletedCode"
+	CreatedCode commands.Action = "CreatedCode"
+	UpdatedCode commands.Action = "UpdatedCode"
+	DeletedCode commands.Action = "DeletedCode"
 )
 
 type CreatedCodePayload = CreateCodeData

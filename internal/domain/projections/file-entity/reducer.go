@@ -2,7 +2,8 @@ package fileview
 
 import (
 	"github.com/google/uuid"
-	"hermes-relay/internal/cqrs"
+	"hermes-relay/internal/cqrs/commands"
+	"hermes-relay/internal/cqrs/projection"
 	"hermes-relay/internal/domain/entities/file"
 	"hermes-relay/internal/lib/text-search/chunker"
 	"hermes-relay/internal/lib/text-search/find"
@@ -10,14 +11,14 @@ import (
 	"log/slog"
 )
 
-var Reducer = cqrs.CombineReducers(
-	cqrs.For(file.CreatedFile, CreatedFileReducer),
-	cqrs.For(file.CodedFile, CodedFileReducer),
-	cqrs.For(file.ClearedCoding, ClearedCodingReducer),
-	cqrs.For(file.MergedCodes, MergedCodesReducer),
+var Reducer = projection.CombineReducers(
+	projection.For(file.CreatedFile, CreatedFileReducer),
+	projection.For(file.CodedFile, CodedFileReducer),
+	projection.For(file.ClearedCoding, ClearedCodingReducer),
+	projection.For(file.MergedCodes, MergedCodesReducer),
 )
 
-func CreatedFileReducer(_ *File, message *cqrs.AnyMessage, payload *file.CreatedFilePayload) *File {
+func CreatedFileReducer(_ *File, message *commands.AnyMessage, payload *file.CreatedFilePayload) *File {
 	// Todo: What's faster, what's better?
 	blocks := chunker.ChunkBlocks(payload.Content, chunker.FullPage, chunker.FullPage+chunker.HalfPage)
 
@@ -45,7 +46,7 @@ func CreatedFileReducer(_ *File, message *cqrs.AnyMessage, payload *file.Created
 	}
 }
 
-func CodedFileReducer(current *File, message *cqrs.AnyMessage, payload *file.CodeFileData) *File {
+func CodedFileReducer(current *File, message *commands.AnyMessage, payload *file.CodeFileData) *File {
 	for _, action := range payload.Actions {
 		chunkIdx := -1
 		for i, c := range current.Chunks {
@@ -98,14 +99,14 @@ func CodedFileReducer(current *File, message *cqrs.AnyMessage, payload *file.Cod
 	return current
 }
 
-func ClearedCodingReducer(current *File, message *cqrs.AnyMessage, payload any) *File {
+func ClearedCodingReducer(current *File, message *commands.AnyMessage, payload any) *File {
 	for i := range current.Chunks {
 		current.Chunks[i].Codes = []file.CodedSection{}
 	}
 	return current
 }
 
-func MergedCodesReducer(current *File, message *cqrs.AnyMessage, payload *file.MergeCodesPayload) *File {
+func MergedCodesReducer(current *File, message *commands.AnyMessage, payload *file.MergeCodesPayload) *File {
 	for i := range current.Chunks {
 		for j := range current.Chunks[i].Codes {
 			if current.Chunks[i].Codes[j].CodeSlug == payload.Source {

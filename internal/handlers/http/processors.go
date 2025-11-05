@@ -4,14 +4,15 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"hermes-relay/internal/cqrs"
+	"hermes-relay/internal/cqrs/commands"
+	"hermes-relay/internal/cqrs/dispatch"
 	"net/http"
 	"slices"
 	"time"
 )
 
-func ProcessCommand(request Request, publish cqrs.PublishFunc) Response {
-	return processMessage(request, publish, false, []cqrs.MessageType{cqrs.Command})
+func ProcessCommand(request Request, publish dispatch.PublishFunc) Response {
+	return processMessage(request, publish, false, []commands.MessageType{commands.Command})
 }
 
 // - No tests yet but unused too, could share tests with above
@@ -19,7 +20,7 @@ func ProcessCommand(request Request, publish cqrs.PublishFunc) Response {
 //	return processMessage(request, publish, true, []cqrs.MessageType{cqrs.DomainEvent, cqrs.SystemEvent})
 //}
 
-func processMessage(request Request, publish cqrs.PublishFunc, acceptedOnly bool, allowedTypes []cqrs.MessageType) Response {
+func processMessage(request Request, publish dispatch.PublishFunc, acceptedOnly bool, allowedTypes []commands.MessageType) Response {
 	trimmed := bytes.TrimSpace(request.Body)
 	if bytes.HasPrefix(trimmed, []byte("[")) {
 		return processBatch(request, publish, acceptedOnly, allowedTypes)
@@ -27,8 +28,8 @@ func processMessage(request Request, publish cqrs.PublishFunc, acceptedOnly bool
 	return processSingle(request, publish, acceptedOnly, allowedTypes)
 }
 
-func processSingle(request Request, publish cqrs.PublishFunc, acceptedOnly bool, allowedTypes []cqrs.MessageType) Response {
-	var msg cqrs.AnyMessage
+func processSingle(request Request, publish dispatch.PublishFunc, acceptedOnly bool, allowedTypes []commands.MessageType) Response {
+	var msg commands.AnyMessage
 	if err := json.Unmarshal(request.Body, &msg); err != nil {
 		return errorOutput(http.StatusBadRequest, err)
 	}
@@ -46,8 +47,8 @@ func processSingle(request Request, publish cqrs.PublishFunc, acceptedOnly bool,
 	return successOutput(result, acceptedOnly)
 }
 
-func processBatch(request Request, publish cqrs.PublishFunc, acceptedOnly bool, allowedTypes []cqrs.MessageType) Response {
-	var messages []cqrs.AnyMessage
+func processBatch(request Request, publish dispatch.PublishFunc, acceptedOnly bool, allowedTypes []commands.MessageType) Response {
+	var messages []commands.AnyMessage
 	if err := json.Unmarshal(request.Body, &messages); err != nil {
 		return errorOutput(http.StatusBadRequest, err)
 	}

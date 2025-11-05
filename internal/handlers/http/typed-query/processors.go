@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"hermes-relay/internal/cqrs/projection"
 	httphandlers "hermes-relay/internal/handlers/http"
 	"hermes-relay/internal/lib/utils"
-	"hermes-relay/internal/projection"
 	"reflect"
 	"strconv"
 

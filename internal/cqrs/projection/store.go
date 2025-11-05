@@ -1,15 +1,15 @@
 package projection
 
 import (
-	"hermes-relay/internal/cqrs"
+	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/lib/utils"
 	"sync"
 )
 
 // Core types
 type EventApplier interface {
-	ApplyEvent(message *cqrs.AnyMessage) error
-	ApplyEvents(events []cqrs.AnyMessage) error
+	ApplyEvent(message *commands.AnyMessage) error
+	ApplyEvents(events []commands.AnyMessage) error
 }
 
 type Entity interface {
@@ -23,17 +23,17 @@ type FilterFunc[T Entity, Q, R any] func([]T, Q) []R
 type Store[T Entity] struct {
 	mu      sync.RWMutex
 	data    map[string]T
-	reducer cqrs.Reducer[T]
+	reducer Reducer[T]
 }
 
-func NewStore[T Entity](reducer cqrs.Reducer[T]) *Store[T] {
+func NewStore[T Entity](reducer Reducer[T]) *Store[T] {
 	return &Store[T]{
 		data:    make(map[string]T),
 		reducer: reducer,
 	}
 }
 
-func NewStoreWithDefaults[T Entity](reducer cqrs.Reducer[T], defaults []T) *Store[T] {
+func NewStoreWithDefaults[T Entity](reducer Reducer[T], defaults []T) *Store[T] {
 	store := NewStore(reducer)
 	for _, item := range defaults {
 		store.data[item.GetID()] = item
@@ -42,15 +42,15 @@ func NewStoreWithDefaults[T Entity](reducer cqrs.Reducer[T], defaults []T) *Stor
 }
 
 // Event application
-func (s *Store[T]) ApplyEvent(message *cqrs.AnyMessage) {
-	s.ApplyEvents([]cqrs.AnyMessage{*message})
+func (s *Store[T]) ApplyEvent(message *commands.AnyMessage) {
+	s.ApplyEvents([]commands.AnyMessage{*message})
 }
 
-func (s *Store[T]) ApplyEvents(events []cqrs.AnyMessage) {
+func (s *Store[T]) ApplyEvents(events []commands.AnyMessage) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	grouped := make(map[string][]cqrs.AnyMessage)
+	grouped := make(map[string][]commands.AnyMessage)
 	for _, event := range events {
 		grouped[event.AggregateID] = append(grouped[event.AggregateID], event)
 	}

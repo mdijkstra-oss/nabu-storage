@@ -1,13 +1,13 @@
 package http
 
 import (
-	"hermes-relay/internal/cqrs"
+	"hermes-relay/internal/cqrs/dispatch"
 	"hermes-relay/internal/lib/utils"
 	"io"
 	"net/http"
 )
 
-func CommandHandler(publish cqrs.PublishFunc) http.HandlerFunc {
+func CommandHandler(publish dispatch.PublishFunc) http.HandlerFunc {
 	return httpHandler(ProcessCommand, publish)
 }
 
@@ -15,7 +15,7 @@ func CommandHandler(publish cqrs.PublishFunc) http.HandlerFunc {
 //	return httpHandler(ProcessEvent, publish)
 //}
 
-func httpHandler(processor func(Request, cqrs.PublishFunc) Response, publish cqrs.PublishFunc) http.HandlerFunc {
+func httpHandler(processor func(Request, dispatch.PublishFunc) Response, publish dispatch.PublishFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(r.Body)
 		if err != nil {

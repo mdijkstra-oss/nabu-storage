@@ -1,17 +1,18 @@
 package file
 
 import (
-	"hermes-relay/internal/cqrs"
+	"hermes-relay/internal/cqrs/commands"
+	"hermes-relay/internal/cqrs/dispatch"
 )
 
 // Router is the combined command router for File entity
-var Router = cqrs.CombineRouters(
-	cqrs.LimitOnEntity(EntityName,
-		cqrs.LimitOnType(cqrs.Command,
-			cqrs.ToCreateEntityEvent[CreatedFilePayload](CreateFile, CreatedFile),
-			cqrs.ToUpdateEntityEvent[CodeFilePayload](CodeFile, CodedFile),
-			cqrs.ToEmptyDomainEvent(ClearCoding, ClearedCoding),
-			cqrs.ToUpdateEntityEvent[MergeCodesPayload](MergeCodes, MergedCodes),
+var Router = dispatch.CombineRouters(
+	dispatch.LimitOnEntity(EntityName,
+		dispatch.LimitOnType(commands.Command,
+			dispatch.ToCreateEntityEvent[CreatedFilePayload](CreateFile, CreatedFile),
+			dispatch.ToUpdateEntityEvent[CodeFilePayload](CodeFile, CodedFile),
+			dispatch.ToEmptyDomainEvent(ClearCoding, ClearedCoding),
+			dispatch.ToUpdateEntityEvent[MergeCodesPayload](MergeCodes, MergedCodes),
 		),
 	),
 )

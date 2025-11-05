@@ -1,11 +1,12 @@
-package cqrs
+package dispatch
 
 import (
+	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/lib/utils"
 	"sync"
 )
 
-type PublishFunc func(event *AnyMessage) (*AnyMessage, error)
+type PublishFunc func(event *commands.AnyMessage) (*commands.AnyMessage, error)
 
 type InMemoryPublisher struct {
 	subscribers []CommandRouter
@@ -22,8 +23,8 @@ func (p *InMemoryPublisher) Subscribe(router CommandRouter) {
 	p.subscribers = append(p.subscribers, router)
 }
 
-func (p *InMemoryPublisher) Publish(event *AnyMessage) (*AnyMessage, error) {
-	if err := ValidateMessage(event); err != nil {
+func (p *InMemoryPublisher) Publish(event *commands.AnyMessage) (*commands.AnyMessage, error) {
+	if err := commands.ValidateMessage(event); err != nil {
 		return nil, err
 	}
 
@@ -31,7 +32,7 @@ func (p *InMemoryPublisher) Publish(event *AnyMessage) (*AnyMessage, error) {
 	subscribers := p.subscribers
 	p.mu.RUnlock()
 
-	var firstResult *AnyMessage
+	var firstResult *commands.AnyMessage
 
 	for _, router := range subscribers {
 		result, err := router(event, p.Publish)

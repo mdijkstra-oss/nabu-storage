@@ -3,14 +3,14 @@ package test_helpers
 import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"hermes-relay/internal/cqrs"
+	"hermes-relay/internal/cqrs/commands"
 	"reflect"
 	"testing"
 )
 
-func AssertMessage(t *testing.T, got, want *cqrs.AnyMessage, msg string) {
+func AssertMessage(t *testing.T, got, want *commands.AnyMessage, msg string) {
 	t.Helper()
-	AssertEqualIgnoreFields(t, got, want, msg, cqrs.AnyMessage{}, "ID", "Timestamp", "CausationID")
+	AssertEqualIgnoreFields(t, got, want, msg, commands.AnyMessage{}, "ID", "Timestamp", "CausationID")
 }
 
 func AssertEqual(t *testing.T, got, want any, msg string, opts ...cmp.Option) {

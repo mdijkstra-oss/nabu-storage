@@ -2,12 +2,13 @@ package http
 
 import (
 	"github.com/gorilla/websocket"
-	"hermes-relay/internal/cqrs"
+	"hermes-relay/internal/cqrs/commands"
+	"hermes-relay/internal/cqrs/dispatch"
 	"hermes-relay/internal/lib/utils"
 	"net/http"
 )
 
-func WebSocketHandler(publish cqrs.PublishFunc, subscribe func(cqrs.CommandRouter)) http.HandlerFunc {
+func WebSocketHandler(publish dispatch.PublishFunc, subscribe func(dispatch.CommandRouter)) http.HandlerFunc {
 	upgrader := websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
 			return true // Todo: Configure properly in production
@@ -26,10 +27,10 @@ func WebSocketHandler(publish cqrs.PublishFunc, subscribe func(cqrs.CommandRoute
 	}
 }
 
-func handleWebSocket(conn *websocket.Conn, publish cqrs.PublishFunc, subscribe func(cqrs.CommandRouter)) {
+func handleWebSocket(conn *websocket.Conn, publish dispatch.PublishFunc, subscribe func(dispatch.CommandRouter)) {
 	// Forward domain/system events to client
-	subscribe(cqrs.LimitOnType(
-		cqrs.DomainEvent,
+	subscribe(dispatch.LimitOnType(
+		commands.DomainEvent,
 		forwardToWebSocket(conn),
 	))
 
@@ -51,8 +52,8 @@ func handleWebSocket(conn *websocket.Conn, publish cqrs.PublishFunc, subscribe f
 	}
 }
 
-func forwardToWebSocket(conn *websocket.Conn) cqrs.CommandRouter {
-	return func(msg *cqrs.AnyMessage, pub cqrs.PublishFunc) (*cqrs.AnyMessage, error) {
+func forwardToWebSocket(conn *websocket.Conn) dispatch.CommandRouter {
+	return func(msg *commands.AnyMessage, pub dispatch.PublishFunc) (*commands.AnyMessage, error) {
 		utils.WarnErr(conn.WriteJSON(msg))
 		return nil, nil
 	}
