@@ -3,7 +3,22 @@ package registry_helpers
 import (
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/cqrs/registry"
+	codeview "hermes-relay/internal/domain/projections/code-entity"
+	fileview "hermes-relay/internal/domain/projections/file-entity"
+	projectview "hermes-relay/internal/domain/projections/project-entity"
 )
+
+func NewTestRegistry(commands []*commands.AnyMessage) *registry.ProjectViewRegistry {
+	reg := registry.NewProjectViewRegistry(
+		projectview.Reducer,
+		codeview.Reducer,
+		fileview.Reducer,
+	)
+
+	ApplyTestEvents(reg, commands)
+
+	return reg
+}
 
 // ApplyTestEvents applies multiple events to the registry, simulating event processing
 func ApplyTestEvents(reg *registry.ProjectViewRegistry, events []*commands.AnyMessage) {

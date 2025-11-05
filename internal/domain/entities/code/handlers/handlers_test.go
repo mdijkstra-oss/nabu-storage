@@ -2,60 +2,46 @@ package handlers
 
 import (
 	"hermes-relay/internal/cqrs/commands"
-	"hermes-relay/internal/cqrs/registry"
 	"hermes-relay/internal/domain/entities/code"
-	codeview "hermes-relay/internal/domain/projections/code-entity"
-	fileview "hermes-relay/internal/domain/projections/file-entity"
-	projectview "hermes-relay/internal/domain/projections/project-entity"
 	th "hermes-relay/internal/lib/test-helpers"
 	rh "hermes-relay/internal/lib/test-helpers/registry-helpers"
 	"testing"
 )
 
-func setupTestRegistry() *registry.ProjectViewRegistry {
-	reg := registry.NewProjectViewRegistry(
-		projectview.Reducer,
-		codeview.Reducer,
-		fileview.Reducer,
-	)
-
-	rh.ApplyTestEvents(reg, []*commands.AnyMessage{
-		// Create project
-		commands.ToAny(commands.NewDomainEvent[any, any](
-			"CreatedProject",
-			map[string]any{"name": "Test Project"},
-			"Project",
-			"project-1",
-			nil,
-		)),
-		// Create existing codes
-		commands.ToAny(commands.NewDomainEvent[code.CreatedCodePayload, any](
-			code.CreatedCode,
-			code.CreatedCodePayload{
-				ProjectID: "project-1",
-				Slug:      "topic:climate",
-				Color:     "blue-500",
-				Reasoning: "Climate topics",
-			},
-			code.EntityName,
-			"code-existing-1",
-			nil,
-		)),
-		commands.ToAny(commands.NewDomainEvent[code.CreatedCodePayload, any](
-			code.CreatedCode,
-			code.CreatedCodePayload{
-				ProjectID: "project-1",
-				Slug:      "topic:health",
-				Color:     "green-500",
-				Reasoning: "Health topics",
-			},
-			code.EntityName,
-			"code-existing-2",
-			nil,
-		)),
-	})
-
-	return reg
+var cmds = []*commands.AnyMessage{
+	// Create project
+	commands.ToAny(commands.NewDomainEvent[any, any](
+		"CreatedProject",
+		map[string]any{"name": "Test Project"},
+		"Project",
+		"project-1",
+		nil,
+	)),
+	// Create existing codes
+	commands.ToAny(commands.NewDomainEvent[code.CreatedCodePayload, any](
+		code.CreatedCode,
+		code.CreatedCodePayload{
+			ProjectID: "project-1",
+			Slug:      "topic:climate",
+			Color:     "blue-500",
+			Reasoning: "Climate topics",
+		},
+		code.EntityName,
+		"code-existing-1",
+		nil,
+	)),
+	commands.ToAny(commands.NewDomainEvent[code.CreatedCodePayload, any](
+		code.CreatedCode,
+		code.CreatedCodePayload{
+			ProjectID: "project-1",
+			Slug:      "topic:health",
+			Color:     "green-500",
+			Reasoning: "Health topics",
+		},
+		code.EntityName,
+		"code-existing-2",
+		nil,
+	)),
 }
 
 func TestCodeRouter(t *testing.T) {
@@ -203,7 +189,7 @@ func TestCodeRouter(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			reg := setupTestRegistry()
+			reg := rh.NewTestRegistry(cmds)
 
 			result, err := NewRouter(reg)(tt.input, nil)
 
