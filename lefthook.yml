@@ -3,4 +3,4 @@ pre-commit:
     lint:
       run: golangci-lint run
     test:
-      run: go test ./...
+      run: make test

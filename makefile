@@ -7,3 +7,8 @@ setup:
 .PHONY: test
 test:
 	@gotestsum --format testname -- -v ./...
+
+.PHONY: coverage
+coverage:
+	@go test -coverprofile=coverage.out ./...
+	@go tool cover -html=coverage.out
