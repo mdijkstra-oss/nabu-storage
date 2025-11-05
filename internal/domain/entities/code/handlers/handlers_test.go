@@ -2,13 +2,13 @@ package handlers
 
 import (
 	"hermes-relay/internal/cqrs/commands"
-	"hermes-relay/internal/cqrs/projection"
 	"hermes-relay/internal/cqrs/registry"
 	"hermes-relay/internal/domain/entities/code"
 	codeview "hermes-relay/internal/domain/projections/code-entity"
 	fileview "hermes-relay/internal/domain/projections/file-entity"
 	projectview "hermes-relay/internal/domain/projections/project-entity"
 	th "hermes-relay/internal/lib/test-helpers"
+	rh "hermes-relay/internal/lib/test-helpers/registry-helpers"
 	"testing"
 )
 
@@ -19,20 +19,41 @@ func setupTestRegistry() *registry.ProjectViewRegistry {
 		fileview.Reducer,
 	)
 
-	// Create existing codes
-	existingCodes := []code.Code{
-		{ID: "code-existing-1", Slug: "topic:climate", ProjectID: "project-1"},
-		{ID: "code-existing-2", Slug: "topic:health", ProjectID: "project-1"},
-	}
-
-	// Create a project view with existing codes
-	projectView := &registry.ProjectView{
-		ProjectStore: projection.NewStore(projectview.Reducer),
-		CodeStore:    projection.NewStoreWithDefaults(codeview.Reducer, existingCodes),
-		FileStore:    projection.NewStore(fileview.Reducer),
-	}
-
-	reg.AddProject("project-1", projectView)
+	rh.ApplyTestEvents(reg, []*commands.AnyMessage{
+		// Create project
+		commands.ToAny(commands.NewDomainEvent[any, any](
+			"CreatedProject",
+			map[string]any{"name": "Test Project"},
+			"Project",
+			"project-1",
+			nil,
+		)),
+		// Create existing codes
+		commands.ToAny(commands.NewDomainEvent[code.CreatedCodePayload, any](
+			code.CreatedCode,
+			code.CreatedCodePayload{
+				ProjectID: "project-1",
+				Slug:      "topic:climate",
+				Color:     "blue-500",
+				Reasoning: "Climate topics",
+			},
+			code.EntityName,
+			"code-existing-1",
+			nil,
+		)),
+		commands.ToAny(commands.NewDomainEvent[code.CreatedCodePayload, any](
+			code.CreatedCode,
+			code.CreatedCodePayload{
+				ProjectID: "project-1",
+				Slug:      "topic:health",
+				Color:     "green-500",
+				Reasoning: "Health topics",
+			},
+			code.EntityName,
+			"code-existing-2",
+			nil,
+		)),
+	})
 
 	return reg
 }
@@ -61,25 +82,22 @@ func TestCodeRouter(t *testing.T) {
 			}, code.EntityName, "", nil)),
 		},
 		{
-			name: "UpdateCode with both fields fails validation (no ProjectID)",
+			name: "UpdateCode with both fields for existing code",
 			input: commands.ToAny(commands.NewCommand[code.UpdateCodePayload, any](code.UpdateCode, code.UpdateCodePayload{
 				Color:     "emerald-600",
-				Reasoning: "Updated environmental coverage",
-			}, code.EntityName, "code-123", nil)),
-			expectErr: "validation failed",
+				Reasoning: "Updated climate coverage",
+			}, code.EntityName, "code-existing-1", nil)),
+			expectErr: "",
+			expectEvent: commands.ToAny(commands.NewDomainEvent[code.UpdatedCodePayload, any](code.UpdatedCode, code.UpdatedCodePayload{
+				Color:     "emerald-600",
+				Reasoning: "Updated climate coverage",
+			}, code.EntityName, "code-existing-1", nil)),
 		},
 		{
-			name: "UpdateCode with color only fails validation (no ProjectID)",
+			name: "UpdateCode for non-existent code fails",
 			input: commands.ToAny(commands.NewCommand[code.UpdateCodePayload, any](code.UpdateCode, code.UpdateCodePayload{
-				Color: "teal-500",
-			}, code.EntityName, "code-456", nil)),
-			expectErr: "validation failed",
-		},
-		{
-			name: "UpdateCode with reasoning only fails validation (no ProjectID)",
-			input: commands.ToAny(commands.NewCommand[code.UpdateCodePayload, any](code.UpdateCode, code.UpdateCodePayload{
-				Reasoning: "Comprehensive climate coverage",
-			}, code.EntityName, "code-789", nil)),
+				Color: "red-500",
+			}, code.EntityName, "code-nonexistent", nil)),
 			expectErr: "validation failed",
 		},
 		{

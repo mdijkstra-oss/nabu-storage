@@ -148,6 +148,7 @@ func ToAny[P any](m *Message[P]) *AnyMessage {
 }
 
 // Todo: Probably fix this, but is bound to this func so its fine
+// This only works for messages with a ProjectID or Project type and AggregateID!
 func ExtractProjectID(message *AnyMessage) string {
 	if message.AggregateType == "Project" {
 		return message.AggregateID

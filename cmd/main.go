@@ -75,6 +75,7 @@ func setupProjectViewRegistry(publisher *dispatch.InMemoryPublisher) *domainproj
 		projectRegistry := registry.EnsureProjectExists(message, projectID)
 		if projectRegistry != nil {
 			projectRegistry.ApplyEventToAllStores(message)
+			registry.UpdateEntityLookups(message, projectID)
 		}
 
 		return nil

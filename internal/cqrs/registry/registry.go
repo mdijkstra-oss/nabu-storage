@@ -9,6 +9,7 @@ import (
 	"hermes-relay/internal/domain/entities/project"
 	"hermes-relay/internal/lib/utils"
 	"log/slog"
+	"strings"
 	"sync"
 )
 
@@ -40,6 +41,10 @@ type ProjectViewRegistry struct {
 	projectReducer projection.Reducer[project.Project]
 	codeReducer    projection.Reducer[code.Code]
 	fileReducer    projection.Reducer[file.File]
+
+	// Lookup table to map entity IDs back to project IDs
+	// Key format: "AggregateType:AggregateID" -> projectID
+	entityToProject map[string]string
 }
 
 func NewProjectViewRegistry(
@@ -48,10 +53,11 @@ func NewProjectViewRegistry(
 	fileReducer projection.Reducer[file.File],
 ) *ProjectViewRegistry {
 	return &ProjectViewRegistry{
-		projects:       make(map[string]*ProjectView),
-		projectReducer: projectReducer,
-		codeReducer:    codeReducer,
-		fileReducer:    fileReducer,
+		projects:        make(map[string]*ProjectView),
+		projectReducer:  projectReducer,
+		codeReducer:     codeReducer,
+		fileReducer:     fileReducer,
+		entityToProject: make(map[string]string),
 	}
 }
 
@@ -65,6 +71,14 @@ func (pvr *ProjectViewRegistry) GetProject(projectID string) *ProjectView {
 	pvr.mu.RLock()
 	defer pvr.mu.RUnlock()
 	return pvr.projects[projectID]
+}
+
+func (pvr *ProjectViewRegistry) GetProjectIDForEntity(aggregateType commands.AggregateType, aggregateID string) string {
+	pvr.mu.RLock()
+	defer pvr.mu.RUnlock()
+
+	key := string(aggregateType) + ":" + aggregateID
+	return pvr.entityToProject[key]
 }
 
 func (pvr *ProjectViewRegistry) GetAllProjectEntities() []project.Project {
@@ -110,9 +124,30 @@ func (pvr *ProjectViewRegistry) createProjectView() *ProjectView {
 	}
 }
 
+// UpdateEntityLookups updates the entity-to-project lookup table based on events
+func (pvr *ProjectViewRegistry) UpdateEntityLookups(message *commands.AnyMessage, projectID string) {
+	pvr.mu.Lock()
+	defer pvr.mu.Unlock()
+
+	action := string(message.Action)
+	key := string(message.AggregateType) + ":" + message.AggregateID
+
+	if strings.HasPrefix(action, "Created") {
+		pvr.entityToProject[key] = projectID
+	} else if strings.HasPrefix(action, "Deleted") {
+		delete(pvr.entityToProject, key)
+	}
+}
+
 func Validate[P any](registry *ProjectViewRegistry, validator func(*ProjectView, P, *commands.AnyMessage) error, handler dispatch.CommandRouter) dispatch.CommandRouter {
 	return func(message *commands.AnyMessage, publisher dispatch.PublishFunc) (*commands.AnyMessage, error) {
 		projectId := commands.ExtractProjectID(message)
+
+		// If ExtractProjectID didn't find a projectID, try looking it up by entity ID
+		if projectId == "" {
+			projectId = registry.GetProjectIDForEntity(message.AggregateType, message.AggregateID)
+		}
+
 		view := registry.GetProject(projectId)
 
 		if view == nil {
