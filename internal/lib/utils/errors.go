@@ -68,6 +68,15 @@ func ToValidationError(err error) *ValidationError {
 	return ve
 }
 
+func MakeValidationFieldError(field, message string) *ValidationError {
+	return &ValidationError{
+		Message: "validation failed",
+		Fields: map[string]string{
+			field: message,
+		},
+	}
+}
+
 type NotFoundError struct {
 	Message string `json:"message"`
 }

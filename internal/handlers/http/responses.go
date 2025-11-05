@@ -2,6 +2,7 @@ package http
 
 import (
 	"encoding/json"
+	"errors"
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/lib/utils"
 	"net/http"
@@ -45,7 +46,8 @@ func typedErrorOutput(err error) Response {
 func errorOutput(status int, err error) Response {
 	response := ErrorResponse{Message: err.Error()}
 
-	if ve, ok := err.(*utils.ValidationError); ok {
+	var ve *utils.ValidationError
+	if errors.As(err, &ve) {
 		response.Fields = ve.Fields
 	}
 

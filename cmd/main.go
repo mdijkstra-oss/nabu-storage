@@ -5,10 +5,10 @@ import (
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/cqrs/dispatch"
 	"hermes-relay/internal/cqrs/persistence"
-	"hermes-relay/internal/domain/entities/code"
+	domainprojection "hermes-relay/internal/cqrs/registry"
+	codehandlers "hermes-relay/internal/domain/entities/code/handlers"
 	"hermes-relay/internal/domain/entities/file"
 	"hermes-relay/internal/domain/entities/project"
-	domainprojection "hermes-relay/internal/domain/projection"
 	codeview "hermes-relay/internal/domain/projections/code-entity"
 	fileview "hermes-relay/internal/domain/projections/file-entity"
 	projectview "hermes-relay/internal/domain/projections/project-entity"
@@ -34,7 +34,7 @@ func main() {
 	// All except views / projections must be after replay ⚠️
 	utils.MustNotError(persistence.ReplayAllEvents(publisher))
 
-	setUpCommandHandlers(publisher)
+	setUpCommandHandlers(publisher, registry)
 
 	publisher.Subscribe(dispatch.LimitOnType(commands.DomainEvent, dispatch.ReadOnlyRoutes(persistence.Apply)))
 
@@ -47,11 +47,11 @@ func main() {
 	log.Fatal(net.ListenAndServe(":8080", r))
 }
 
-func setUpCommandHandlers(publisher *dispatch.InMemoryPublisher) {
+func setUpCommandHandlers(publisher *dispatch.InMemoryPublisher, registry *domainprojection.ProjectViewRegistry) {
 	slog.Info("Setting up command handlers for new incoming messages")
 
 	var commandRouter = dispatch.CombineRouters(
-		code.Router,
+		codehandlers.NewRouter(registry),
 		file.Router,
 		project.Router,
 	)
@@ -65,9 +65,6 @@ func setupProjectViewRegistry(publisher *dispatch.InMemoryPublisher) *domainproj
 		codeview.Reducer,
 		fileview.Reducer,
 	)
-
-	// Gives Validate access later in command handling (to compare against aggregated)
-	domainprojection.SetRegistry(registry)
 
 	publisher.Subscribe(dispatch.LimitOnType(commands.DomainEvent, dispatch.ReadOnlyRoutes(func(message *commands.AnyMessage) error {
 		projectID := commands.ExtractProjectID(message)

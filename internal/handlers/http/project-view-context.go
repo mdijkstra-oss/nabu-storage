@@ -3,10 +3,10 @@ package http
 import (
 	"context"
 	"hermes-relay/internal/cqrs/projection"
+	domainprojection "hermes-relay/internal/cqrs/registry"
 	"hermes-relay/internal/domain/entities/code"
 	"hermes-relay/internal/domain/entities/file"
 	"hermes-relay/internal/domain/entities/project"
-	domainprojection "hermes-relay/internal/domain/projection"
 	"net/http"
 )
 

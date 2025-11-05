@@ -147,14 +147,28 @@ func ToAny[P any](m *Message[P]) *AnyMessage {
 	}
 }
 
+// Todo: Probably fix this, but is bound to this func so its fine
 func ExtractProjectID(message *AnyMessage) string {
 	if message.AggregateType == "Project" {
 		return message.AggregateID
 	}
 
+	// Try direct map access first (production case after JSON unmarshalling)
 	if payload, ok := message.Payload.(map[string]any); ok {
 		if projectID, ok := payload["project_id"].(string); ok {
 			return projectID
+		}
+	}
+
+	// Fall back to marshalling/unmarshalling for struct payloads (test case)
+	// This handles cases where payload is a struct with a ProjectID field
+	data, err := json.Marshal(message.Payload)
+	if err == nil {
+		var mapPayload map[string]any
+		if err := json.Unmarshal(data, &mapPayload); err == nil {
+			if projectID, ok := mapPayload["project_id"].(string); ok {
+				return projectID
+			}
 		}
 	}
 

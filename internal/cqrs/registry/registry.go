@@ -1,4 +1,4 @@
-package projection
+package registry
 
 import (
 	"hermes-relay/internal/cqrs/commands"
@@ -7,6 +7,7 @@ import (
 	"hermes-relay/internal/domain/entities/code"
 	"hermes-relay/internal/domain/entities/file"
 	"hermes-relay/internal/domain/entities/project"
+	"hermes-relay/internal/lib/utils"
 	"log/slog"
 	"sync"
 )
@@ -109,48 +110,23 @@ func (pvr *ProjectViewRegistry) createProjectView() *ProjectView {
 	}
 }
 
-var globalRegistry *ProjectViewRegistry
-
-func SetRegistry(r *ProjectViewRegistry) {
-	globalRegistry = r
-}
-
-func GetRegistry() *ProjectViewRegistry {
-	return globalRegistry
-}
-
-func CodeStoreForProject(registry *ProjectViewRegistry, projectID string) *projection.Store[code.Code] {
-	view := registry.GetProject(projectID)
-	if view == nil {
-		return nil
-	}
-	return view.CodeStore
-}
-
-func FileStoreForProject(registry *ProjectViewRegistry, projectID string) *projection.Store[file.File] {
-	view := registry.GetProject(projectID)
-	if view == nil {
-		return nil
-	}
-	return view.FileStore
-}
-
-func ProjectStoreForProject(registry *ProjectViewRegistry, projectID string) *projection.Store[project.Project] {
-	view := registry.GetProject(projectID)
-	if view == nil {
-		return nil
-	}
-	return view.ProjectStore
-}
-
-func Validate(validator func(*commands.AnyMessage, *ProjectViewRegistry) error, handler dispatch.CommandRouter) dispatch.CommandRouter {
+func Validate[P any](registry *ProjectViewRegistry, validator func(*ProjectView, P, *commands.AnyMessage) error, handler dispatch.CommandRouter) dispatch.CommandRouter {
 	return func(message *commands.AnyMessage, publisher dispatch.PublishFunc) (*commands.AnyMessage, error) {
-		registry := GetRegistry()
-		if registry != nil {
-			if err := validator(message, registry); err != nil {
-				return nil, err
-			}
+		projectId := commands.ExtractProjectID(message)
+		view := registry.GetProject(projectId)
+
+		if view == nil {
+			return nil, utils.MakeValidationFieldError("ProjectID", "not found")
 		}
+
+		var payload P
+		utils.MustNotError(commands.UnmarshallPayload(message, &payload))
+
+		validationErr := validator(view, payload, message)
+		if validationErr != nil {
+			return nil, validationErr
+		}
+
 		return handler(message, publisher)
 	}
 }
