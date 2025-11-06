@@ -7,8 +7,8 @@ import (
 	"hermes-relay/internal/cqrs/persistence"
 	domainprojection "hermes-relay/internal/cqrs/registry"
 	codehandlers "hermes-relay/internal/domain/entities/code/handlers"
-	handlers3 "hermes-relay/internal/domain/entities/file/handlers"
-	handlers2 "hermes-relay/internal/domain/entities/project/handlers"
+	filehandlers "hermes-relay/internal/domain/entities/file/handlers"
+	projecthandlers "hermes-relay/internal/domain/entities/project/handlers"
 	codeview "hermes-relay/internal/domain/projections/code-entity"
 	fileview "hermes-relay/internal/domain/projections/file-entity"
 	projectview "hermes-relay/internal/domain/projections/project-entity"
@@ -53,8 +53,8 @@ func setUpCommandHandlers(publisher *dispatch.InMemoryPublisher, registry *domai
 	var commandRouter = dispatch.LimitOnType(commands.Command,
 		dispatch.CombineRouters(
 			codehandlers.NewRouter(registry),
-			handlers3.Router,
-			handlers2.Router,
+			filehandlers.NewRouter(registry),
+			projecthandlers.NewRouter(registry),
 		),
 	)
 
