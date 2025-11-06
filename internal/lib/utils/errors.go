@@ -12,7 +12,28 @@ type ValidationError struct {
 }
 
 func (e *ValidationError) Error() string {
-	return e.Message
+	if e.Message != "validation failed" || len(e.Fields) == 0 {
+		return e.Message
+	}
+
+	var messages []string
+	for field, msg := range e.Fields {
+		messages = append(messages, formatFieldMessage(field, msg))
+	}
+
+	if len(messages) == 0 {
+		return e.Message
+	}
+
+	result := "validation failed: " + messages[0]
+	for i := 1; i < len(messages); i++ {
+		result += ", " + messages[i]
+	}
+	return result
+}
+
+func formatFieldMessage(field, message string) string {
+	return field + " " + message
 }
 
 func formatFieldError(fe validator.FieldError) string {

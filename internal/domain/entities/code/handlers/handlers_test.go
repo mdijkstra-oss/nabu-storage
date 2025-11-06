@@ -78,7 +78,7 @@ func TestCodeRouter(t *testing.T) {
 			Input: commands.ToAny(commands.NewCommand[code.UpdateCodePayload, any](code.UpdateCode, code.UpdateCodePayload{
 				Color: "red-500",
 			}, code.EntityName, "code-nonexistent", nil)),
-			ExpectErr: "validation failed",
+			ExpectErr: "validation failed: ProjectID not found",
 		},
 		{
 			Name: "DeleteCode",
@@ -166,7 +166,7 @@ func TestCodeRouter(t *testing.T) {
 				Color:     "blue-500",
 				Reasoning: "Duplicate slug",
 			}, code.EntityName, "", nil)),
-			ExpectErr: "validation failed",
+			ExpectErr: "validation failed: slug already in use",
 		},
 		{
 			Name: "MergeCodes with valid source and target",
@@ -186,7 +186,7 @@ func TestCodeRouter(t *testing.T) {
 				SourceID: "code-nonexistent",
 				TargetID: "code-existing-2",
 			}, code.EntityName, "code-existing-2", nil)),
-			ExpectErr: "validation failed: source code not found",
+			ExpectErr: "validation failed: source_id not found",
 		},
 		{
 			Name: "MergeCodes with non-existent target fails",
@@ -194,7 +194,7 @@ func TestCodeRouter(t *testing.T) {
 				SourceID: "code-existing-1",
 				TargetID: "code-nonexistent",
 			}, code.EntityName, "code-existing-1", nil)),
-			ExpectErr: "validation failed: target code not found",
+			ExpectErr: "validation failed: target_id not found",
 		},
 		{
 			Name: "MergeCodes with same source and target fails",
@@ -202,7 +202,7 @@ func TestCodeRouter(t *testing.T) {
 				SourceID: "code-existing-1",
 				TargetID: "code-existing-1",
 			}, code.EntityName, "code-existing-1", nil)),
-			ExpectErr: "validation failed: cannot merge code with itself",
+			ExpectErr: "validation failed: source_id cannot merge with itself",
 		},
 	}
 

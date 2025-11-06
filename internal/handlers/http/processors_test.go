@@ -62,7 +62,7 @@ func TestProcessCommand(t *testing.T) {
 				}
 			},
 			expectStatus: http.StatusBadRequest,
-			expectBody:   `{"message":"validation failed","fields":{"Title":"required"}}`,
+			expectBody:   `{"message":"validation failed: Title required","fields":{"Title":"required"}}`,
 		},
 		{
 			name: "not found error returns 404",
