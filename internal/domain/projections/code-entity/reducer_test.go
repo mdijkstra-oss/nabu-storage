@@ -109,7 +109,7 @@ func TestCodeReducer(t *testing.T) {
 			},
 		},
 		{
-			Name: "MergedCodes returns nil (source code deleted)",
+			Name: "MergedCodes returns nil when processing source code",
 			Initial: &Code{
 				ID:        "code-1",
 				ProjectID: "project-1",
@@ -122,6 +122,27 @@ func TestCodeReducer(t *testing.T) {
 				TargetID: "code-2",
 			}),
 			Expected: nil,
+		},
+		{
+			Name: "MergedCodes keeps target code unchanged",
+			Initial: &Code{
+				ID:        "code-2",
+				ProjectID: "project-1",
+				Slug:      "topic:temperature",
+				Color:     "red-500",
+				Reasoning: "Temperature topics",
+			},
+			Event: newCodeEvent("code-2", code.MergedCodes, &code.MergedCodesPayload{
+				SourceID: "code-1",
+				TargetID: "code-2",
+			}),
+			Expected: &Code{
+				ID:        "code-2",
+				ProjectID: "project-1",
+				Slug:      "topic:temperature",
+				Color:     "red-500",
+				Reasoning: "Temperature topics",
+			},
 		},
 		{
 			Name: "DeletedCode returns nil",

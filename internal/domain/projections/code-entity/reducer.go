@@ -40,6 +40,9 @@ func DeletedCodeReducer(_ *Code, _ *commands.AnyMessage, _ any) *Code {
 	return nil
 }
 
-func MergedCodesReducer(_ *Code, _ *commands.AnyMessage, _ *code.MergedCodesPayload) *Code {
-	return nil
+func MergedCodesReducer(current *Code, message *commands.AnyMessage, payload *code.MergedCodesPayload) *Code {
+	if message.AggregateID == payload.SourceID {
+		return nil
+	}
+	return current
 }
