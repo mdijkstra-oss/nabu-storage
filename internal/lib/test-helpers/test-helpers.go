@@ -58,3 +58,33 @@ func AssertError(t *testing.T, got error, wantMsg string, msg string) {
 func NewDomainEvent(entityName commands.AggregateType, aggregateID string, action commands.Action, payload any) *commands.AnyMessage {
 	return commands.ToAny(commands.NewDomainEvent(action, payload, entityName, aggregateID, (*commands.AnyMessage)(nil)))
 }
+
+type ReducerTestCase[T any] struct {
+	Name     string
+	Initial  T
+	Event    *commands.AnyMessage
+	Expected T
+}
+
+func RunReducerTests[T any](t *testing.T, tests []ReducerTestCase[T], reducer func(T, *commands.AnyMessage) T) {
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			result := reducer(tt.Initial, tt.Event)
+			AssertEqual(t, result, tt.Expected, "state after reduction")
+		})
+	}
+}
+
+func RunReducerTestsWithCustomAssert[T any](
+	t *testing.T,
+	tests []ReducerTestCase[T],
+	reducer func(T, *commands.AnyMessage) T,
+	assertFunc func(*testing.T, T, T),
+) {
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			result := reducer(tt.Initial, tt.Event)
+			assertFunc(t, result, tt.Expected)
+		})
+	}
+}

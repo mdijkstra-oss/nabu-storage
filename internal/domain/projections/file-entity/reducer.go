@@ -1,7 +1,7 @@
 package fileview
 
 import (
-	"github.com/google/uuid"
+	"fmt"
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/cqrs/projection"
 	"hermes-relay/internal/domain/entities/code"
@@ -25,9 +25,9 @@ func CreatedFileReducer(_ *File, message *commands.AnyMessage, payload *file.Cre
 	// Todo: What's faster, what's better?
 	blocks := chunker.ChunkBlocks(payload.Content, chunker.FullPage, chunker.FullPage+chunker.HalfPage)
 
-	chunks := utils.Map(blocks, func(block string) file.Chunk {
+	chunks := utils.MapWithIndex(blocks, func(i int, block string) file.Chunk {
 		return file.Chunk{
-			ID:      uuid.New().String(),
+			IDX:     fmt.Sprintf("%d", i+1),
 			Content: block,
 			Codes:   []file.CodedSection{},
 		}
@@ -53,7 +53,7 @@ func CodedFileReducer(current *File, message *commands.AnyMessage, payload *file
 	for _, action := range payload.Actions {
 		chunkIdx := -1
 		for i, c := range current.Chunks {
-			if c.ID == action.ChunkID {
+			if c.IDX == action.ChunkID {
 				chunkIdx = i
 				break
 			}

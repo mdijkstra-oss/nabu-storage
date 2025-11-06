@@ -8,17 +8,12 @@ import (
 )
 
 func TestProjectReducer(t *testing.T) {
-	tests := []struct {
-		name     string
-		initial  *Project
-		event    *commands.AnyMessage
-		expected *Project
-	}{
+	tests := []th.ReducerTestCase[*Project]{
 		{
-			name:    "CreatedProject initializes empty arrays",
-			initial: nil,
-			event:   newProjectEvent("project-1", project.CreatedProject, &project.CreatedProjectPayload{Name: "Research"}),
-			expected: &Project{
+			Name:    "CreatedProject initializes empty arrays",
+			Initial: nil,
+			Event:   newProjectEvent("project-1", project.CreatedProject, &project.CreatedProjectPayload{Name: "Research"}),
+			Expected: &Project{
 				ID:      "project-1",
 				Name:    "Research",
 				CodeIDs: []string{},
@@ -26,18 +21,18 @@ func TestProjectReducer(t *testing.T) {
 			},
 		},
 		{
-			name: "AddedFileToProject appends to FileIDs",
-			initial: &Project{
+			Name: "AddedFileToProject appends to FileIDs",
+			Initial: &Project{
 				ID:      "project-1",
 				Name:    "Research",
 				CodeIDs: []string{},
 				FileIDs: []string{},
 			},
-			event: newProjectEvent("project-1", project.AddedFileToProject, &project.AddedFileToProjectPayload{
+			Event: newProjectEvent("project-1", project.AddedFileToProject, &project.AddedFileToProjectPayload{
 				FileID:    "file-1",
 				ProjectID: "project-1",
 			}),
-			expected: &Project{
+			Expected: &Project{
 				ID:      "project-1",
 				Name:    "Research",
 				CodeIDs: []string{},
@@ -45,18 +40,18 @@ func TestProjectReducer(t *testing.T) {
 			},
 		},
 		{
-			name: "AddedFileToProject with multiple files",
-			initial: &Project{
+			Name: "AddedFileToProject with multiple files",
+			Initial: &Project{
 				ID:      "project-1",
 				Name:    "Research",
 				CodeIDs: []string{},
 				FileIDs: []string{"file-1"},
 			},
-			event: newProjectEvent("project-1", project.AddedFileToProject, &project.AddedFileToProjectPayload{
+			Event: newProjectEvent("project-1", project.AddedFileToProject, &project.AddedFileToProjectPayload{
 				FileID:    "file-2",
 				ProjectID: "project-1",
 			}),
-			expected: &Project{
+			Expected: &Project{
 				ID:      "project-1",
 				Name:    "Research",
 				CodeIDs: []string{},
@@ -64,18 +59,18 @@ func TestProjectReducer(t *testing.T) {
 			},
 		},
 		{
-			name: "AddedCodeToProject appends to CodeIDs",
-			initial: &Project{
+			Name: "AddedCodeToProject appends to CodeIDs",
+			Initial: &Project{
 				ID:      "project-1",
 				Name:    "Research",
 				CodeIDs: []string{},
 				FileIDs: []string{},
 			},
-			event: newProjectEvent("project-1", project.AddedCodeToProject, &project.AddedCodeToProjectPayload{
+			Event: newProjectEvent("project-1", project.AddedCodeToProject, &project.AddedCodeToProjectPayload{
 				CodeID:    "code-1",
 				ProjectID: "project-1",
 			}),
-			expected: &Project{
+			Expected: &Project{
 				ID:      "project-1",
 				Name:    "Research",
 				CodeIDs: []string{"code-1"},
@@ -83,18 +78,18 @@ func TestProjectReducer(t *testing.T) {
 			},
 		},
 		{
-			name: "AddedCodeToProject with multiple codes",
-			initial: &Project{
+			Name: "AddedCodeToProject with multiple codes",
+			Initial: &Project{
 				ID:      "project-1",
 				Name:    "Research",
 				CodeIDs: []string{"code-1"},
 				FileIDs: []string{},
 			},
-			event: newProjectEvent("project-1", project.AddedCodeToProject, &project.AddedCodeToProjectPayload{
+			Event: newProjectEvent("project-1", project.AddedCodeToProject, &project.AddedCodeToProjectPayload{
 				CodeID:    "code-2",
 				ProjectID: "project-1",
 			}),
-			expected: &Project{
+			Expected: &Project{
 				ID:      "project-1",
 				Name:    "Research",
 				CodeIDs: []string{"code-1", "code-2"},
@@ -102,18 +97,18 @@ func TestProjectReducer(t *testing.T) {
 			},
 		},
 		{
-			name: "RemovedCodeFromProject removes from CodeIDs",
-			initial: &Project{
+			Name: "RemovedCodeFromProject removes from CodeIDs",
+			Initial: &Project{
 				ID:      "project-1",
 				Name:    "Research",
 				CodeIDs: []string{"code-1", "code-2", "code-3"},
 				FileIDs: []string{},
 			},
-			event: newProjectEvent("project-1", project.RemovedCodeFromProject, &project.RemovedCodeFromProjectPayload{
+			Event: newProjectEvent("project-1", project.RemovedCodeFromProject, &project.RemovedCodeFromProjectPayload{
 				CodeID:    "code-2",
 				ProjectID: "project-1",
 			}),
-			expected: &Project{
+			Expected: &Project{
 				ID:      "project-1",
 				Name:    "Research",
 				CodeIDs: []string{"code-1", "code-3"},
@@ -121,18 +116,18 @@ func TestProjectReducer(t *testing.T) {
 			},
 		},
 		{
-			name: "RemovedCodeFromProject on non-existent code is safe",
-			initial: &Project{
+			Name: "RemovedCodeFromProject on non-existent code is safe",
+			Initial: &Project{
 				ID:      "project-1",
 				Name:    "Research",
 				CodeIDs: []string{"code-1"},
 				FileIDs: []string{},
 			},
-			event: newProjectEvent("project-1", project.RemovedCodeFromProject, &project.RemovedCodeFromProjectPayload{
+			Event: newProjectEvent("project-1", project.RemovedCodeFromProject, &project.RemovedCodeFromProjectPayload{
 				CodeID:    "code-999",
 				ProjectID: "project-1",
 			}),
-			expected: &Project{
+			Expected: &Project{
 				ID:      "project-1",
 				Name:    "Research",
 				CodeIDs: []string{"code-1"},
@@ -140,18 +135,18 @@ func TestProjectReducer(t *testing.T) {
 			},
 		},
 		{
-			name: "Full lifecycle: create, add files, add codes, delete code",
-			initial: &Project{
+			Name: "Full lifecycle: create, add files, add codes, delete code",
+			Initial: &Project{
 				ID:      "project-1",
 				Name:    "Research",
 				CodeIDs: []string{"code-1", "code-2"},
 				FileIDs: []string{"file-1", "file-2"},
 			},
-			event: newProjectEvent("project-1", project.RemovedCodeFromProject, &project.RemovedCodeFromProjectPayload{
+			Event: newProjectEvent("project-1", project.RemovedCodeFromProject, &project.RemovedCodeFromProjectPayload{
 				CodeID:    "code-1",
 				ProjectID: "project-1",
 			}),
-			expected: &Project{
+			Expected: &Project{
 				ID:      "project-1",
 				Name:    "Research",
 				CodeIDs: []string{"code-2"},
@@ -160,12 +155,7 @@ func TestProjectReducer(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := Reducer(tt.initial, tt.event)
-			th.AssertEqual(t, result, tt.expected, "state after reduction")
-		})
-	}
+	th.RunReducerTests(t, tests, Reducer)
 }
 
 func newProjectEvent(aggregateID string, action commands.Action, payload any) *commands.AnyMessage {

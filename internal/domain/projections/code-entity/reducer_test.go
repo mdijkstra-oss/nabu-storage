@@ -8,22 +8,17 @@ import (
 )
 
 func TestCodeReducer(t *testing.T) {
-	tests := []struct {
-		name     string
-		initial  *Code
-		event    *commands.AnyMessage
-		expected *Code
-	}{
+	tests := []th.ReducerTestCase[*Code]{
 		{
-			name:    "CreatedCode initializes code",
-			initial: nil,
-			event: newCodeEvent("code-1", code.CreatedCode, &code.CreatedCodePayload{
+			Name:    "CreatedCode initializes code",
+			Initial: nil,
+			Event: newCodeEvent("code-1", code.CreatedCode, &code.CreatedCodePayload{
 				ProjectID: "project-1",
 				Slug:      "topic:climate",
 				Color:     "green-500",
 				Reasoning: "Climate topics",
 			}),
-			expected: &Code{
+			Expected: &Code{
 				ID:        "code-1",
 				ProjectID: "project-1",
 				Slug:      "topic:climate",
@@ -32,18 +27,18 @@ func TestCodeReducer(t *testing.T) {
 			},
 		},
 		{
-			name: "UpdatedCode changes color only",
-			initial: &Code{
+			Name: "UpdatedCode changes color only",
+			Initial: &Code{
 				ID:        "code-1",
 				ProjectID: "project-1",
 				Slug:      "topic:climate",
 				Color:     "green-500",
 				Reasoning: "Climate topics",
 			},
-			event: newCodeEvent("code-1", code.UpdatedCode, &code.UpdatedCodePayload{
+			Event: newCodeEvent("code-1", code.UpdatedCode, &code.UpdatedCodePayload{
 				Color: "emerald-600",
 			}),
-			expected: &Code{
+			Expected: &Code{
 				ID:        "code-1",
 				ProjectID: "project-1",
 				Slug:      "topic:climate",
@@ -52,18 +47,18 @@ func TestCodeReducer(t *testing.T) {
 			},
 		},
 		{
-			name: "UpdatedCode changes reasoning only",
-			initial: &Code{
+			Name: "UpdatedCode changes reasoning only",
+			Initial: &Code{
 				ID:        "code-1",
 				ProjectID: "project-1",
 				Slug:      "topic:climate",
 				Color:     "green-500",
 				Reasoning: "Climate topics",
 			},
-			event: newCodeEvent("code-1", code.UpdatedCode, &code.UpdatedCodePayload{
+			Event: newCodeEvent("code-1", code.UpdatedCode, &code.UpdatedCodePayload{
 				Reasoning: "Renewable energy and sustainability",
 			}),
-			expected: &Code{
+			Expected: &Code{
 				ID:        "code-1",
 				ProjectID: "project-1",
 				Slug:      "topic:climate",
@@ -72,19 +67,19 @@ func TestCodeReducer(t *testing.T) {
 			},
 		},
 		{
-			name: "UpdatedCode changes both fields",
-			initial: &Code{
+			Name: "UpdatedCode changes both fields",
+			Initial: &Code{
 				ID:        "code-1",
 				ProjectID: "project-1",
 				Slug:      "topic:climate",
 				Color:     "green-500",
 				Reasoning: "Climate topics",
 			},
-			event: newCodeEvent("code-1", code.UpdatedCode, &code.UpdatedCodePayload{
+			Event: newCodeEvent("code-1", code.UpdatedCode, &code.UpdatedCodePayload{
 				Color:     "teal-500",
 				Reasoning: "Environmental coverage",
 			}),
-			expected: &Code{
+			Expected: &Code{
 				ID:        "code-1",
 				ProjectID: "project-1",
 				Slug:      "topic:climate",
@@ -93,19 +88,19 @@ func TestCodeReducer(t *testing.T) {
 			},
 		},
 		{
-			name: "UpdatedCode with empty strings preserves current values",
-			initial: &Code{
+			Name: "UpdatedCode with empty strings preserves current values",
+			Initial: &Code{
 				ID:        "code-1",
 				ProjectID: "project-1",
 				Slug:      "topic:climate",
 				Color:     "teal-500",
 				Reasoning: "Environmental coverage",
 			},
-			event: newCodeEvent("code-1", code.UpdatedCode, &code.UpdatedCodePayload{
+			Event: newCodeEvent("code-1", code.UpdatedCode, &code.UpdatedCodePayload{
 				Color:     "",
 				Reasoning: "",
 			}),
-			expected: &Code{
+			Expected: &Code{
 				ID:        "code-1",
 				ProjectID: "project-1",
 				Slug:      "topic:climate",
@@ -114,40 +109,35 @@ func TestCodeReducer(t *testing.T) {
 			},
 		},
 		{
-			name: "MergedCodes returns nil (source code deleted)",
-			initial: &Code{
+			Name: "MergedCodes returns nil (source code deleted)",
+			Initial: &Code{
 				ID:        "code-1",
 				ProjectID: "project-1",
 				Slug:      "topic:climate",
 				Color:     "green-500",
 				Reasoning: "Climate topics",
 			},
-			event: newCodeEvent("code-1", code.MergedCodes, &code.MergedCodesPayload{
+			Event: newCodeEvent("code-1", code.MergedCodes, &code.MergedCodesPayload{
 				SourceID: "code-1",
 				TargetID: "code-2",
 			}),
-			expected: nil,
+			Expected: nil,
 		},
 		{
-			name: "DeletedCode returns nil",
-			initial: &Code{
+			Name: "DeletedCode returns nil",
+			Initial: &Code{
 				ID:        "code-1",
 				ProjectID: "project-1",
 				Slug:      "topic:climate",
 				Color:     "green-500",
 				Reasoning: "Climate topics",
 			},
-			event:    newCodeEvent("code-1", code.DeletedCode, nil),
-			expected: nil,
+			Event:    newCodeEvent("code-1", code.DeletedCode, nil),
+			Expected: nil,
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := Reducer(tt.initial, tt.event)
-			th.AssertEqual(t, result, tt.expected, "state after reduction")
-		})
-	}
+	th.RunReducerTests(t, tests, Reducer)
 }
 
 func newCodeEvent(aggregateID string, action commands.Action, payload any) *commands.AnyMessage {

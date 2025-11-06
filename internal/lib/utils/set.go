@@ -20,6 +20,18 @@ func Map[T, U any](slice []T, fn func(T) U) []U {
 	return result
 }
 
+func MapWithIndex[T, U any](slice []T, fn func(int, T) U) []U {
+	if slice == nil {
+		return nil
+	}
+
+	result := make([]U, len(slice))
+	for i, v := range slice {
+		result[i] = fn(i, v)
+	}
+	return result
+}
+
 func FlatMap[T any, U any](slice []T, fn func(T) []U) []U {
 	result := []U{}
 	for _, item := range slice {
