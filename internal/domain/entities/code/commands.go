@@ -10,7 +10,9 @@ const (
 	CreateCode commands.Action = "CreateCode"
 	UpdateCode commands.Action = "UpdateCode"
 	DeleteCode commands.Action = "DeleteCode"
+	MergeCodes commands.Action = "MergeCodes"
 )
 
 type CreateCodePayload = CreateCodeData
 type UpdateCodePayload = UpdateCodeData
+type MergeCodesPayload = MergeCodesData

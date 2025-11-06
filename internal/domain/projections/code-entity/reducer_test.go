@@ -114,6 +114,21 @@ func TestCodeReducer(t *testing.T) {
 			},
 		},
 		{
+			name: "MergedCodes returns nil (source code deleted)",
+			initial: &Code{
+				ID:        "code-1",
+				ProjectID: "project-1",
+				Slug:      "topic:climate",
+				Color:     "green-500",
+				Reasoning: "Climate topics",
+			},
+			event: newCodeEvent("code-1", code.MergedCodes, &code.MergedCodesPayload{
+				SourceID: "code-1",
+				TargetID: "code-2",
+			}),
+			expected: nil,
+		},
+		{
 			name: "DeletedCode returns nil",
 			initial: &Code{
 				ID:        "code-1",

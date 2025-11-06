@@ -168,6 +168,42 @@ func TestCodeRouter(t *testing.T) {
 			}, code.EntityName, "", nil)),
 			ExpectErr: "validation failed",
 		},
+		{
+			Name: "MergeCodes with valid source and target",
+			Input: commands.ToAny(commands.NewCommand[code.MergeCodesPayload, any](code.MergeCodes, code.MergeCodesPayload{
+				SourceID: "code-existing-1",
+				TargetID: "code-existing-2",
+			}, code.EntityName, "code-existing-1", nil)),
+			ExpectErr: "",
+			ExpectEvent: commands.ToAny(commands.NewDomainEvent[code.MergedCodesPayload, any](code.MergedCodes, code.MergedCodesPayload{
+				SourceID: "code-existing-1",
+				TargetID: "code-existing-2",
+			}, code.EntityName, "code-existing-1", nil)),
+		},
+		{
+			Name: "MergeCodes with non-existent source fails",
+			Input: commands.ToAny(commands.NewCommand[code.MergeCodesPayload, any](code.MergeCodes, code.MergeCodesPayload{
+				SourceID: "code-nonexistent",
+				TargetID: "code-existing-2",
+			}, code.EntityName, "code-existing-2", nil)),
+			ExpectErr: "validation failed: source code not found",
+		},
+		{
+			Name: "MergeCodes with non-existent target fails",
+			Input: commands.ToAny(commands.NewCommand[code.MergeCodesPayload, any](code.MergeCodes, code.MergeCodesPayload{
+				SourceID: "code-existing-1",
+				TargetID: "code-nonexistent",
+			}, code.EntityName, "code-existing-1", nil)),
+			ExpectErr: "validation failed: target code not found",
+		},
+		{
+			Name: "MergeCodes with same source and target fails",
+			Input: commands.ToAny(commands.NewCommand[code.MergeCodesPayload, any](code.MergeCodes, code.MergeCodesPayload{
+				SourceID: "code-existing-1",
+				TargetID: "code-existing-1",
+			}, code.EntityName, "code-existing-1", nil)),
+			ExpectErr: "validation failed: cannot merge code with itself",
+		},
 	}
 
 	rh.RunRouterTests(t, cmds, tests, NewRouter)

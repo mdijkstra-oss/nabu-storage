@@ -24,6 +24,12 @@ func NewRouter(reg *registry.ProjectViewRegistry) dispatch.CommandRouter {
 			),
 		),
 
+		dispatch.LimitOnAction(code.MergeCodes,
+			registry.Validate(reg, validateMergeCodes,
+				dispatch.ToUpdateEntityEvent[code.MergeCodesPayload](code.MergeCodes, code.MergedCodes),
+			),
+		),
+
 		dispatch.ToEmptyDomainEvent(code.DeleteCode, code.DeletedCode),
 	)
 }
@@ -47,6 +53,46 @@ func validateUpdateCode(registry *registry.ProjectView, payload code.UpdateCodeP
 		codes := registry.CodeStore.GetAll()
 		if !IsSlugAvailable(codes, payload.Slug, msg.AggregateID) {
 			return utils.FieldInUse("slug")
+		}
+	}
+
+	return nil
+}
+
+func validateMergeCodes(registry *registry.ProjectView, payload code.MergeCodesPayload, msg *commands.AnyMessage) error {
+	codes := registry.CodeStore.GetAll()
+
+	sourceExists := projection.EntityExists(codes, payload.SourceID)
+	targetExists := projection.EntityExists(codes, payload.TargetID)
+
+	if !sourceExists && !targetExists {
+		return &utils.ValidationError{
+			Message: "validation failed: source code not found, target code not found",
+			Fields: map[string]string{
+				"source_id": "not found",
+				"target_id": "not found",
+			},
+		}
+	}
+
+	if !sourceExists {
+		return &utils.ValidationError{
+			Message: "validation failed: source code not found",
+			Fields:  map[string]string{"source_id": "not found"},
+		}
+	}
+
+	if !targetExists {
+		return &utils.ValidationError{
+			Message: "validation failed: target code not found",
+			Fields:  map[string]string{"target_id": "not found"},
+		}
+	}
+
+	if payload.SourceID == payload.TargetID {
+		return &utils.ValidationError{
+			Message: "validation failed: cannot merge code with itself",
+			Fields:  map[string]string{"source_id": "cannot merge with itself"},
 		}
 	}
 

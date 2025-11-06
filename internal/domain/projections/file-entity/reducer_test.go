@@ -220,6 +220,30 @@ func TestFileReducer(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "MergedCodes replaces source CodeID with target CodeID",
+			initial: fileWithCodes("file-1", "project-1", "Climate change impacts global warming.", testTime, []file.CodedSection{
+				{StartIndex: 0, EndIndex: 14, CodeID: "code-1", CodeSlug: "topic:climate", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change"}},
+				{StartIndex: 23, EndIndex: 38, CodeID: "code-2", CodeSlug: "topic:temperature", CodedSectionAttributes: file.CodedSectionAttributes{Text: "global warming"}},
+			}),
+			event: th.NewDomainEvent(code.EntityName, "code-1", code.MergedCodes, &code.MergedCodesPayload{SourceID: "code-1", TargetID: "code-2"}),
+			expectedBase: file.BaseFile{
+				ID:         "file-1",
+				ProjectID:  "project-1",
+				Name:       "test.txt",
+				Attributes: file.Attributes{Time: testTime},
+			},
+			expectedContent: "Climate change impacts global warming.",
+			expectedChunks: []file.Chunk{
+				{
+					Content: "Climate change impacts global warming.\n",
+					Codes: []file.CodedSection{
+						{StartIndex: 0, EndIndex: 14, CodeID: "code-2", CodeSlug: "topic:climate", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change"}},
+						{StartIndex: 23, EndIndex: 38, CodeID: "code-2", CodeSlug: "topic:temperature", CodedSectionAttributes: file.CodedSectionAttributes{Text: "global warming"}},
+					},
+				},
+			},
+		},
 	}
 
 	for _, tt := range tests {

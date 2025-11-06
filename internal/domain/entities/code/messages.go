@@ -16,3 +16,8 @@ type UpdateCodeData struct {
 type DeleteCodeData struct {
 	ProjectID string `json:"project_id" validate:"required"`
 }
+
+type MergeCodesData struct {
+	SourceID string `json:"source_id" validate:"required"`
+	TargetID string `json:"target_id" validate:"required"`
+}

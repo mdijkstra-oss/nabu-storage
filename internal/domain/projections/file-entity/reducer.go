@@ -18,6 +18,7 @@ var Reducer = projection.CombineReducers(
 	projection.For(file.ClearedCoding, ClearedCodingReducer),
 	projection.For(code.DeletedCode, DeletedCodeReducer),
 	projection.For(code.UpdatedCode, UpdatedCodeReducer),
+	projection.For(code.MergedCodes, MergedCodesReducer),
 )
 
 func CreatedFileReducer(_ *File, message *commands.AnyMessage, payload *file.CreatedFilePayload) *File {
@@ -129,6 +130,20 @@ func UpdatedCodeReducer(current *File, message *commands.AnyMessage, payload cod
 		chunk.Codes = utils.Map(chunk.Codes, func(cs file.CodedSection) file.CodedSection {
 			if cs.CodeID == codeID {
 				cs.CodeSlug = payload.Slug
+			}
+			return cs
+		})
+		return chunk
+	})
+
+	return current
+}
+
+func MergedCodesReducer(current *File, _ *commands.AnyMessage, payload code.MergedCodesPayload) *File {
+	current.Chunks = utils.Map(current.Chunks, func(chunk file.Chunk) file.Chunk {
+		chunk.Codes = utils.Map(chunk.Codes, func(cs file.CodedSection) file.CodedSection {
+			if cs.CodeID == payload.SourceID {
+				cs.CodeID = payload.TargetID
 			}
 			return cs
 		})
