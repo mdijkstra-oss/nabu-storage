@@ -6,7 +6,6 @@ import (
 	"sync"
 )
 
-// Core types
 type EventApplier interface {
 	ApplyEvent(message *commands.AnyMessage) error
 	ApplyEvents(events []commands.AnyMessage) error
@@ -19,7 +18,6 @@ type Entity interface {
 type QueryExecutor[Q, R any] func(Q) R
 type FilterFunc[T Entity, Q, R any] func([]T, Q) []R
 
-// Store
 type Store[T Entity] struct {
 	mu      sync.RWMutex
 	data    map[string]T
@@ -88,7 +86,6 @@ func (s *Store[T]) GetAll() []T {
 	return Query(s, ByAll[T], EmptyQuery{})
 }
 
-// Query operations
 func Query[T Entity, Q, R any](s *Store[T], filter FilterFunc[T, Q, R], q Q) []R {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -103,7 +100,6 @@ func QueryOne[T Entity, Q, R any](s *Store[T], filter FilterFunc[T, Q, R], q Q) 
 	return &results[0]
 }
 
-// Executor binding
 func BindQuery[T Entity, Q, R any](s *Store[T], filter FilterFunc[T, Q, R]) QueryExecutor[Q, []R] {
 	return func(q Q) []R {
 		return Query(s, filter, q)

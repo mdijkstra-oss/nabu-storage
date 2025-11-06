@@ -70,3 +70,7 @@ func AssertError(t *testing.T, got error, wantMsg string, msg string) {
 		t.Fatalf("%s: expected error '%s', got: '%s'", msg, wantMsg, gotMsg)
 	}
 }
+
+func NewDomainEvent(entityName commands.AggregateType, aggregateID string, action commands.Action, payload any) *commands.AnyMessage {
+	return commands.ToAny(commands.NewDomainEvent(action, payload, entityName, aggregateID, (*commands.AnyMessage)(nil)))
+}

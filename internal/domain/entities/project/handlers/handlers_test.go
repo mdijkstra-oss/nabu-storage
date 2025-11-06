@@ -1,7 +1,8 @@
-package project
+package handlers
 
 import (
 	"hermes-relay/internal/cqrs/commands"
+	"hermes-relay/internal/domain/entities/project"
 	th "hermes-relay/internal/lib/test-helpers"
 	"testing"
 )
@@ -15,40 +16,32 @@ func TestProjectRouter(t *testing.T) {
 	}{
 		{
 			name: "CreateProject with valid payload",
-			input: commands.ToAny(commands.NewCommand[CreateProjectPayload, any](CreateProject, CreateProjectPayload{
+			input: commands.ToAny(commands.NewCommand[project.CreateProjectPayload, any](project.CreateProject, project.CreateProjectPayload{
 				Name: "My Research Project",
-			}, EntityName, "", nil)),
+			}, project.EntityName, "", nil)),
 			expectErr: "",
-			expectEvent: commands.ToAny(commands.NewDomainEvent[CreatedProjectPayload, any](CreatedProject, CreatedProjectPayload{
+			expectEvent: commands.ToAny(commands.NewDomainEvent[project.CreatedProjectPayload, any](project.CreatedProject, project.CreatedProjectPayload{
 				Name: "My Research Project",
-			}, EntityName, "", nil)),
+			}, project.EntityName, "", nil)),
 		},
 		{
 			name:      "CreateProject with missing Name",
-			input:     commands.ToAny(commands.NewCommand[CreateProjectPayload, any](CreateProject, CreateProjectPayload{}, EntityName, "", nil)),
+			input:     commands.ToAny(commands.NewCommand[project.CreateProjectPayload, any](project.CreateProject, project.CreateProjectPayload{}, project.EntityName, "", nil)),
 			expectErr: "validation failed: Name is required",
 		},
 		{
 			name: "Wrong entity type returns nil",
-			input: commands.ToAny(commands.NewCommand[CreateProjectPayload, any](CreateProject, CreateProjectPayload{
+			input: commands.ToAny(commands.NewCommand[project.CreateProjectPayload, any](project.CreateProject, project.CreateProjectPayload{
 				Name: "Test Project",
 			}, "DifferentEntity", "", nil)),
 			expectErr:   "",
 			expectEvent: nil,
 		},
 		{
-			name: "Wrong message type returns nil",
-			input: commands.ToAny(commands.NewDomainEvent[CreateProjectPayload, any](CreateProject, CreateProjectPayload{
-				Name: "Test Project",
-			}, EntityName, "", nil)),
-			expectErr:   "",
-			expectEvent: nil,
-		},
-		{
 			name: "Wrong action returns nil",
-			input: commands.ToAny(commands.NewCommand[CreateProjectPayload, any]("DifferentAction", CreateProjectPayload{
+			input: commands.ToAny(commands.NewCommand[project.CreateProjectPayload, any]("DifferentAction", project.CreateProjectPayload{
 				Name: "Test Project",
-			}, EntityName, "test-aggregate-id", nil)),
+			}, project.EntityName, "test-aggregate-id", nil)),
 			expectErr:   "",
 			expectEvent: nil,
 		},

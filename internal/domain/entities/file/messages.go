@@ -15,6 +15,7 @@ const (
 
 type CodingAction struct {
 	CodeSlug string                   `json:"code_slug" validate:"required,code_slug"`
+	CodeID   string                   `json:"code_id" validate:"required"`
 	Action   CodingMutation           `json:"action" validate:"oneof=SetCoding AppendCoding RemoveCoding"`
 	Sections []CodedSectionAttributes `json:"texts" validate:"min=1,dive,required"`
 	ChunkID  string                   `json:"chunk_id" validate:"required"`
@@ -22,9 +23,4 @@ type CodingAction struct {
 
 type CodeFileData struct {
 	Actions []CodingAction `json:"actions" validate:"required,min=1,dive,required"`
-}
-
-type MergeCodesData struct {
-	Source string `json:"source" validate:"required,code_slug" normalize:"trim,lowercase"`
-	Target string `json:"target" validate:"required,code_slug" normalize:"trim,lowercase"`
 }

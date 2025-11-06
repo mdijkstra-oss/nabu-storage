@@ -4,6 +4,7 @@ import (
 	"github.com/google/uuid"
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/cqrs/projection"
+	"hermes-relay/internal/domain/entities/code"
 	"hermes-relay/internal/domain/entities/file"
 	"hermes-relay/internal/lib/text-search/chunker"
 	"hermes-relay/internal/lib/text-search/find"
@@ -15,7 +16,8 @@ var Reducer = projection.CombineReducers(
 	projection.For(file.CreatedFile, CreatedFileReducer),
 	projection.For(file.CodedFile, CodedFileReducer),
 	projection.For(file.ClearedCoding, ClearedCodingReducer),
-	projection.For(file.MergedCodes, MergedCodesReducer),
+	projection.For(code.DeletedCode, DeletedCodeReducer),
+	projection.For(code.UpdatedCode, UpdatedCodeReducer),
 )
 
 func CreatedFileReducer(_ *File, message *commands.AnyMessage, payload *file.CreatedFilePayload) *File {
@@ -65,13 +67,13 @@ func CodedFileReducer(current *File, message *commands.AnyMessage, payload *file
 
 		switch action.Action {
 		case file.RemoveCoding:
-			chunk.Codes = utils.Filter(chunk.Codes, func(code file.CodedSection) bool {
-				return code.CodeSlug != action.CodeSlug
+			chunk.Codes = utils.Filter(chunk.Codes, func(section file.CodedSection) bool {
+				return section.CodeID != action.CodeID
 			})
 
 		case file.SetCoding:
-			chunk.Codes = utils.Filter(chunk.Codes, func(code file.CodedSection) bool {
-				return code.CodeSlug != action.CodeSlug
+			chunk.Codes = utils.Filter(chunk.Codes, func(section file.CodedSection) bool {
+				return section.CodeID != action.CodeID
 			})
 			fallthrough
 
@@ -87,6 +89,7 @@ func CodedFileReducer(current *File, message *commands.AnyMessage, payload *file
 					StartIndex: start,
 					EndIndex:   end,
 					CodeSlug:   action.CodeSlug,
+					CodeID:     action.CodeID,
 					CodedSectionAttributes: file.CodedSectionAttributes{
 						Text:     section.Text,
 						AIReason: section.AIReason,
@@ -106,13 +109,31 @@ func ClearedCodingReducer(current *File, message *commands.AnyMessage, payload a
 	return current
 }
 
-func MergedCodesReducer(current *File, message *commands.AnyMessage, payload *file.MergeCodesPayload) *File {
-	for i := range current.Chunks {
-		for j := range current.Chunks[i].Codes {
-			if current.Chunks[i].Codes[j].CodeSlug == payload.Source {
-				current.Chunks[i].Codes[j].CodeSlug = payload.Target
+func DeletedCodeReducer(current *File, message *commands.AnyMessage, _ code.DeletedCodePayload) *File {
+	codeID := message.AggregateID
+
+	current.Chunks = utils.Map(current.Chunks, func(chunk file.Chunk) file.Chunk {
+		chunk.Codes = utils.Filter(chunk.Codes, func(cs file.CodedSection) bool {
+			return cs.CodeID != codeID
+		})
+		return chunk
+	})
+
+	return current
+}
+
+func UpdatedCodeReducer(current *File, message *commands.AnyMessage, payload code.UpdateCodePayload) *File {
+	codeID := message.AggregateID
+
+	current.Chunks = utils.Map(current.Chunks, func(chunk file.Chunk) file.Chunk {
+		chunk.Codes = utils.Map(chunk.Codes, func(cs file.CodedSection) file.CodedSection {
+			if cs.CodeID == codeID {
+				cs.CodeSlug = payload.Slug
 			}
-		}
-	}
+			return cs
+		})
+		return chunk
+	})
+
 	return current
 }

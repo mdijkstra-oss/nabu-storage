@@ -8,11 +8,9 @@ import (
 )
 
 var EventHandlers = dispatch.CombineRouters(
-	dispatch.LimitOnType(commands.DomainEvent,
-		dispatch.ForPayload(file.CreatedFile, OnFileCreated),
-		dispatch.ForPayload(code.CreatedCode, OnCodeCreated),
-		dispatch.ForPayload(code.DeletedCode, OnCodeDeleted),
-	),
+	dispatch.ForPayload(file.CreatedFile, OnFileCreated),
+	dispatch.ForPayload(code.CreatedCode, OnCodeCreated),
+	dispatch.ForPayload(code.DeletedCode, OnCodeDeleted),
 )
 
 func OnFileCreated(msg *commands.AnyMessage, payload file.CreatedFilePayload, publish dispatch.PublishFunc) (*commands.AnyMessage, error) {

@@ -151,7 +151,7 @@ func Validate[P any](registry *ProjectViewRegistry, validator func(*ProjectView,
 		view := registry.GetProject(projectId)
 
 		if view == nil {
-			return nil, utils.MakeValidationFieldError("ProjectID", "not found")
+			return nil, utils.FieldError("ProjectID", "not found")
 		}
 
 		var payload P

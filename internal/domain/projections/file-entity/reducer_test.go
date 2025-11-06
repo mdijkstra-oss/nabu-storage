@@ -2,13 +2,12 @@ package fileview
 
 import (
 	"hermes-relay/internal/cqrs/commands"
+	"hermes-relay/internal/domain/entities/code"
 	"hermes-relay/internal/domain/entities/file"
 	th "hermes-relay/internal/lib/test-helpers"
 	"testing"
 	"time"
 )
-
-const EntityName = "File"
 
 func TestFileReducer(t *testing.T) {
 	testTime := time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC)
@@ -24,7 +23,7 @@ func TestFileReducer(t *testing.T) {
 		{
 			name:    "CreatedFile initializes file with chunks",
 			initial: nil,
-			event: newFileEvent("file-1", file.CreatedFile, &file.CreatedFilePayload{
+			event: th.NewDomainEvent(file.EntityName, "file-1", file.CreatedFile, &file.CreatedFilePayload{
 				BaseFile: file.BaseFile{
 					ProjectID: "project-1",
 					Name:      "test.txt",
@@ -57,9 +56,10 @@ func TestFileReducer(t *testing.T) {
 		{
 			name:    "AppendCoding adds codes to chunk",
 			initial: fileWithChunk("file-1", "project-1", "Climate change impacts global warming.", testTime),
-			event: newFileEvent("file-1", file.CodedFile, &file.CodedFilePayload{
+			event: th.NewDomainEvent(file.EntityName, "file-1", file.CodedFile, &file.CodedFilePayload{
 				Actions: []file.CodingAction{
 					{
+						CodeID:   "code-1",
 						CodeSlug: "topic:climate",
 						Action:   file.AppendCoding,
 						ChunkID:  "chunk-id",
@@ -80,20 +80,21 @@ func TestFileReducer(t *testing.T) {
 				{
 					Content: "Climate change impacts global warming.\n",
 					Codes: []file.CodedSection{
-						{StartIndex: 0, EndIndex: 14, CodeSlug: "topic:climate", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change", AIReason: "Climate ref"}},
+						{StartIndex: 0, EndIndex: 14, CodeID: "code-1", CodeSlug: "topic:climate", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change", AIReason: "Climate ref"}},
 					},
 				},
 			},
 		},
 		{
-			name: "SetCoding replaces existing codes with same slug",
+			name: "SetCoding replaces existing codes with same CodeID",
 			initial: fileWithCodes("file-1", "project-1", "Climate change impacts global warming.", testTime, []file.CodedSection{
-				{StartIndex: 0, EndIndex: 14, CodeSlug: "topic:climate", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change", AIReason: "Old"}},
-				{StartIndex: 23, EndIndex: 38, CodeSlug: "topic:climate", CodedSectionAttributes: file.CodedSectionAttributes{Text: "global warming", AIReason: "Old"}},
+				{StartIndex: 0, EndIndex: 14, CodeID: "code-1", CodeSlug: "topic:climate", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change", AIReason: "Old"}},
+				{StartIndex: 23, EndIndex: 38, CodeID: "code-1", CodeSlug: "topic:climate", CodedSectionAttributes: file.CodedSectionAttributes{Text: "global warming", AIReason: "Old"}},
 			}),
-			event: newFileEvent("file-1", file.CodedFile, &file.CodedFilePayload{
+			event: th.NewDomainEvent(file.EntityName, "file-1", file.CodedFile, &file.CodedFilePayload{
 				Actions: []file.CodingAction{
 					{
+						CodeID:   "code-1",
 						CodeSlug: "topic:climate",
 						Action:   file.SetCoding,
 						ChunkID:  "chunk-id",
@@ -114,20 +115,21 @@ func TestFileReducer(t *testing.T) {
 				{
 					Content: "Climate change impacts global warming.\n",
 					Codes: []file.CodedSection{
-						{StartIndex: 30, EndIndex: 38, CodeSlug: "topic:climate", CodedSectionAttributes: file.CodedSectionAttributes{Text: "warming", AIReason: "New"}},
+						{StartIndex: 30, EndIndex: 38, CodeID: "code-1", CodeSlug: "topic:climate", CodedSectionAttributes: file.CodedSectionAttributes{Text: "warming", AIReason: "New"}},
 					},
 				},
 			},
 		},
 		{
-			name: "RemoveCoding removes all codes with slug",
+			name: "RemoveCoding removes codes by CodeID",
 			initial: fileWithCodes("file-1", "project-1", "Climate change impacts global warming.", testTime, []file.CodedSection{
-				{StartIndex: 0, EndIndex: 14, CodeSlug: "topic:climate", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change"}},
-				{StartIndex: 23, EndIndex: 38, CodeSlug: "topic:temperature", CodedSectionAttributes: file.CodedSectionAttributes{Text: "global warming"}},
+				{StartIndex: 0, EndIndex: 14, CodeID: "code-1", CodeSlug: "topic:climate", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change"}},
+				{StartIndex: 23, EndIndex: 38, CodeID: "code-2", CodeSlug: "topic:temperature", CodedSectionAttributes: file.CodedSectionAttributes{Text: "global warming"}},
 			}),
-			event: newFileEvent("file-1", file.CodedFile, &file.CodedFilePayload{
+			event: th.NewDomainEvent(file.EntityName, "file-1", file.CodedFile, &file.CodedFilePayload{
 				Actions: []file.CodingAction{
 					{
+						CodeID:   "code-1",
 						CodeSlug: "topic:climate",
 						Action:   file.RemoveCoding,
 						ChunkID:  "chunk-id",
@@ -146,7 +148,7 @@ func TestFileReducer(t *testing.T) {
 				{
 					Content: "Climate change impacts global warming.\n",
 					Codes: []file.CodedSection{
-						{StartIndex: 23, EndIndex: 38, CodeSlug: "topic:temperature", CodedSectionAttributes: file.CodedSectionAttributes{Text: "global warming"}},
+						{StartIndex: 23, EndIndex: 38, CodeID: "code-2", CodeSlug: "topic:temperature", CodedSectionAttributes: file.CodedSectionAttributes{Text: "global warming"}},
 					},
 				},
 			},
@@ -156,7 +158,7 @@ func TestFileReducer(t *testing.T) {
 			initial: fileWithCodes("file-1", "project-1", "Test content", testTime, []file.CodedSection{
 				{StartIndex: 0, EndIndex: 4, CodeSlug: "topic:climate", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Test"}},
 			}),
-			event: newFileEvent("file-1", file.ClearedCoding, nil),
+			event: th.NewDomainEvent(file.EntityName, "file-1", file.ClearedCoding, nil),
 			expectedBase: file.BaseFile{
 				ID:         "file-1",
 				ProjectID:  "project-1",
@@ -172,26 +174,48 @@ func TestFileReducer(t *testing.T) {
 			},
 		},
 		{
-			name: "MergedCodes changes slug across all chunks",
-			initial: fileWithCodes("file-1", "project-1", "Climate change", testTime, []file.CodedSection{
-				{StartIndex: 0, EndIndex: 14, CodeSlug: "topic:climate-old", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change", AIReason: "Old"}},
+			name: "DeletedCode removes all codes with matching CodeID",
+			initial: fileWithCodes("file-1", "project-1", "Climate change impacts global warming.", testTime, []file.CodedSection{
+				{StartIndex: 0, EndIndex: 14, CodeID: "code-1", CodeSlug: "topic:climate", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change"}},
+				{StartIndex: 23, EndIndex: 38, CodeID: "code-2", CodeSlug: "topic:temperature", CodedSectionAttributes: file.CodedSectionAttributes{Text: "global warming"}},
 			}),
-			event: newFileEvent("file-1", file.MergedCodes, &file.MergedCodesPayload{
-				Source: "topic:climate-old",
-				Target: "topic:climate",
-			}),
+			event: th.NewDomainEvent(code.EntityName, "code-1", code.DeletedCode, &code.DeletedCodePayload{ProjectID: "project-1"}),
 			expectedBase: file.BaseFile{
 				ID:         "file-1",
 				ProjectID:  "project-1",
 				Name:       "test.txt",
 				Attributes: file.Attributes{Time: testTime},
 			},
-			expectedContent: "Climate change",
+			expectedContent: "Climate change impacts global warming.",
 			expectedChunks: []file.Chunk{
 				{
-					Content: "Climate change\n",
+					Content: "Climate change impacts global warming.\n",
 					Codes: []file.CodedSection{
-						{StartIndex: 0, EndIndex: 14, CodeSlug: "topic:climate", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change", AIReason: "Old"}},
+						{StartIndex: 23, EndIndex: 38, CodeID: "code-2", CodeSlug: "topic:temperature", CodedSectionAttributes: file.CodedSectionAttributes{Text: "global warming"}},
+					},
+				},
+			},
+		},
+		{
+			name: "UpdatedCode changes slug for all codes with matching CodeID",
+			initial: fileWithCodes("file-1", "project-1", "Climate change impacts global warming.", testTime, []file.CodedSection{
+				{StartIndex: 0, EndIndex: 14, CodeID: "code-1", CodeSlug: "topic:climate-old", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change"}},
+				{StartIndex: 23, EndIndex: 38, CodeID: "code-1", CodeSlug: "topic:climate-old", CodedSectionAttributes: file.CodedSectionAttributes{Text: "global warming"}},
+			}),
+			event: th.NewDomainEvent(code.EntityName, "code-1", code.UpdatedCode, &code.UpdatedCodePayload{Slug: "topic:climate-new"}),
+			expectedBase: file.BaseFile{
+				ID:         "file-1",
+				ProjectID:  "project-1",
+				Name:       "test.txt",
+				Attributes: file.Attributes{Time: testTime},
+			},
+			expectedContent: "Climate change impacts global warming.",
+			expectedChunks: []file.Chunk{
+				{
+					Content: "Climate change impacts global warming.\n",
+					Codes: []file.CodedSection{
+						{StartIndex: 0, EndIndex: 14, CodeID: "code-1", CodeSlug: "topic:climate-new", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change"}},
+						{StartIndex: 23, EndIndex: 38, CodeID: "code-1", CodeSlug: "topic:climate-new", CodedSectionAttributes: file.CodedSectionAttributes{Text: "global warming"}},
 					},
 				},
 			},
@@ -245,8 +269,4 @@ func fileWithCodes(id, projectID, content string, testTime time.Time, codes []fi
 			},
 		},
 	}
-}
-
-func newFileEvent(aggregateID string, action commands.Action, payload any) *commands.AnyMessage {
-	return commands.ToAny(commands.NewDomainEvent(action, payload, EntityName, aggregateID, (*commands.AnyMessage)(nil)))
 }

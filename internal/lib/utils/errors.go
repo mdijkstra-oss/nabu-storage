@@ -68,13 +68,21 @@ func ToValidationError(err error) *ValidationError {
 	return ve
 }
 
-func MakeValidationFieldError(field, message string) *ValidationError {
+func FieldError(field, message string) *ValidationError {
 	return &ValidationError{
 		Message: "validation failed",
 		Fields: map[string]string{
 			field: message,
 		},
 	}
+}
+
+func FieldNotFound(field string) *ValidationError {
+	return FieldError(field, "not found")
+}
+
+func FieldInUse(field string) *ValidationError {
+	return FieldError(field, "already in use")
 }
 
 type NotFoundError struct {

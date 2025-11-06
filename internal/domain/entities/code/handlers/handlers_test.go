@@ -154,17 +154,6 @@ func TestCodeRouter(t *testing.T) {
 			expectEvent: nil,
 		},
 		{
-			name: "Wrong message type returns nil",
-			input: commands.ToAny(commands.NewDomainEvent[code.CreateCodePayload, any](code.CreateCode, code.CreateCodePayload{
-				ProjectID: "project-1",
-				Slug:      "topic:test",
-				Color:     "blue",
-				Reasoning: "Test",
-			}, code.EntityName, "", nil)),
-			expectErr:   "",
-			expectEvent: nil,
-		},
-		{
 			name: "Wrong action returns nil",
 			input: commands.ToAny(commands.NewCommand[code.CreateCodePayload, any]("DifferentAction", code.CreateCodePayload{
 				ProjectID: "project-1",

@@ -8,6 +8,7 @@ type CreateCodeData struct {
 }
 
 type UpdateCodeData struct {
+	Slug      string `json:"slug" validate:"omitempty,code_slug" normalize:"trim,lowercase"`
 	Color     string `json:"color,omitempty" validate:"omitempty" normalize:"trim,lowercase"`
 	Reasoning string `json:"reasoning,omitempty" validate:"omitempty" normalize:"trim,lowercase"`
 }

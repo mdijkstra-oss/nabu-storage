@@ -23,6 +23,9 @@ func CreatedCodeReducer(_ *Code, message *commands.AnyMessage, payload *code.Cre
 }
 
 func UpdatedCodeReducer(current *Code, _ *commands.AnyMessage, payload *code.UpdatedCodePayload) *Code {
+	if payload.Slug != "" {
+		current.Slug = payload.Slug
+	}
 	if payload.Color != "" {
 		current.Color = payload.Color
 	}

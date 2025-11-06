@@ -57,6 +57,17 @@ func LimitOnEntity(entity commands.AggregateType, handler ...CommandRouter) Comm
 	}
 }
 
+func LimitOnAction(action commands.Action, handler ...CommandRouter) CommandRouter {
+	parentRouter := CombineRouters(handler...)
+	return func(message *commands.AnyMessage, publisher PublishFunc) (*commands.AnyMessage, error) {
+		if message.Action == action {
+			return parentRouter(message, publisher)
+		}
+
+		return nil, nil
+	}
+}
+
 func ReadOnlyRoutes(readOnlyHandlers ...func(message *commands.AnyMessage) error) CommandRouter {
 	return func(message *commands.AnyMessage, publishFunc PublishFunc) (*commands.AnyMessage, error) {
 		for _, handler := range readOnlyHandlers {
