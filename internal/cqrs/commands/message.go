@@ -41,6 +41,11 @@ type Message[T any] struct {
 
 	CausationID string    `json:"causationId,omitempty"`
 	Timestamp   time.Time //`json:"timestamp" validate:"required"`
+
+	// Event versioning - currently always 1
+	// When event schema changes, increment version and add upcasting logic in LoadAllEvents()
+	// Example: V1 CreatedProject{Name} → V2 CreatedProject{Title, Description}
+	Version int `json:"version,omitempty"`
 }
 
 type AnyMessage = Message[any]
@@ -86,6 +91,7 @@ func (m Message[T]) LogValue() slog.Value {
 		slog.String("aggregateId", m.AggregateID),
 		slog.String("causationId", m.CausationID),
 		slog.Time("timestamp", m.Timestamp),
+		slog.Int("version", m.Version),
 	)
 }
 
@@ -104,6 +110,7 @@ func NewMessage[T, C any](mType MessageType, action Action, payload T, aggregate
 		Payload:       payload,
 		CausationID:   causationID,
 		Timestamp:     time.Now(),
+		Version:       1,
 	}
 }
 
@@ -144,6 +151,7 @@ func ToAny[P any](m *Message[P]) *AnyMessage {
 		CausationID:   m.CausationID,
 		Timestamp:     m.Timestamp,
 		Payload:       m.Payload,
+		Version:       m.Version,
 	}
 }
 

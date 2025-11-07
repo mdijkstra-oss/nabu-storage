@@ -22,11 +22,12 @@ func main() {
 	registry := bootstrap.SetupProjectViewRegistry(publisher)
 
 	// All except views / projections must be after replay ⚠️
-	utils.MustNotError(persistence.ReplayAllEvents(publisher))
+	disk := persistence.New()
+	utils.MustNotError(disk.ReplayAllEvents(publisher))
 
 	bootstrap.SetupCommandHandlers(publisher, registry)
 
-	publisher.Subscribe(dispatch.LimitOnType(commands.DomainEvent, dispatch.ReadOnlyRoutes(persistence.Apply)))
+	publisher.Subscribe(dispatch.LimitOnType(commands.DomainEvent, dispatch.ReadOnlyRoutes(disk.Apply())))
 
 	slog.Info("Initializing command persistence")
 

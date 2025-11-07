@@ -45,15 +45,17 @@ func setupPublisher(reset bool) *dispatch.InMemoryPublisher {
 	publisher := dispatch.NewInMemoryPublisher()
 	registry := bootstrap.SetupProjectViewRegistry(publisher)
 
+	disk := persistence.New()
+
 	if reset {
 		slog.Info("reset flag set, clearing existing data")
 		utils.MustNotError(clearPersistenceData())
 	} else {
-		utils.MustNotError(persistence.ReplayAllEvents(publisher))
+		utils.MustNotError(disk.ReplayAllEvents(publisher))
 	}
 
 	bootstrap.SetupCommandHandlers(publisher, registry)
-	publisher.Subscribe(dispatch.LimitOnType(commands.DomainEvent, dispatch.ReadOnlyRoutes(persistence.Apply)))
+	publisher.Subscribe(dispatch.LimitOnType(commands.DomainEvent, dispatch.ReadOnlyRoutes(disk.Apply())))
 
 	return publisher
 }
@@ -113,7 +115,8 @@ func seedFiles(publisher *dispatch.InMemoryPublisher, sourceDir string, reset bo
 }
 
 func getExistingFileNames() map[string]bool {
-	events, _ := persistence.LoadAllEvents()
+	disk := persistence.New()
+	events, _ := disk.LoadAllEvents()
 	fileNames := make(map[string]bool)
 
 	for _, event := range events {
@@ -130,7 +133,8 @@ func getExistingFileNames() map[string]bool {
 }
 
 func getOrCreateProjectID(publish dispatch.PublishFunc) string {
-	events, _ := persistence.LoadAllEvents()
+	disk := persistence.New()
+	events, _ := disk.LoadAllEvents()
 
 	for _, event := range events {
 		if event.AggregateType == project.EntityName && event.Action == project.CreatedProject {
