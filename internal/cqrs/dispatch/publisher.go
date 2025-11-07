@@ -1,6 +1,7 @@
 package dispatch
 
 import (
+	"github.com/google/uuid"
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/lib/utils"
 	"sync"
@@ -8,21 +9,39 @@ import (
 
 type PublishFunc func(event *commands.AnyMessage) (*commands.AnyMessage, error)
 
+type subscription struct {
+	id     string
+	router CommandRouter
+}
+
 type InMemoryPublisher struct {
-	subscribers []CommandRouter
+	subscribers []subscription
 	mu          sync.RWMutex
 }
 
 func NewInMemoryPublisher() *InMemoryPublisher {
 	return &InMemoryPublisher{
-		subscribers: make([]CommandRouter, 0),
+		subscribers: make([]subscription, 0),
 	}
 }
 
-func (p *InMemoryPublisher) Subscribe(router CommandRouter) {
+func (p *InMemoryPublisher) Subscribe(router CommandRouter) func() {
+	id := uuid.New().String()
+
 	p.mu.Lock()
-	defer p.mu.Unlock()
-	p.subscribers = append(p.subscribers, router)
+	p.subscribers = append(p.subscribers, subscription{id, router})
+	p.mu.Unlock()
+
+	return func() {
+		p.mu.Lock()
+		defer p.mu.Unlock()
+		for i, sub := range p.subscribers {
+			if sub.id == id {
+				p.subscribers = append(p.subscribers[:i], p.subscribers[i+1:]...)
+				break
+			}
+		}
+	}
 }
 
 func (p *InMemoryPublisher) Publish(event *commands.AnyMessage) (*commands.AnyMessage, error) {
@@ -36,8 +55,8 @@ func (p *InMemoryPublisher) Publish(event *commands.AnyMessage) (*commands.AnyMe
 
 	var firstResult *commands.AnyMessage
 
-	for _, router := range subscribers {
-		result, err := router(event, p.Publish)
+	for _, sub := range subscribers {
+		result, err := sub.router(event, p.Publish)
 
 		if result != nil {
 			if firstResult == nil {

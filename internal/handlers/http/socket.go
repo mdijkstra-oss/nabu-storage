@@ -8,7 +8,7 @@ import (
 	"net/http"
 )
 
-func WebSocketHandler(publish dispatch.PublishFunc, subscribe func(dispatch.CommandRouter)) http.HandlerFunc {
+func WebSocketHandler(publish dispatch.PublishFunc, subscribe func(dispatch.CommandRouter) func()) http.HandlerFunc {
 	upgrader := websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
 			return true // Todo: Configure properly in production
@@ -27,12 +27,13 @@ func WebSocketHandler(publish dispatch.PublishFunc, subscribe func(dispatch.Comm
 	}
 }
 
-func handleWebSocket(conn *websocket.Conn, publish dispatch.PublishFunc, subscribe func(dispatch.CommandRouter)) {
-	// Forward domain/system events to client
-	subscribe(dispatch.LimitOnType(
+// Todo: Important, only send messages to user that can view them!
+func handleWebSocket(conn *websocket.Conn, publish dispatch.PublishFunc, subscribe func(dispatch.CommandRouter) func()) {
+	unsubscribe := subscribe(dispatch.LimitOnType(
 		commands.DomainEvent,
 		forwardToWebSocket(conn),
 	))
+	defer unsubscribe()
 
 	// Handle incoming commands from client
 	for {
@@ -47,14 +48,14 @@ func handleWebSocket(conn *websocket.Conn, publish dispatch.PublishFunc, subscri
 
 		// Send response (errors or results)
 		if len(response.Body) > 0 {
-			utils.WarnErr(conn.WriteMessage(websocket.TextMessage, response.Body))
+			utils.ShouldWork(conn.WriteMessage(websocket.TextMessage, response.Body))
 		}
 	}
 }
 
 func forwardToWebSocket(conn *websocket.Conn) dispatch.CommandRouter {
 	return func(msg *commands.AnyMessage, pub dispatch.PublishFunc) (*commands.AnyMessage, error) {
-		utils.WarnErr(conn.WriteJSON(msg))
+		utils.ShouldWork(conn.WriteJSON(msg))
 		return nil, nil
 	}
 }

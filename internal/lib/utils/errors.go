@@ -153,6 +153,12 @@ func Must[T any](value T, err error) T {
 	return value
 }
 
+func MustNotError(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
 func Should[T any](value T, err error) T {
 	if err != nil {
 		slog.Warn("Should detected error", "error", err)
@@ -160,14 +166,7 @@ func Should[T any](value T, err error) T {
 	return value
 }
 
-func MustNotError(err error) {
-	if err != nil {
-		panic(err)
-	}
-}
-
-// WarnErr Only for non-critical, unlikely errors (eg decoding object that is typed to always be decoded etc)
-func WarnErr(err error) {
+func ShouldWork(err error) {
 	if err == nil {
 		return
 	}
