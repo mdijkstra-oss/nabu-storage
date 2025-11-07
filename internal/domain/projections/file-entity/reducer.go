@@ -53,14 +53,14 @@ func CodedFileReducer(current *File, message *commands.AnyMessage, payload *file
 	for _, action := range payload.Actions {
 		chunkIdx := -1
 		for i, c := range current.Chunks {
-			if c.IDX == action.ChunkID {
+			if c.IDX == action.ChunkIDX {
 				chunkIdx = i
 				break
 			}
 		}
 
 		if chunkIdx == -1 {
-			slog.Warn("Chunk not found", "id", action.ChunkID)
+			slog.Warn("Chunk not found", "id", action.ChunkIDX)
 			continue
 		}
 
@@ -82,7 +82,7 @@ func CodedFileReducer(current *File, message *commands.AnyMessage, payload *file
 			for _, section := range action.Sections {
 				start, end, found := find.FindRange(section.Text, chunk.Content)
 				if !found {
-					slog.Warn("Text not found", "chunk", action.ChunkID, "section", section)
+					slog.Warn("Text not found", "chunk", action.ChunkIDX, "section", section)
 					continue
 				}
 

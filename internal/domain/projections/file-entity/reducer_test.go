@@ -72,7 +72,7 @@ func TestFileReducer(t *testing.T) {
 						CodeID:   "code-1",
 						CodeSlug: "topic:climate",
 						Action:   file.AppendCoding,
-						ChunkID:  "1",
+						ChunkIDX: "1",
 						Sections: []file.CodedSectionAttributes{
 							{Text: "Climate change", AIReason: "Climate ref"},
 						},
@@ -125,7 +125,7 @@ func TestFileReducer(t *testing.T) {
 						CodeID:   "code-1",
 						CodeSlug: "topic:climate",
 						Action:   file.SetCoding,
-						ChunkID:  "1",
+						ChunkIDX: "1",
 						Sections: []file.CodedSectionAttributes{
 							{Text: "warming", AIReason: "New"},
 						},
@@ -178,7 +178,7 @@ func TestFileReducer(t *testing.T) {
 						CodeID:   "code-1",
 						CodeSlug: "topic:climate",
 						Action:   file.RemoveCoding,
-						ChunkID:  "1",
+						ChunkIDX: "1",
 						Sections: []file.CodedSectionAttributes{{Text: "dummy"}},
 					},
 				},

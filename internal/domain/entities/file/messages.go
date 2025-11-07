@@ -18,7 +18,7 @@ type CodingAction struct {
 	CodeID   string                   `json:"code_id" validate:"required"`
 	Action   CodingMutation           `json:"action" validate:"oneof=SetCoding AppendCoding RemoveCoding"`
 	Sections []CodedSectionAttributes `json:"texts" validate:"min=1,dive,required"`
-	ChunkID  string                   `json:"chunk_id" validate:"required"`
+	ChunkIDX string                   `json:"chunk_idx" validate:"required"`
 }
 
 type CodeFileData struct {
