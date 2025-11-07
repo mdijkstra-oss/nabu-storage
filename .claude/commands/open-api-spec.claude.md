@@ -36,6 +36,10 @@ Each entity folder contains:
 - `validate:"pattern"` - custom validation patterns
 - `normalize:"trim,lowercase"` - normalization rules
 
+**Custom Validation**: Look for:
+- **`validators.go`** - called validation functions
+- **`handlers.go`** - Validate calls in route for custom validation (eg duplicate checks, existence checks etc)
+
 ### Query Endpoints & Responses
 **`internal/handlers/routes.go`** - ALL endpoint paths and route definitions
 
@@ -210,6 +214,7 @@ Example code slugs: `topic:patient-experience`, `emotion:anxiety`, `usability:fr
    - Read `events.go` for event action constants
    - Read `messages.go` for payload structs (check validation/normalization tags)
    - Read `entity.go` for complete entity structure
+   - Read `handlers/*` for complete handler structure
 4. **Endpoints**: Read `routes.go` to discover ALL endpoint paths and their handlers
 5. **Projections**: For each entity, check if `internal/domain/projections/{entity}-entity/` exists:
    - Read `view.go` for response types
@@ -246,3 +251,44 @@ Example code slugs: `topic:patient-experience`, `emotion:anxiety`, `usability:fr
   - Pattern validation errors: `{"message": "validation failed: Slug must match code slug format (lowercase with colon and optional dashes)", "fields": {"Slug": "code_slug"}}`
 - **Documentation**: Clear descriptions explaining what each endpoint/command does
 - **Unimplemented Commands**: Mark with ⚠️ when command constant exists but no implementation found
+- **x-command-reference**: Use proper YAML structure:
+  ```yaml
+  x-command-reference:
+    description: |
+      Complete reference of all supported commands by aggregate type.
+
+      For aggregateId field:
+      - CREATE operations: Use empty string ""
+      - UPDATE/DELETE operations: Use entity UUID
+
+    Project:
+      CreateProject:
+        description: Create a new research project
+        payload: CreateProjectPayload
+        aggregateId: empty string for create
+        event: CreatedProject
+
+    Code:
+      CreateCode:
+        description: Create a new analytical code
+        payload: CreateCodePayload
+        aggregateId: empty string for create
+        event: CreatedCode
+
+      UpdateCode:
+        description: Update code properties
+        payload: UpdateCodePayload
+        aggregateId: code UUID
+        event: UpdatedCode
+
+      DeleteCode:
+        description: Delete a code
+        payload: DeleteCodePayload
+        aggregateId: code UUID
+        event: DeletedCode
+        note: Payload required for validation only
+  ```
+  - Use entity name as first level key (Project, Code, File)
+  - Use command action as second level key (CreateProject, UpdateCode, etc.)
+  - For aggregateId values: use descriptive text like "empty string for create" or "code UUID"
+  - Use `note:` field for additional information (e.g., "No payload required", "Payload required for validation only")
