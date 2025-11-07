@@ -14,19 +14,41 @@ import (
 )
 
 type ProjectView struct {
+	ProjectID    string
 	ProjectStore *projection.Store[project.Project]
 	CodeStore    *projection.Store[code.Code]
 	FileStore    *projection.Store[file.File]
+	healthy      bool
+	mu           sync.RWMutex
+}
+
+func (pv *ProjectView) IsHealthy() bool {
+	pv.mu.RLock()
+	defer pv.mu.RUnlock()
+	return pv.healthy
+}
+
+func (pv *ProjectView) markUnhealthy() {
+	pv.mu.Lock()
+	defer pv.mu.Unlock()
+	pv.healthy = false
 }
 
 func (pv *ProjectView) ApplyEventToAllStores(message *commands.AnyMessage) {
+	if !pv.IsHealthy() {
+		return
+	}
+
 	defer func() {
 		if r := recover(); r != nil {
-			slog.Error("panic while applying event to stores",
+			slog.Error("FATAL: corrupt event crashed projection, marking project unhealthy",
+				"projectID", pv.ProjectID,
 				"action", message.Action,
 				"aggregateID", message.AggregateID,
 				"aggregateType", message.AggregateType,
+				"timestamp", message.Timestamp,
 				"panic", r)
+			pv.markUnhealthy()
 		}
 	}()
 
@@ -110,17 +132,19 @@ func (pvr *ProjectViewRegistry) EnsureProjectExists(message *commands.AnyMessage
 		return existing
 	}
 
-	view = pvr.createProjectView()
+	view = pvr.createProjectView(projectID)
 	pvr.projects[projectID] = view
 	slog.Info("added new project to registry", "projectID", projectID)
 	return view
 }
 
-func (pvr *ProjectViewRegistry) createProjectView() *ProjectView {
+func (pvr *ProjectViewRegistry) createProjectView(projectID string) *ProjectView {
 	return &ProjectView{
+		ProjectID:    projectID,
 		ProjectStore: projection.NewStore(pvr.projectReducer),
 		CodeStore:    projection.NewStore(pvr.codeReducer),
 		FileStore:    projection.NewStore(pvr.fileReducer),
+		healthy:      true,
 	}
 }
 
@@ -154,8 +178,18 @@ func Validate[P any](registry *ProjectViewRegistry, validator func(*ProjectView,
 			return nil, utils.FieldError("ProjectID", "not found")
 		}
 
+		if !view.IsHealthy() {
+			return nil, &utils.InternalError{Message: "project is in unhealthy state due to corrupted data, commands are blocked"}
+		}
+
 		var payload P
-		utils.MustNotError(commands.UnmarshallPayload(message, &payload))
+		if err := commands.UnmarshallPayload(message, &payload); err != nil {
+			slog.Warn("failed to unmarshal command payload, ignoring invalid request",
+				"action", message.Action,
+				"aggregateType", message.AggregateType,
+				"error", err)
+			return nil, utils.FieldError("payload", "invalid format")
+		}
 
 		validationErr := validator(view, payload, message)
 		if validationErr != nil {

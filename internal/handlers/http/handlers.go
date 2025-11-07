@@ -27,6 +27,6 @@ func httpHandler(processor func(Request, dispatch.PublishFunc) Response, publish
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(response.StatusCode)
-		utils.Must(w.Write(response.Body))
+		utils.Should(w.Write(response.Body))
 	}
 }

@@ -42,7 +42,7 @@ func (p *InMemoryPublisher) Publish(event *commands.AnyMessage) (*commands.AnyMe
 				firstResult = result
 			}
 
-			utils.Must(p.Publish(result))
+			utils.Should(p.Publish(result))
 		}
 
 		if err != nil {

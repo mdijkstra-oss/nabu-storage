@@ -153,6 +153,13 @@ func Must[T any](value T, err error) T {
 	return value
 }
 
+func Should[T any](value T, err error) T {
+	if err != nil {
+		slog.Warn("Should detected error", "error", err)
+	}
+	return value
+}
+
 func MustNotError(err error) {
 	if err != nil {
 		panic(err)

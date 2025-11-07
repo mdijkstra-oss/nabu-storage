@@ -57,7 +57,7 @@ func ToRoute(processor ProcessorFunc) http.HandlerFunc {
 		response := processor(request)
 
 		w.WriteHeader(response.StatusCode)
-		utils.Must(w.Write(response.Body))
+		utils.Should(w.Write(response.Body))
 	}
 }
 

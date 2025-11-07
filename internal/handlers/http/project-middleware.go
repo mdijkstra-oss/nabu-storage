@@ -22,6 +22,11 @@ func WithProjectView(registry *domainprojection.ProjectViewRegistry) func(http.H
 				return
 			}
 
+			if !view.IsHealthy() {
+				http.Error(w, "project is in unhealthy state due to corrupted data", http.StatusServiceUnavailable)
+				return
+			}
+
 			ctx := withProjectViewContext(r.Context(), view)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})

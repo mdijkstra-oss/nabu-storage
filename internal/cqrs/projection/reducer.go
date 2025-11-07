@@ -1,8 +1,9 @@
 package projection
 
 import (
+	"fmt"
 	"hermes-relay/internal/cqrs/commands"
-	"hermes-relay/internal/lib/utils"
+	"log/slog"
 )
 
 type Reducer[T any] func(current *T, event *commands.AnyMessage) *T
@@ -24,7 +25,16 @@ func For[T any, P any](action commands.Action, reducer func(*T, *commands.AnyMes
 		}
 
 		var payload P
-		utils.MustNotError(commands.UnmarshallPayload(event, &payload))
+		if err := commands.UnmarshallPayload(event, &payload); err != nil {
+			slog.Error("FATAL: failed to unmarshal event payload",
+				"action", action,
+				"aggregateType", event.AggregateType,
+				"aggregateID", event.AggregateID,
+				"timestamp", event.Timestamp,
+				"error", err)
+			panic(fmt.Sprintf("corrupt %s event for %s (ID: %s): %v",
+				action, event.AggregateType, event.AggregateID, err))
+		}
 
 		return reducer(current, event, payload)
 	}

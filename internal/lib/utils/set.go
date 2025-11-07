@@ -1,5 +1,7 @@
 package utils
 
+import "sort"
+
 func Values[K comparable, V any](m map[K]V) []V {
 	result := make([]V, 0, len(m))
 	for _, v := range m {
@@ -66,13 +68,9 @@ func Exists[T any](items []T, predicate func(T) bool) bool {
 }
 
 func Sort[T any](slice []T, less func(a, b T) bool) {
-	for i := 0; i < len(slice); i++ {
-		for j := i + 1; j < len(slice); j++ {
-			if !less(slice[i], slice[j]) {
-				slice[i], slice[j] = slice[j], slice[i]
-			}
-		}
-	}
+	sort.Slice(slice, func(i, j int) bool {
+		return less(slice[i], slice[j])
+	})
 }
 
 func Contains[T comparable](slice []T, item T) bool {
