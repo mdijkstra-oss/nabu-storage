@@ -41,7 +41,7 @@ type CodedSectionAttributes struct {
 }
 
 type Chunk struct {
-	IDX     string         `json:"idx" validate:"required"`
+	ID      string         `json:"id" validate:"required"`
 	Content string         `json:"content"`
 	Codes   []CodedSection `json:"codes"`
 }

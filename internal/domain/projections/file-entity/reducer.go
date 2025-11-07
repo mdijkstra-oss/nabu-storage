@@ -27,7 +27,7 @@ func CreatedFileReducer(_ *File, message *commands.AnyMessage, payload *file.Cre
 
 	chunks := utils.MapWithIndex(blocks, func(i int, block string) file.Chunk {
 		return file.Chunk{
-			IDX:     fmt.Sprintf("%d", i+1),
+			ID:      fmt.Sprintf("%d", i+1),
 			Content: block,
 			Codes:   []file.CodedSection{},
 		}
@@ -51,20 +51,20 @@ func CreatedFileReducer(_ *File, message *commands.AnyMessage, payload *file.Cre
 
 func CodedFileReducer(current *File, message *commands.AnyMessage, payload *file.CodeFileData) *File {
 	for _, action := range payload.Actions {
-		chunkIdx := -1
+		chunkID := -1
 		for i, c := range current.Chunks {
-			if c.IDX == action.ChunkIDX {
-				chunkIdx = i
+			if c.ID == action.ChunkID {
+				chunkID = i
 				break
 			}
 		}
 
-		if chunkIdx == -1 {
-			slog.Warn("Chunk not found", "id", action.ChunkIDX)
+		if chunkID == -1 {
+			slog.Warn("Chunk not found", "id", action.ChunkID)
 			continue
 		}
 
-		chunk := &current.Chunks[chunkIdx]
+		chunk := &current.Chunks[chunkID]
 
 		switch action.Action {
 		case file.RemoveCoding:
@@ -82,7 +82,7 @@ func CodedFileReducer(current *File, message *commands.AnyMessage, payload *file
 			for _, section := range action.Sections {
 				start, end, found := find.FindRange(section.Text, chunk.Content)
 				if !found {
-					slog.Warn("Text not found", "chunk", action.ChunkIDX, "section", section)
+					slog.Warn("Text not found", "chunk", action.ChunkID, "section", section)
 					continue
 				}
 

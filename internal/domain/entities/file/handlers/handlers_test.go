@@ -81,7 +81,7 @@ func TestFileRouter(t *testing.T) {
 								Comment:  "Test comment",
 							},
 						},
-						ChunkIDX: "chunk-1",
+						ChunkID: "chunk-1",
 					},
 				},
 			}, file.EntityName, "file-123", nil)),
@@ -99,7 +99,7 @@ func TestFileRouter(t *testing.T) {
 								Comment:  "Test comment",
 							},
 						},
-						ChunkIDX: "chunk-1",
+						ChunkID: "chunk-1",
 					},
 				},
 			}, file.EntityName, "file-123", nil)),
@@ -115,7 +115,7 @@ func TestFileRouter(t *testing.T) {
 						Sections: []file.CodedSectionAttributes{
 							{Text: "First section", AIReason: "First reason"},
 						},
-						ChunkIDX: "chunk-1",
+						ChunkID: "chunk-1",
 					},
 					{
 						CodeID:   "code-2",
@@ -124,7 +124,7 @@ func TestFileRouter(t *testing.T) {
 						Sections: []file.CodedSectionAttributes{
 							{Text: "Second section", Comment: "Second comment"},
 						},
-						ChunkIDX: "chunk-2",
+						ChunkID: "chunk-2",
 					},
 				},
 			}, file.EntityName, "file-456", nil)),
@@ -138,7 +138,7 @@ func TestFileRouter(t *testing.T) {
 						Sections: []file.CodedSectionAttributes{
 							{Text: "First section", AIReason: "First reason"},
 						},
-						ChunkIDX: "chunk-1",
+						ChunkID: "chunk-1",
 					},
 					{
 						CodeID:   "code-2",
@@ -147,7 +147,7 @@ func TestFileRouter(t *testing.T) {
 						Sections: []file.CodedSectionAttributes{
 							{Text: "Second section", Comment: "Second comment"},
 						},
-						ChunkIDX: "chunk-2",
+						ChunkID: "chunk-2",
 					},
 				},
 			}, file.EntityName, "file-456", nil)),
@@ -163,7 +163,7 @@ func TestFileRouter(t *testing.T) {
 						Sections: []file.CodedSectionAttributes{
 							{Text: "Appending text", AIReason: "Append reason", Comment: "Append comment"},
 						},
-						ChunkIDX: "chunk-1",
+						ChunkID: "chunk-1",
 					},
 				},
 			}, file.EntityName, "file-append", nil)),
@@ -177,7 +177,7 @@ func TestFileRouter(t *testing.T) {
 						Sections: []file.CodedSectionAttributes{
 							{Text: "Appending text", AIReason: "Append reason", Comment: "Append comment"},
 						},
-						ChunkIDX: "chunk-1",
+						ChunkID: "chunk-1",
 					},
 				},
 			}, file.EntityName, "file-append", nil)),
@@ -193,7 +193,7 @@ func TestFileRouter(t *testing.T) {
 						Sections: []file.CodedSectionAttributes{
 							{Text: "Dummy text"},
 						},
-						ChunkIDX: "chunk-1",
+						ChunkID: "chunk-1",
 					},
 				},
 			}, file.EntityName, "file-remove", nil)),
@@ -207,7 +207,7 @@ func TestFileRouter(t *testing.T) {
 						Sections: []file.CodedSectionAttributes{
 							{Text: "Dummy text"},
 						},
-						ChunkIDX: "chunk-1",
+						ChunkID: "chunk-1",
 					},
 				},
 			}, file.EntityName, "file-remove", nil)),
@@ -256,14 +256,14 @@ func TestFileRouter(t *testing.T) {
 					{
 						Action:   file.SetCoding,
 						Sections: []file.CodedSectionAttributes{{Text: "Some text"}},
-						ChunkIDX: "chunk-1",
+						ChunkID:  "chunk-1",
 					},
 				},
 			}, file.EntityName, "file-123", nil)),
 			ExpectErr: "validation failed: CodeSlug is required, CodeID is required",
 		},
 		{
-			Name: "CodeFile with missing ChunkIDX",
+			Name: "CodeFile with missing ChunkID",
 			Input: commands.ToAny(commands.NewCommand[file.CodeFilePayload, any](file.CodeFile, file.CodeFilePayload{
 				Actions: []file.CodingAction{
 					{
@@ -273,7 +273,7 @@ func TestFileRouter(t *testing.T) {
 					},
 				},
 			}, file.EntityName, "file-123", nil)),
-			ExpectErr: "validation failed: CodeID is required, ChunkIDX is required",
+			ExpectErr: "validation failed: CodeID is required, ChunkID is required",
 		},
 		{
 			Name: "CodeFile with empty sections array",
@@ -283,7 +283,7 @@ func TestFileRouter(t *testing.T) {
 						CodeSlug: "topic:test",
 						Action:   file.SetCoding,
 						Sections: []file.CodedSectionAttributes{},
-						ChunkIDX: "chunk-1",
+						ChunkID:  "chunk-1",
 					},
 				},
 			}, file.EntityName, "file-123", nil)),
@@ -297,7 +297,7 @@ func TestFileRouter(t *testing.T) {
 						CodeSlug: "topicclimate",
 						Action:   file.SetCoding,
 						Sections: []file.CodedSectionAttributes{{Text: "Some text"}},
-						ChunkIDX: "chunk-1",
+						ChunkID:  "chunk-1",
 					},
 				},
 			}, file.EntityName, "file-123", nil)),
@@ -311,7 +311,7 @@ func TestFileRouter(t *testing.T) {
 						CodeSlug: "Topic:climate",
 						Action:   file.SetCoding,
 						Sections: []file.CodedSectionAttributes{{Text: "Some text"}},
-						ChunkIDX: "chunk-1",
+						ChunkID:  "chunk-1",
 					},
 				},
 			}, file.EntityName, "file-123", nil)),

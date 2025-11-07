@@ -26,13 +26,13 @@ func TestByChunk(t *testing.T) {
 			},
 			Content: "Test content",
 			Chunks: []file.Chunk{
-				{IDX: "1", Content: "Climate change impacts", Codes: []file.CodedSection{
+				{ID: "1", Content: "Climate change impacts", Codes: []file.CodedSection{
 					{StartIndex: 0, EndIndex: 14, CodeSlug: "topic:climate", CodeID: "code-1", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change"}},
 				}},
-				{IDX: "2", Content: "Economic policies affect", Codes: []file.CodedSection{
+				{ID: "2", Content: "Economic policies affect", Codes: []file.CodedSection{
 					{StartIndex: 0, EndIndex: 8, CodeSlug: "topic:economy", CodeID: "code-2", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Economic"}},
 				}},
-				{IDX: "3", Content: "Climate patterns shift", Codes: []file.CodedSection{
+				{ID: "3", Content: "Climate patterns shift", Codes: []file.CodedSection{
 					{StartIndex: 0, EndIndex: 7, CodeSlug: "topic:climate", CodeID: "code-3", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate"}},
 				}},
 			},
@@ -51,7 +51,7 @@ func TestByChunk(t *testing.T) {
 			},
 			Expected: []ChunkResult{
 				{
-					Chunk:       file.Chunk{IDX: "1", Content: "Climate change impacts", Codes: []file.CodedSection{{StartIndex: 0, EndIndex: 14, CodeSlug: "topic:climate", CodeID: "code-1", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change"}}}},
+					Chunk:       file.Chunk{ID: "1", Content: "Climate change impacts", Codes: []file.CodedSection{{StartIndex: 0, EndIndex: 14, CodeSlug: "topic:climate", CodeID: "code-1", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change"}}}},
 					ChunkIndex:  1,
 					TotalChunks: 3,
 					Next:        intPtr(2),
@@ -62,11 +62,11 @@ func TestByChunk(t *testing.T) {
 			Name: "First chunk explicitly",
 			Input: ChunkQuery{
 				GetByIDQuery: projection.GetByIDQuery{ID: "file-1"},
-				IDX:          intPtr(1),
+				ID:           intPtr(1),
 			},
 			Expected: []ChunkResult{
 				{
-					Chunk:       file.Chunk{IDX: "1", Content: "Climate change impacts", Codes: []file.CodedSection{{StartIndex: 0, EndIndex: 14, CodeSlug: "topic:climate", CodeID: "code-1", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change"}}}},
+					Chunk:       file.Chunk{ID: "1", Content: "Climate change impacts", Codes: []file.CodedSection{{StartIndex: 0, EndIndex: 14, CodeSlug: "topic:climate", CodeID: "code-1", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change"}}}},
 					ChunkIndex:  1,
 					TotalChunks: 3,
 					Next:        intPtr(2),
@@ -77,11 +77,11 @@ func TestByChunk(t *testing.T) {
 			Name: "Middle chunk",
 			Input: ChunkQuery{
 				GetByIDQuery: projection.GetByIDQuery{ID: "file-1"},
-				IDX:          intPtr(2),
+				ID:           intPtr(2),
 			},
 			Expected: []ChunkResult{
 				{
-					Chunk:       file.Chunk{IDX: "2", Content: "Economic policies affect", Codes: []file.CodedSection{{StartIndex: 0, EndIndex: 8, CodeSlug: "topic:economy", CodeID: "code-2", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Economic"}}}},
+					Chunk:       file.Chunk{ID: "2", Content: "Economic policies affect", Codes: []file.CodedSection{{StartIndex: 0, EndIndex: 8, CodeSlug: "topic:economy", CodeID: "code-2", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Economic"}}}},
 					ChunkIndex:  2,
 					TotalChunks: 3,
 					Next:        intPtr(3),
@@ -92,11 +92,11 @@ func TestByChunk(t *testing.T) {
 			Name: "Last chunk",
 			Input: ChunkQuery{
 				GetByIDQuery: projection.GetByIDQuery{ID: "file-1"},
-				IDX:          intPtr(3),
+				ID:           intPtr(3),
 			},
 			Expected: []ChunkResult{
 				{
-					Chunk:       file.Chunk{IDX: "3", Content: "Climate patterns shift", Codes: []file.CodedSection{{StartIndex: 0, EndIndex: 7, CodeSlug: "topic:climate", CodeID: "code-3", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate"}}}},
+					Chunk:       file.Chunk{ID: "3", Content: "Climate patterns shift", Codes: []file.CodedSection{{StartIndex: 0, EndIndex: 7, CodeSlug: "topic:climate", CodeID: "code-3", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate"}}}},
 					ChunkIndex:  3,
 					TotalChunks: 3,
 					Next:        nil,
@@ -107,7 +107,7 @@ func TestByChunk(t *testing.T) {
 			Name: "Out of bounds index returns nil",
 			Input: ChunkQuery{
 				GetByIDQuery: projection.GetByIDQuery{ID: "file-1"},
-				IDX:          intPtr(10),
+				ID:           intPtr(10),
 			},
 			Expected: nil,
 		},
@@ -115,7 +115,7 @@ func TestByChunk(t *testing.T) {
 			Name: "Non-existent file returns nil",
 			Input: ChunkQuery{
 				GetByIDQuery: projection.GetByIDQuery{ID: "nonexistent"},
-				IDX:          intPtr(1),
+				ID:           intPtr(1),
 			},
 			Expected: nil,
 		},
@@ -129,7 +129,7 @@ func TestByChunk(t *testing.T) {
 			},
 			Expected: []ChunkResult{
 				{
-					Chunk:       file.Chunk{IDX: "1", Content: "Climate change impacts", Codes: []file.CodedSection{{StartIndex: 0, EndIndex: 14, CodeSlug: "topic:climate", CodeID: "code-1", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change"}}}},
+					Chunk:       file.Chunk{ID: "1", Content: "Climate change impacts", Codes: []file.CodedSection{{StartIndex: 0, EndIndex: 14, CodeSlug: "topic:climate", CodeID: "code-1", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change"}}}},
 					ChunkIndex:  1,
 					TotalChunks: 2,
 					Next:        intPtr(3),
@@ -143,11 +143,11 @@ func TestByChunk(t *testing.T) {
 				ChunkFilter: ChunkFilter{
 					SearchText: "Climate",
 				},
-				IDX: intPtr(3),
+				ID: intPtr(3),
 			},
 			Expected: []ChunkResult{
 				{
-					Chunk:       file.Chunk{IDX: "3", Content: "Climate patterns shift", Codes: []file.CodedSection{{StartIndex: 0, EndIndex: 7, CodeSlug: "topic:climate", CodeID: "code-3", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate"}}}},
+					Chunk:       file.Chunk{ID: "3", Content: "Climate patterns shift", Codes: []file.CodedSection{{StartIndex: 0, EndIndex: 7, CodeSlug: "topic:climate", CodeID: "code-3", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate"}}}},
 					ChunkIndex:  3,
 					TotalChunks: 2,
 					Next:        nil,
@@ -161,7 +161,7 @@ func TestByChunk(t *testing.T) {
 				ChunkFilter: ChunkFilter{
 					SearchText: "Climate",
 				},
-				IDX: intPtr(2),
+				ID: intPtr(2),
 			},
 			Expected: nil,
 		},
@@ -176,7 +176,7 @@ func TestByChunk(t *testing.T) {
 			},
 			Expected: []ChunkResult{
 				{
-					Chunk:       file.Chunk{IDX: "1", Content: "Climate change impacts", Codes: []file.CodedSection{{StartIndex: 0, EndIndex: 14, CodeSlug: "topic:climate", CodeID: "code-1", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change"}}}},
+					Chunk:       file.Chunk{ID: "1", Content: "Climate change impacts", Codes: []file.CodedSection{{StartIndex: 0, EndIndex: 14, CodeSlug: "topic:climate", CodeID: "code-1", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change"}}}},
 					ChunkIndex:  1,
 					TotalChunks: 2,
 					Next:        intPtr(3),
@@ -193,7 +193,7 @@ func TestByChunk(t *testing.T) {
 			},
 			Expected: []ChunkResult{
 				{
-					Chunk:       file.Chunk{IDX: "1", Content: "Climate change impacts", Codes: []file.CodedSection{{StartIndex: 0, EndIndex: 14, CodeSlug: "topic:climate", CodeID: "code-1", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change"}}}},
+					Chunk:       file.Chunk{ID: "1", Content: "Climate change impacts", Codes: []file.CodedSection{{StartIndex: 0, EndIndex: 14, CodeSlug: "topic:climate", CodeID: "code-1", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change"}}}},
 					ChunkIndex:  1,
 					TotalChunks: 1,
 					Next:        nil,

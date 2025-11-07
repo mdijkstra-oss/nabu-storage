@@ -10,7 +10,7 @@ import (
 type ChunkQuery struct {
 	projection.GetByIDQuery
 	ChunkFilter
-	IDX *int `query:"index"`
+	ID *int `query:"index"`
 }
 
 type ChunkResult struct {
@@ -33,34 +33,34 @@ func ByChunk(files []fileview.File, q ChunkQuery) []ChunkResult {
 		return nil
 	}
 
-	chunkIdx := findChunkIndex(chunks, q.IDX)
-	if chunkIdx == -1 {
+	chunkID := findChunkIndex(chunks, q.ID)
+	if chunkID == -1 {
 		return nil
 	}
 
-	currentChunk := chunks[chunkIdx]
+	currentChunk := chunks[chunkID]
 
 	var next *int
-	if chunkIdx+1 < len(chunks) {
-		nextIdx := parseIDX(chunks[chunkIdx+1].IDX)
-		next = &nextIdx
+	if chunkID+1 < len(chunks) {
+		nextID := parseID(chunks[chunkID+1].ID)
+		next = &nextID
 	}
 
 	return []ChunkResult{{
 		Chunk:       currentChunk,
-		ChunkIndex:  parseIDX(currentChunk.IDX),
+		ChunkIndex:  parseID(currentChunk.ID),
 		TotalChunks: len(chunks),
 		Next:        next,
 	}}
 }
 
-func findChunkIndex(chunks []file.Chunk, requestedIDX *int) int {
-	if requestedIDX == nil {
+func findChunkIndex(chunks []file.Chunk, requestedID *int) int {
+	if requestedID == nil {
 		return 0
 	}
 
 	for i, chunk := range chunks {
-		if parseIDX(chunk.IDX) == *requestedIDX {
+		if parseID(chunk.ID) == *requestedID {
 			return i
 		}
 	}
@@ -68,7 +68,7 @@ func findChunkIndex(chunks []file.Chunk, requestedIDX *int) int {
 	return -1
 }
 
-func parseIDX(idx string) int {
-	n, _ := strconv.Atoi(idx)
+func parseID(id string) int {
+	n, _ := strconv.Atoi(id)
 	return n
 }

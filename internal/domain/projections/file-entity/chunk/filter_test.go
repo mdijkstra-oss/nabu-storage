@@ -8,7 +8,7 @@ import (
 
 func TestCalculateChunkCoverage(t *testing.T) {
 	chunk := file.Chunk{
-		IDX:     "1",
+		ID:      "1",
 		Content: "Climate change impacts global warming.",
 		Codes: []file.CodedSection{
 			{StartIndex: 0, EndIndex: 14, CodeSlug: "topic:climate", CodeID: "code-1", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change"}},
@@ -35,9 +35,9 @@ func TestCalculateChunkCoverage(t *testing.T) {
 
 func TestFilterChunksByText(t *testing.T) {
 	chunks := []file.Chunk{
-		{IDX: "1", Content: "Climate change impacts global warming.", Codes: []file.CodedSection{}},
-		{IDX: "2", Content: "Economic policies affect market stability.", Codes: []file.CodedSection{}},
-		{IDX: "3", Content: "Healthcare systems need reform urgently.", Codes: []file.CodedSection{}},
+		{ID: "1", Content: "Climate change impacts global warming.", Codes: []file.CodedSection{}},
+		{ID: "2", Content: "Economic policies affect market stability.", Codes: []file.CodedSection{}},
+		{ID: "3", Content: "Healthcare systems need reform urgently.", Codes: []file.CodedSection{}},
 	}
 
 	tests := []struct {
@@ -56,7 +56,7 @@ func TestFilterChunksByText(t *testing.T) {
 
 	test_helpers.RunFunctionTests(t, tests, func(searchText string) []file.Chunk {
 		return FilterChunksByText(chunks, searchText)
-	}, extractIDXs)
+	}, extractIDs)
 }
 
 type coverageFilterInput struct {
@@ -67,14 +67,14 @@ type coverageFilterInput struct {
 
 func TestFilterChunksByCoverage(t *testing.T) {
 	chunks := []file.Chunk{
-		{IDX: "1", Content: "AAAAAAAAAA", Codes: []file.CodedSection{{StartIndex: 0, EndIndex: 2, CodeSlug: "topic:climate", CodeID: "code-1", CodedSectionAttributes: file.CodedSectionAttributes{Text: "AA"}}}},
-		{IDX: "2", Content: "BBBBBBBBBB", Codes: []file.CodedSection{{StartIndex: 0, EndIndex: 5, CodeSlug: "topic:economy", CodeID: "code-2", CodedSectionAttributes: file.CodedSectionAttributes{Text: "BBBBB"}}}},
-		{IDX: "3", Content: "CCCCCCCCCC", Codes: []file.CodedSection{{StartIndex: 0, EndIndex: 8, CodeSlug: "topic:climate", CodeID: "code-3", CodedSectionAttributes: file.CodedSectionAttributes{Text: "CCCCCCCC"}}}},
-		{IDX: "4", Content: "DDDDDDDDDD", Codes: []file.CodedSection{
+		{ID: "1", Content: "AAAAAAAAAA", Codes: []file.CodedSection{{StartIndex: 0, EndIndex: 2, CodeSlug: "topic:climate", CodeID: "code-1", CodedSectionAttributes: file.CodedSectionAttributes{Text: "AA"}}}},
+		{ID: "2", Content: "BBBBBBBBBB", Codes: []file.CodedSection{{StartIndex: 0, EndIndex: 5, CodeSlug: "topic:economy", CodeID: "code-2", CodedSectionAttributes: file.CodedSectionAttributes{Text: "BBBBB"}}}},
+		{ID: "3", Content: "CCCCCCCCCC", Codes: []file.CodedSection{{StartIndex: 0, EndIndex: 8, CodeSlug: "topic:climate", CodeID: "code-3", CodedSectionAttributes: file.CodedSectionAttributes{Text: "CCCCCCCC"}}}},
+		{ID: "4", Content: "DDDDDDDDDD", Codes: []file.CodedSection{
 			{StartIndex: 0, EndIndex: 5, CodeSlug: "topic:climate", CodeID: "code-4", CodedSectionAttributes: file.CodedSectionAttributes{Text: "DDDDD"}},
 			{StartIndex: 5, EndIndex: 10, CodeSlug: "topic:economy", CodeID: "code-5", CodedSectionAttributes: file.CodedSectionAttributes{Text: "DDDDD"}},
 		}},
-		{IDX: "5", Content: "EEEEEEEEEE", Codes: []file.CodedSection{}},
+		{ID: "5", Content: "EEEEEEEEEE", Codes: []file.CodedSection{}},
 	}
 
 	tests := []struct {
@@ -95,7 +95,7 @@ func TestFilterChunksByCoverage(t *testing.T) {
 
 	test_helpers.RunFunctionTests(t, tests, func(input coverageFilterInput) []file.Chunk {
 		return FilterChunksByCoverage(chunks, input.minCoverage, input.maxCoverage, input.codeSlugs)
-	}, extractIDXs)
+	}, extractIDs)
 }
 
 // Helper functions
@@ -104,10 +104,10 @@ func floatPtr(f float64) *float64 {
 	return &f
 }
 
-func extractIDXs(chunks []file.Chunk) []string {
-	idxs := make([]string, len(chunks))
+func extractIDs(chunks []file.Chunk) []string {
+	ids := make([]string, len(chunks))
 	for i, chunk := range chunks {
-		idxs[i] = chunk.IDX
+		ids[i] = chunk.ID
 	}
-	return idxs
+	return ids
 }
