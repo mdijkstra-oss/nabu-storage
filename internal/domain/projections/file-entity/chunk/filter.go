@@ -6,6 +6,13 @@ import (
 	"hermes-relay/internal/lib/utils"
 )
 
+type ChunkFilter struct {
+	SearchText  string   `query:"searchText"`
+	MinCoverage *float64 `query:"minCoverage"`
+	MaxCoverage *float64 `query:"maxCoverage"`
+	CodeSlugs   []string `query:"codeSlugs"`
+}
+
 func CalculateChunkCoverage(chunk file.Chunk, codeSlugs []string) float64 {
 	sections := chunk.Codes
 	if len(codeSlugs) > 0 {
@@ -42,4 +49,16 @@ func FilterChunksByCoverage(chunks []file.Chunk, minCoverage, maxCoverage *float
 		}
 		return true
 	})
+}
+
+func ApplyFilter(chunks []file.Chunk, filter ChunkFilter) []file.Chunk {
+	if filter.SearchText != "" {
+		chunks = FilterChunksByText(chunks, filter.SearchText)
+	}
+
+	if filter.MinCoverage != nil || filter.MaxCoverage != nil || len(filter.CodeSlugs) > 0 {
+		chunks = FilterChunksByCoverage(chunks, filter.MinCoverage, filter.MaxCoverage, filter.CodeSlugs)
+	}
+
+	return chunks
 }

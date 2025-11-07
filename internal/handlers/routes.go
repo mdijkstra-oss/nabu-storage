@@ -54,7 +54,7 @@ func SetupHTTPHandlers(r chi.Router, publisher *dispatch.InMemoryPublisher, regi
 					).ServeHTTP,
 				)
 
-				r.Get("/{id}/chunks/{index}", tq.QueryOneRoute(http.FileStoreFromRequest, chunk.ByChunk))
+				r.Get("/{id}/chunks", tq.QueryOneRoute(http.FileStoreFromRequest, chunk.ByChunk))
 			})
 
 			r.Route("/codes", func(r chi.Router) {
