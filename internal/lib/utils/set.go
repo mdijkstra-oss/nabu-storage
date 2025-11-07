@@ -63,6 +63,15 @@ func Find[T any](items []T, predicate func(T) bool) *T {
 	return nil
 }
 
+func FindIndex[T any](items []T, predicate func(T) bool) int {
+	for i, item := range items {
+		if predicate(item) {
+			return i
+		}
+	}
+	return -1
+}
+
 func Exists[T any](items []T, predicate func(T) bool) bool {
 	return Find(items, predicate) != nil
 }

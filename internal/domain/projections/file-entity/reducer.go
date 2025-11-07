@@ -51,13 +51,9 @@ func CreatedFileReducer(_ *File, message *commands.AnyMessage, payload *file.Cre
 
 func CodedFileReducer(current *File, message *commands.AnyMessage, payload *file.CodeFileData) *File {
 	for _, action := range payload.Actions {
-		chunkID := -1
-		for i, c := range current.Chunks {
-			if c.ID == action.ChunkID {
-				chunkID = i
-				break
-			}
-		}
+		chunkID := utils.FindIndex(current.Chunks, func(c file.Chunk) bool {
+			return c.ID == action.ChunkID
+		})
 
 		if chunkID == -1 {
 			slog.Warn("Chunk not found", "id", action.ChunkID)

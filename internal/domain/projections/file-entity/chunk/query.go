@@ -4,6 +4,7 @@ import (
 	"hermes-relay/internal/cqrs/projection"
 	"hermes-relay/internal/domain/entities/file"
 	fileview "hermes-relay/internal/domain/projections/file-entity"
+	"hermes-relay/internal/lib/utils"
 	"strconv"
 )
 
@@ -59,13 +60,9 @@ func findChunkIndex(chunks []file.Chunk, requestedID *int) int {
 		return 0
 	}
 
-	for i, chunk := range chunks {
-		if parseID(chunk.ID) == *requestedID {
-			return i
-		}
-	}
-
-	return -1
+	return utils.FindIndex(chunks, func(c file.Chunk) bool {
+		return parseID(c.ID) == *requestedID
+	})
 }
 
 func parseID(id string) int {
