@@ -20,6 +20,8 @@ func NewInMemoryPublisher() *InMemoryPublisher {
 }
 
 func (p *InMemoryPublisher) Subscribe(router CommandRouter) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	p.subscribers = append(p.subscribers, router)
 }
 
