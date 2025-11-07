@@ -12,10 +12,11 @@ import (
 )
 
 type RouterTestCase struct {
-	Name        string
-	Input       *commands.AnyMessage
-	ExpectErr   string
-	ExpectEvent *commands.AnyMessage
+	Name            string
+	Input           *commands.AnyMessage
+	ExpectErr       string
+	ExpectEvent     *commands.AnyMessage
+	ExpectPublished []*commands.AnyMessage
 }
 
 func RunRouterTests(
@@ -27,11 +28,30 @@ func RunRouterTests(
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
 			reg := NewTestRegistry(setupCommands)
-			result, err := newRouter(reg)(tt.Input, nil)
+			publisher := dispatch.NewInMemoryPublisher()
+
+			var published []*commands.AnyMessage
+			publisher.Subscribe(func(msg *commands.AnyMessage, _ dispatch.PublishFunc) (*commands.AnyMessage, error) {
+				published = append(published, msg)
+				return nil, nil
+			})
+
+			result, err := newRouter(reg)(tt.Input, publisher.Publish)
 
 			th.AssertError(t, err, tt.ExpectErr, "error")
 			if tt.ExpectErr == "" {
 				th.AssertMessage(t, result, tt.ExpectEvent, "event")
+
+				if tt.ExpectPublished != nil {
+					if len(published) != len(tt.ExpectPublished) {
+						t.Fatalf("published events count: expected %d, got %d", len(tt.ExpectPublished), len(published))
+					}
+					for i, expected := range tt.ExpectPublished {
+						th.AssertMessage(t, published[i], expected, "published["+string(rune(i))+"]")
+					}
+				} else if len(published) > 0 {
+					t.Fatalf("expected no published events, but got %d", len(published))
+				}
 			}
 		})
 	}
