@@ -7,7 +7,6 @@ import (
 	codeview "hermes-relay/internal/domain/projections/code-entity"
 	fileview "hermes-relay/internal/domain/projections/file-entity"
 	projectview "hermes-relay/internal/domain/projections/project-entity"
-	th "hermes-relay/internal/lib/test-helpers"
 	"testing"
 )
 
@@ -25,36 +24,31 @@ func RunRouterTests(
 	tests []RouterTestCase,
 	newRouter func(*registry.ProjectViewRegistry) dispatch.CommandRouter,
 ) {
-	for _, tt := range tests {
-		t.Run(tt.Name, func(t *testing.T) {
-			reg := NewTestRegistry(setupCommands)
-			publisher := dispatch.NewInMemoryPublisher()
+	reg := NewTestRegistry(setupCommands)
+	router := newRouter(reg)
 
-			var published []*commands.AnyMessage
-			publisher.Subscribe(func(msg *commands.AnyMessage, _ dispatch.PublishFunc) (*commands.AnyMessage, error) {
-				published = append(published, msg)
-				return nil, nil
-			})
+	publisherTests := make([]dispatch.PublisherTestCase, len(tests))
+	for i, tt := range tests {
+		var expectedPublished []*commands.AnyMessage
+		if tt.ExpectPublished != nil {
+			expectedPublished = append([]*commands.AnyMessage{tt.Input}, tt.ExpectPublished...)
+		} else if tt.ExpectEvent != nil {
+			expectedPublished = []*commands.AnyMessage{tt.Input, tt.ExpectEvent}
+		} else {
+			expectedPublished = []*commands.AnyMessage{tt.Input}
+		}
 
-			result, err := newRouter(reg)(tt.Input, publisher.Publish)
-
-			th.AssertError(t, err, tt.ExpectErr, "error")
-			if tt.ExpectErr == "" {
-				th.AssertMessage(t, result, tt.ExpectEvent, "event")
-
-				if tt.ExpectPublished != nil {
-					if len(published) != len(tt.ExpectPublished) {
-						t.Fatalf("published events count: expected %d, got %d", len(tt.ExpectPublished), len(published))
-					}
-					for i, expected := range tt.ExpectPublished {
-						th.AssertMessage(t, published[i], expected, "published["+string(rune(i))+"]")
-					}
-				} else if len(published) > 0 {
-					t.Fatalf("expected no published events, but got %d", len(published))
-				}
-			}
-		})
+		publisherTests[i] = dispatch.PublisherTestCase{
+			Name:            tt.Name,
+			Subscribers:     []dispatch.CommandRouter{router},
+			Input:           tt.Input,
+			ExpectErr:       tt.ExpectErr,
+			ExpectEvent:     tt.ExpectEvent,
+			ExpectPublished: expectedPublished,
+		}
 	}
+
+	dispatch.RunPublisherTests(t, publisherTests)
 }
 
 func NewTestRegistry(commands []*commands.AnyMessage) *registry.ProjectViewRegistry {

@@ -21,7 +21,7 @@ func WebSocketHandler(publish dispatch.PublishFunc, subscribe func(dispatch.Comm
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		defer conn.Close()
+		defer utils.ShouldWork(conn.Close())
 
 		handleWebSocket(conn, publish, subscribe)
 	}
