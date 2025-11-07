@@ -20,3 +20,8 @@ test-ci:
 coverage:
 	@go test -coverprofile=coverage.out ./...
 	@go tool cover -html=coverage.out
+
+.PHONY: coverage-all
+coverage-all:
+	@go test -coverpkg=./... -coverprofile=coverage-all.out ./...
+	@go tool cover -html=coverage-all.out

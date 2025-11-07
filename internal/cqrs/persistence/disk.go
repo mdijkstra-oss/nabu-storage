@@ -179,6 +179,10 @@ func appendEventToFile(filePath string, event *commands.AnyMessage) error {
 		return fmt.Errorf("failed to encode event: %w", err)
 	}
 
+	if err := file.Sync(); err != nil {
+		return fmt.Errorf("failed to sync file: %w", err)
+	}
+	
 	return nil
 }
 

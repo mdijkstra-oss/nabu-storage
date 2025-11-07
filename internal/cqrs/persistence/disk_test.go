@@ -1,12 +1,15 @@
 package persistence
 
 import (
+	"encoding/json"
 	"hermes-relay/internal/cqrs/commands"
+	"hermes-relay/internal/cqrs/dispatch"
 	"hermes-relay/internal/domain/entities/file"
 	"hermes-relay/internal/domain/entities/project"
 	th "hermes-relay/internal/lib/test-helpers"
 	"os"
 	"path/filepath"
+	"sort"
 	"testing"
 )
 
@@ -121,9 +124,10 @@ func TestPersistence(t *testing.T) {
 		t.Run(tt.Name, func(t *testing.T) {
 			tmpDir := t.TempDir()
 			disk := NewDiskPersistence(tmpDir)
+			apply := disk.Apply()
 
 			for _, event := range tt.Input {
-				if err := disk.PersistEvent(event); err != nil {
+				if err := apply(event); err != nil {
 					th.AssertError(t, err, tt.ExpectErr, "error")
 					return
 				}
@@ -131,6 +135,40 @@ func TestPersistence(t *testing.T) {
 
 			if tt.ExpectErr != "" {
 				t.Fatalf("expected error %q but got none", tt.ExpectErr)
+			}
+
+			publisher := dispatch.NewInMemoryPublisher()
+			var replayed []*commands.AnyMessage
+			publisher.Subscribe(func(msg *commands.AnyMessage, _ dispatch.PublishFunc) (*commands.AnyMessage, error) {
+				replayed = append(replayed, msg)
+				return nil, nil
+			})
+
+			_ = disk.ReplayAllEvents(publisher)
+
+			if len(replayed) != len(tt.Input) {
+				t.Fatalf("expected %d replayed events, got %d", len(tt.Input), len(replayed))
+			}
+
+			sortEvents := func(events []*commands.AnyMessage) {
+				sort.Slice(events, func(i, j int) bool {
+					if events[i].AggregateType != events[j].AggregateType {
+						return events[i].AggregateType < events[j].AggregateType
+					}
+					if events[i].AggregateID != events[j].AggregateID {
+						return events[i].AggregateID < events[j].AggregateID
+					}
+					return events[i].Timestamp.Before(events[j].Timestamp)
+				})
+			}
+
+			sortedInput := make([]*commands.AnyMessage, len(tt.Input))
+			copy(sortedInput, tt.Input)
+			sortEvents(sortedInput)
+			sortEvents(replayed)
+
+			for i := range sortedInput {
+				compareEvents(t, sortedInput[i], replayed[i])
 			}
 
 			for _, expectedFile := range tt.Expected {
@@ -142,5 +180,26 @@ func TestPersistence(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func compareEvents(t *testing.T, expected, actual *commands.AnyMessage) {
+	expectedJSON, _ := json.Marshal(expected)
+	actualJSON, _ := json.Marshal(actual)
+
+	var expectedMap, actualMap map[string]any
+	_ = json.Unmarshal(expectedJSON, &expectedMap)
+	_ = json.Unmarshal(actualJSON, &actualMap)
+
+	delete(expectedMap, "id")
+	delete(actualMap, "id")
+	delete(expectedMap, "Timestamp")
+	delete(actualMap, "Timestamp")
+
+	expectedNorm, _ := json.Marshal(expectedMap)
+	actualNorm, _ := json.Marshal(actualMap)
+
+	if string(expectedNorm) != string(actualNorm) {
+		t.Errorf("events do not match:\nexpected: %s\nactual: %s", expectedNorm, actualNorm)
 	}
 }
