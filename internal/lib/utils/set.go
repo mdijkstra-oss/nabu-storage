@@ -74,3 +74,9 @@ func Sort[T any](slice []T, less func(a, b T) bool) {
 		}
 	}
 }
+
+func Contains[T comparable](slice []T, item T) bool {
+	return Exists(slice, func(s T) bool {
+		return s == item
+	})
+}

@@ -4,6 +4,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"hermes-relay/internal/cqrs/commands"
+	"hermes-relay/internal/lib/utils"
 	"reflect"
 	"testing"
 )
@@ -66,25 +67,91 @@ type ReducerTestCase[T any] struct {
 	Expected T
 }
 
-func RunReducerTests[T any](t *testing.T, tests []ReducerTestCase[T], reducer func(T, *commands.AnyMessage) T) {
-	for _, tt := range tests {
-		t.Run(tt.Name, func(t *testing.T) {
-			result := reducer(tt.Initial, tt.Event)
-			AssertEqual(t, result, tt.Expected, "state after reduction")
-		})
-	}
+type reducerInput[T any] struct {
+	initial T
+	event   *commands.AnyMessage
 }
 
-func RunReducerTestsWithCustomAssert[T any](
-	t *testing.T,
-	tests []ReducerTestCase[T],
-	reducer func(T, *commands.AnyMessage) T,
-	assertFunc func(*testing.T, T, T),
-) {
+func RunReducerTests[T any](t *testing.T, tests []ReducerTestCase[T], reducer func(T, *commands.AnyMessage) T) {
+	genericTests := utils.Map(tests, func(tt ReducerTestCase[T]) struct {
+		Name     string
+		Input    reducerInput[T]
+		Expected T
+	} {
+		return struct {
+			Name     string
+			Input    reducerInput[T]
+			Expected T
+		}{
+			Name: tt.Name,
+			Input: reducerInput[T]{
+				initial: tt.Initial,
+				event:   tt.Event,
+			},
+			Expected: tt.Expected,
+		}
+	})
+
+	RunFunctionTests(t, genericTests, func(input reducerInput[T]) T {
+		return reducer(input.initial, input.event)
+	})
+}
+
+func RunFunctionTests[T any, R any, M any](t *testing.T, tests []struct {
+	Name     string
+	Input    T
+	Expected M
+}, testFunc func(T) R, mapFunc ...func(R) M) {
+	testsWithErr := utils.Map(tests, func(tt struct {
+		Name     string
+		Input    T
+		Expected M
+	}) struct {
+		Name      string
+		Input     T
+		Expected  M
+		ExpectErr string
+	} {
+		return struct {
+			Name      string
+			Input     T
+			Expected  M
+			ExpectErr string
+		}{
+			Name:      tt.Name,
+			Input:     tt.Input,
+			Expected:  tt.Expected,
+			ExpectErr: "",
+		}
+	})
+
+	testFuncWithErr := func(input T) (R, error) {
+		return testFunc(input), nil
+	}
+
+	RunFunctionTestsWithError(t, testsWithErr, testFuncWithErr, mapFunc...)
+}
+
+func RunFunctionTestsWithError[T any, R any, M any](t *testing.T, tests []struct {
+	Name      string
+	Input     T
+	Expected  M
+	ExpectErr string
+}, testFunc func(T) (R, error), mapFunc ...func(R) M) {
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
-			result := reducer(tt.Initial, tt.Event)
-			assertFunc(t, result, tt.Expected)
+			result, err := testFunc(tt.Input)
+
+			AssertError(t, err, tt.ExpectErr, "error")
+			if tt.ExpectErr == "" {
+				var actual any
+				if len(mapFunc) > 0 {
+					actual = mapFunc[0](result)
+				} else {
+					actual = result
+				}
+				AssertEqual(t, actual, tt.Expected, "result")
+			}
 		})
 	}
 }

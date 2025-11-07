@@ -9,6 +9,7 @@ import (
 	"hermes-relay/internal/domain/entities/project"
 	codeview "hermes-relay/internal/domain/projections/code-entity"
 	fileview "hermes-relay/internal/domain/projections/file-entity"
+	"hermes-relay/internal/domain/projections/file-entity/chunk"
 	"hermes-relay/internal/handlers/http"
 	tq "hermes-relay/internal/handlers/http/typed-query"
 	"hermes-relay/internal/lib/utils"
@@ -53,7 +54,7 @@ func SetupHTTPHandlers(r chi.Router, publisher *dispatch.InMemoryPublisher, regi
 					).ServeHTTP,
 				)
 
-				r.Get("/{id}/chunks/{index}", tq.QueryOneRoute(http.FileStoreFromRequest, fileview.ByChunk))
+				r.Get("/{id}/chunks/{index}", tq.QueryOneRoute(http.FileStoreFromRequest, chunk.ByChunk))
 			})
 
 			r.Route("/codes", func(r chi.Router) {

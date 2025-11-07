@@ -1,8 +1,7 @@
 package normalizer
 
 import (
-	"hermes-relay/internal/lib/test-helpers"
-	"strings"
+	test_helpers "hermes-relay/internal/lib/test-helpers"
 	"testing"
 )
 
@@ -173,21 +172,10 @@ func TestNormalize(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			err := Normalize(tt.input)
 
-			if tt.expectErr != "" {
-				if err == nil {
-					t.Fatal("expected error, got nil")
-				}
-				if !strings.Contains(err.Error(), tt.expectErr) {
-					t.Errorf("expected error containing %q, got %q", tt.expectErr, err.Error())
-				}
-				return
+			test_helpers.AssertError(t, err, tt.expectErr, "error")
+			if tt.expectErr == "" {
+				test_helpers.AssertEqual(t, tt.input, tt.expect, "normalized result")
 			}
-
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-
-			test_helpers.AssertEqual(t, tt.input, tt.expect, "normalized result mismatch")
 		})
 	}
 }
@@ -222,7 +210,7 @@ func TestNormalizeValue(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := NormalizeValue(tt.input, tt.normalizers...)
-			test_helpers.AssertEqual(t, result, tt.expect, "normalized value mismatch")
+			test_helpers.AssertEqual(t, result, tt.expect, "normalized value")
 		})
 	}
 }
