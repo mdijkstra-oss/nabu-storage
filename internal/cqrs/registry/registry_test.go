@@ -35,8 +35,9 @@ func TestEntityLookups(t *testing.T) {
 				events: []*commands.AnyMessage{
 					th.NewDomainEvent(project.EntityName, "project-1", project.CreatedProject, project.CreatedProjectPayload{Name: "Test"}),
 					th.NewDomainEvent(file.EntityName, "file-1", file.CreatedFile, file.CreatedFilePayload{
-						BaseFile: file.BaseFile{ProjectID: "project-1", Name: "test.md"},
-						Content:  "content",
+						CreateFilePayload: file.CreateFilePayload{ProjectID: "project-1", Name: "test.md", Content: "content"},
+						Type:              file.FileTypeSource,
+						Locked:            true,
 					}),
 				},
 				lookups: []entityLookup{
@@ -105,12 +106,14 @@ func TestEntityLookups(t *testing.T) {
 					th.NewDomainEvent(project.EntityName, "project-1", project.CreatedProject, project.CreatedProjectPayload{Name: "Test 1"}),
 					th.NewDomainEvent(project.EntityName, "project-2", project.CreatedProject, project.CreatedProjectPayload{Name: "Test 2"}),
 					th.NewDomainEvent(file.EntityName, "file-1", file.CreatedFile, file.CreatedFilePayload{
-						BaseFile: file.BaseFile{ProjectID: "project-1", Name: "test1.md"},
-						Content:  "content",
+						CreateFilePayload: file.CreateFilePayload{ProjectID: "project-1", Name: "test1.md", Content: "content"},
+						Type:              file.FileTypeSource,
+						Locked:            true,
 					}),
 					th.NewDomainEvent(file.EntityName, "file-2", file.CreatedFile, file.CreatedFilePayload{
-						BaseFile: file.BaseFile{ProjectID: "project-2", Name: "test2.md"},
-						Content:  "content",
+						CreateFilePayload: file.CreateFilePayload{ProjectID: "project-2", Name: "test2.md", Content: "content"},
+						Type:              file.FileTypeSource,
+						Locked:            true,
 					}),
 					th.NewDomainEvent(code.EntityName, "code-1", code.CreatedCode, code.CreatedCodePayload{
 						ProjectID: "project-1",
@@ -176,7 +179,7 @@ func TestEnsureProjectExists(t *testing.T) {
 			Name: "Non-CreatedProject event returns nil when project does not exist",
 			Input: ensureProjectInput{
 				existingProjectID: "",
-				event:             th.NewDomainEvent(file.EntityName, "file-1", file.CreatedFile, file.CreatedFilePayload{BaseFile: file.BaseFile{ProjectID: "project-1", Name: "test.md"}, Content: "content"}),
+				event:             th.NewDomainEvent(file.EntityName, "file-1", file.CreatedFile, file.CreatedFilePayload{CreateFilePayload: file.CreateFilePayload{ProjectID: "project-1", Name: "test.md", Content: "content"}, Type: file.FileTypeSource, Locked: true}),
 			},
 			Expected: false,
 		},
@@ -184,7 +187,7 @@ func TestEnsureProjectExists(t *testing.T) {
 			Name: "Returns existing project if already exists",
 			Input: ensureProjectInput{
 				existingProjectID: "project-1",
-				event:             th.NewDomainEvent(file.EntityName, "file-1", file.CreatedFile, file.CreatedFilePayload{BaseFile: file.BaseFile{ProjectID: "project-1", Name: "test.md"}, Content: "content"}),
+				event:             th.NewDomainEvent(file.EntityName, "file-1", file.CreatedFile, file.CreatedFilePayload{CreateFilePayload: file.CreateFilePayload{ProjectID: "project-1", Name: "test.md", Content: "content"}, Type: file.FileTypeSource, Locked: true}),
 			},
 			Expected: true,
 		},

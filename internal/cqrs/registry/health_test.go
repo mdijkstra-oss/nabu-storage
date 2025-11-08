@@ -64,12 +64,13 @@ func TestProjectHealthTracking(t *testing.T) {
 		validEvent1 := commands.ToAny(commands.NewDomainEvent[file.CreatedFilePayload, any](
 			file.CreatedFile,
 			file.CreatedFilePayload{
-				BaseFile: file.BaseFile{
-					ID:        "file-2",
+				CreateFilePayload: file.CreateFilePayload{
 					ProjectID: "project-1",
 					Name:      "test.md",
+					Content:   "content",
 				},
-				Content: "content",
+				Type:   file.FileTypeSource,
+				Locked: true,
 			},
 			file.EntityName,
 			"file-2",
@@ -79,12 +80,13 @@ func TestProjectHealthTracking(t *testing.T) {
 		validEvent2 := commands.ToAny(commands.NewDomainEvent[file.CreatedFilePayload, any](
 			file.CreatedFile,
 			file.CreatedFilePayload{
-				BaseFile: file.BaseFile{
-					ID:        "file-3",
+				CreateFilePayload: file.CreateFilePayload{
 					ProjectID: "project-2",
 					Name:      "test2.md",
+					Content:   "content",
 				},
-				Content: "content",
+				Type:   file.FileTypeSource,
+				Locked: true,
 			},
 			file.EntityName,
 			"file-3",

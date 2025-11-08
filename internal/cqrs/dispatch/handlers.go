@@ -3,10 +3,11 @@ package dispatch
 import (
 	"github.com/google/uuid"
 	"hermes-relay/internal/cqrs/commands"
+	"hermes-relay/internal/lib/utils"
 	"time"
 )
 
-func ToCreateEntityEvent[P any](commandAction, eventAction commands.Action, transform ...func(*P)) CommandRouter {
+func ToCreateEntityEvent[P, PE any](commandAction, eventAction commands.Action, transform ...func(*P) PE) CommandRouter {
 
 	return func(message *commands.AnyMessage, publisher PublishFunc) (*commands.AnyMessage, error) {
 
@@ -20,7 +21,7 @@ func ToCreateEntityEvent[P any](commandAction, eventAction commands.Action, tran
 	}
 }
 
-func ToUpdateEntityEvent[P any](commandAction, eventAction commands.Action, transform ...func(*P)) CommandRouter {
+func ToUpdateEntityEvent[P, PE any](commandAction, eventAction commands.Action, transform ...func(*P) PE) CommandRouter {
 	return func(message *commands.AnyMessage, publisher PublishFunc) (*commands.AnyMessage, error) {
 		if message.Action != commandAction {
 			return nil, nil
@@ -28,17 +29,26 @@ func ToUpdateEntityEvent[P any](commandAction, eventAction commands.Action, tran
 
 		var payload P
 
-		// Validate first (as before)
+		// Validate command payload
 		err := commands.EnsureValidPayload(message, &payload)
 		if err != nil {
 			return nil, err
 		}
 
-		// Apply transform after validation (to set defaults)
+		// If transform provided, apply and validate event payload
 		if len(transform) > 0 && transform[0] != nil {
-			transform[0](&payload)
+			eventPayload := transform[0](&payload)
+
+			// Validate transformed event payload
+			if err := utils.ToValidationError(utils.Validate.Struct(eventPayload)); err != nil {
+				return nil, err
+			}
+
+			// Pass transformed payload to event
+			return commands.ToDomainEvent[any](message, eventAction, eventPayload), nil
 		}
 
+		// No transform - use original payload (no validation needed)
 		return commands.ToDomainEvent(message, eventAction), nil
 	}
 }

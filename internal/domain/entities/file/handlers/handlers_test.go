@@ -5,65 +5,46 @@ import (
 	"hermes-relay/internal/domain/entities/file"
 	rh "hermes-relay/internal/lib/test-helpers/registry-helpers"
 	"testing"
-	"time"
 )
 
 var cmds = []*commands.AnyMessage{}
 
 func TestFileRouter(t *testing.T) {
-	baseTime := time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)
-
 	tests := []rh.RouterTestCase{
 		{
 			Name: "CreateFile with valid payload",
 			Input: commands.ToAny(commands.NewCommand[file.CreateFilePayload, any](file.CreateFile, file.CreateFilePayload{
-				BaseFile: file.BaseFile{
-					ProjectID: "project-1",
-					Name:      "test-file.txt",
-					Attributes: file.Attributes{
-						Title:   "Test File",
-						Summary: "A test file",
-						Time:    baseTime,
-					},
-				},
-				Content: "Test content",
+				ProjectID: "project-1",
+				Name:      "test-file.txt",
+				Content:   "Test content",
 			}, file.EntityName, "", nil)),
 			ExpectErr: "",
 			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.CreatedFilePayload, any](file.CreatedFile, file.CreatedFilePayload{
-				BaseFile: file.BaseFile{
+				CreateFilePayload: file.CreateFilePayload{
 					ProjectID: "project-1",
 					Name:      "test-file.txt",
-					Attributes: file.Attributes{
-						Title:   "Test File",
-						Summary: "A test file",
-						Time:    baseTime,
-					},
+					Content:   "Test content",
 				},
-				Content: "Test content",
+				Type:   file.FileTypeSource,
+				Locked: true,
 			}, file.EntityName, "", nil)),
 		},
 		{
 			Name: "CreateFile with minimal required fields",
 			Input: commands.ToAny(commands.NewCommand[file.CreateFilePayload, any](file.CreateFile, file.CreateFilePayload{
-				BaseFile: file.BaseFile{
-					ProjectID: "project-1",
-					Name:      "minimal.txt",
-					Attributes: file.Attributes{
-						Title: "Minimal File",
-					},
-				},
-				Content: "Content",
+				ProjectID: "project-1",
+				Name:      "minimal.txt",
+				Content:   "Content",
 			}, file.EntityName, "", nil)),
 			ExpectErr: "",
 			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.CreatedFilePayload, any](file.CreatedFile, file.CreatedFilePayload{
-				BaseFile: file.BaseFile{
+				CreateFilePayload: file.CreateFilePayload{
 					ProjectID: "project-1",
 					Name:      "minimal.txt",
-					Attributes: file.Attributes{
-						Title: "Minimal File",
-					},
+					Content:   "Content",
 				},
-				Content: "Content",
+				Type:   file.FileTypeSource,
+				Locked: true,
 			}, file.EntityName, "", nil)),
 		},
 		{
@@ -221,26 +202,18 @@ func TestFileRouter(t *testing.T) {
 		{
 			Name: "CreateFile with missing Name",
 			Input: commands.ToAny(commands.NewCommand[file.CreateFilePayload, any](file.CreateFile, file.CreateFilePayload{
-				BaseFile: file.BaseFile{
-					ProjectID: "project-1",
-					Attributes: file.Attributes{
-						Title: "No Name File",
-					},
-				},
-				Content: "Content",
+				ProjectID: "project-1",
+				Content:   "Content",
 			}, file.EntityName, "", nil)),
 			ExpectErr: "validation failed: Name is required",
 		},
 		{
-			Name: "CreateFile with missing Title",
+			Name: "CreateFile with missing ProjectID",
 			Input: commands.ToAny(commands.NewCommand[file.CreateFilePayload, any](file.CreateFile, file.CreateFilePayload{
-				BaseFile: file.BaseFile{
-					ProjectID: "project-1",
-					Name:      "file.txt",
-				},
+				Name:    "file.txt",
 				Content: "Content",
 			}, file.EntityName, "", nil)),
-			ExpectErr: "validation failed: Title is required",
+			ExpectErr: "validation failed: ProjectID is required",
 		},
 		{
 			Name: "CodeFile with empty actions array",
@@ -320,14 +293,9 @@ func TestFileRouter(t *testing.T) {
 		{
 			Name: "Wrong entity type returns nil",
 			Input: commands.ToAny(commands.NewCommand[file.CreateFilePayload, any](file.CreateFile, file.CreateFilePayload{
-				BaseFile: file.BaseFile{
-					ProjectID: "project-1",
-					Name:      "test.txt",
-					Attributes: file.Attributes{
-						Title: "Test",
-					},
-				},
-				Content: "Test",
+				ProjectID: "project-1",
+				Name:      "test.txt",
+				Content:   "Test",
 			}, "DifferentEntity", "", nil)),
 			ExpectErr:   "",
 			ExpectEvent: nil,
@@ -335,14 +303,9 @@ func TestFileRouter(t *testing.T) {
 		{
 			Name: "Wrong action returns nil",
 			Input: commands.ToAny(commands.NewCommand[file.CreateFilePayload, any]("DifferentAction", file.CreateFilePayload{
-				BaseFile: file.BaseFile{
-					ProjectID: "project-1",
-					Name:      "test.txt",
-					Attributes: file.Attributes{
-						Title: "Test",
-					},
-				},
-				Content: "Test",
+				ProjectID: "project-1",
+				Name:      "test.txt",
+				Content:   "Test",
 			}, file.EntityName, "test-aggregate-id", nil)),
 			ExpectErr:   "",
 			ExpectEvent: nil,

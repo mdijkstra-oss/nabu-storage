@@ -85,8 +85,9 @@ func TestPersistence(t *testing.T) {
 			Input: []*commands.AnyMessage{
 				th.NewDomainEvent(project.EntityName, "project-1", project.CreatedProject, project.CreatedProjectPayload{Name: "Test"}),
 				th.NewDomainEvent(file.EntityName, "file-1", file.CreatedFile, file.CreatedFilePayload{
-					BaseFile: file.BaseFile{ProjectID: "project-1", Name: "test.md"},
-					Content:  "content",
+					CreateFilePayload: file.CreateFilePayload{ProjectID: "project-1", Name: "test.md", Content: "content"},
+					Type:              file.FileTypeSource,
+					Locked:            true,
 				}),
 			},
 			Expected: []FileContent{
@@ -100,12 +101,14 @@ func TestPersistence(t *testing.T) {
 			Input: []*commands.AnyMessage{
 				th.NewDomainEvent(project.EntityName, "project-1", project.CreatedProject, project.CreatedProjectPayload{Name: "Test"}),
 				th.NewDomainEvent(file.EntityName, "file-1", file.CreatedFile, file.CreatedFilePayload{
-					BaseFile: file.BaseFile{ProjectID: "project-1", Name: "test1.md"},
-					Content:  "content1",
+					CreateFilePayload: file.CreateFilePayload{ProjectID: "project-1", Name: "test1.md", Content: "content1"},
+					Type:              file.FileTypeSource,
+					Locked:            true,
 				}),
 				th.NewDomainEvent(file.EntityName, "file-2", file.CreatedFile, file.CreatedFilePayload{
-					BaseFile: file.BaseFile{ProjectID: "project-1", Name: "test2.md"},
-					Content:  "content2",
+					CreateFilePayload: file.CreateFilePayload{ProjectID: "project-1", Name: "test2.md", Content: "content2"},
+					Type:              file.FileTypeSource,
+					Locked:            true,
 				}),
 				th.NewDomainEvent(file.EntityName, "file-1", "UpdatedFile", nil),
 				th.NewDomainEvent(project.EntityName, "project-2", project.CreatedProject, project.CreatedProjectPayload{Name: "Test 2"}),

@@ -1,10 +1,5 @@
 package file
 
-type CreateFileData struct {
-	BaseFile
-	Content string `json:"content"`
-}
-
 type CodingMutation string
 
 const (

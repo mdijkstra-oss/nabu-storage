@@ -72,7 +72,7 @@ type reducerInput[T any] struct {
 	event   *commands.AnyMessage
 }
 
-func RunReducerTests[T any](t *testing.T, tests []ReducerTestCase[T], reducer func(T, *commands.AnyMessage) T) {
+func RunReducerTests[T any](t *testing.T, tests []ReducerTestCase[T], reducer func(T, *commands.AnyMessage) T, mapFunc ...func(T) T) {
 	genericTests := utils.Map(tests, func(tt ReducerTestCase[T]) struct {
 		Name     string
 		Input    reducerInput[T]
@@ -94,7 +94,7 @@ func RunReducerTests[T any](t *testing.T, tests []ReducerTestCase[T], reducer fu
 
 	RunFunctionTests(t, genericTests, func(input reducerInput[T]) T {
 		return reducer(input.initial, input.event)
-	})
+	}, mapFunc...)
 }
 
 func RunFunctionTests[T any, R any, M any](t *testing.T, tests []struct {

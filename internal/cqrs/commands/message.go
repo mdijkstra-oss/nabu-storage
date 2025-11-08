@@ -122,11 +122,18 @@ func NewDomainEvent[T, P any](action Action, payload T, aggregateType AggregateT
 	return NewMessage(DomainEvent, action, payload, aggregateType, aggregateID, cause)
 }
 
-func ToDomainEvent[T any](message *Message[T], event Action) *Message[T] {
+func ToDomainEvent[T any](message *Message[T], event Action, payload ...T) *Message[T] {
+	var p T
+	if len(payload) > 0 {
+		p = payload[0] // Use provided payload
+	} else {
+		p = message.Payload // Use message's payload
+	}
+
 	return NewMessage(
 		DomainEvent,
 		event,
-		message.Payload,
+		p,
 		message.AggregateType,
 		message.AggregateID,
 		message,

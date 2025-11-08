@@ -12,7 +12,7 @@ import (
 func NewRouter(_ *registry.ProjectViewRegistry) dispatch.CommandRouter {
 	return dispatch.CombineRouters(
 		dispatch.LimitOnEntity(project.EntityName,
-			dispatch.ToCreateEntityEvent[project.CreateProjectPayload](project.CreateProject, project.CreatedProject),
+			dispatch.ToCreateEntityEvent[project.CreateProjectPayload, project.CreatedProjectPayload](project.CreateProject, project.CreatedProject),
 		),
 		ExternalEventHandlers,
 	)

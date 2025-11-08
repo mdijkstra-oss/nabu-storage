@@ -10,6 +10,7 @@ import (
 	"hermes-relay/internal/lib/text-search/find"
 	"hermes-relay/internal/lib/utils"
 	"log/slog"
+	"time"
 )
 
 var Reducer = projection.CombineReducers(
@@ -39,9 +40,11 @@ func CreatedFileReducer(_ *File, message *commands.AnyMessage, payload *file.Cre
 			ProjectID: payload.ProjectID,
 			Name:      payload.Name,
 			Attributes: file.Attributes{
-				Title:   payload.Title,
-				Summary: payload.Summary,
-				Time:    payload.Time,
+				Title:   "",
+				Summary: "",
+				Time:    time.Now(), // Todo: get from somewhere? eg upload system I suppose
+				Type:    payload.Type,
+				Locked:  payload.Locked,
 			},
 		},
 		Content: payload.Content,

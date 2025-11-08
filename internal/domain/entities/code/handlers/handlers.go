@@ -14,19 +14,19 @@ func NewRouter(reg *registry.ProjectViewRegistry) dispatch.CommandRouter {
 
 		dispatch.LimitOnAction(code.CreateCode,
 			registry.Validate(reg, validateCreateCode,
-				dispatch.ToCreateEntityEvent[code.CreateCodePayload](code.CreateCode, code.CreatedCode),
+				dispatch.ToCreateEntityEvent[code.CreateCodePayload, code.CreatedCodePayload](code.CreateCode, code.CreatedCode),
 			),
 		),
 
 		dispatch.LimitOnAction(code.UpdateCode,
 			registry.Validate(reg, validateUpdateCode,
-				dispatch.ToUpdateEntityEvent[code.UpdateCodePayload](code.UpdateCode, code.UpdatedCode),
+				dispatch.ToUpdateEntityEvent[code.UpdateCodePayload, code.UpdatedCodePayload](code.UpdateCode, code.UpdatedCode),
 			),
 		),
 
 		dispatch.LimitOnAction(code.MergeCodes,
 			registry.Validate(reg, validateMergeCodes,
-				dispatch.ToUpdateEntityEvent[code.MergeCodesPayload](code.MergeCodes, code.MergedCodes),
+				dispatch.ToUpdateEntityEvent[code.MergeCodesPayload, code.MergedCodesPayload](code.MergeCodes, code.MergedCodes),
 			),
 		),
 

@@ -16,16 +16,13 @@ func TestFileReducer(t *testing.T) {
 			Name:    "CreatedFile initializes file with chunks",
 			Initial: nil,
 			Event: th.NewDomainEvent(file.EntityName, "file-1", file.CreatedFile, &file.CreatedFilePayload{
-				BaseFile: file.BaseFile{
+				CreateFilePayload: file.CreateFilePayload{
 					ProjectID: "project-1",
 					Name:      "test.txt",
-					Attributes: file.Attributes{
-						Title:   "Test",
-						Summary: "Summary",
-						Time:    testTime,
-					},
+					Content:   "Short test content",
 				},
-				Content: "Short test content",
+				Type:   file.FileTypeSource,
+				Locked: true,
 			}),
 			Expected: &File{
 				BaseFile: file.BaseFile{
@@ -33,9 +30,11 @@ func TestFileReducer(t *testing.T) {
 					ProjectID: "project-1",
 					Name:      "test.txt",
 					Attributes: file.Attributes{
-						Title:   "Test",
-						Summary: "Summary",
+						Title:   "",
+						Summary: "",
 						Time:    testTime,
+						Type:    file.FileTypeSource,
+						Locked:  true,
 					},
 				},
 				Content: "Short test content",
@@ -367,5 +366,13 @@ func TestFileReducer(t *testing.T) {
 		},
 	}
 
-	th.RunReducerTests(t, tests, Reducer)
+	// Normalize Time field to testTime for comparison
+	normalizeTime := func(f *File) *File {
+		if f != nil {
+			f.Time = testTime
+		}
+		return f
+	}
+
+	th.RunReducerTests(t, tests, Reducer, normalizeTime)
 }

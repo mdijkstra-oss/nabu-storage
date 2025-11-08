@@ -26,15 +26,13 @@ func TestExternalEventHandlers(t *testing.T) {
 			Input: commands.ToAny(commands.NewDomainEvent[file.CreatedFilePayload, any](
 				file.CreatedFile,
 				file.CreatedFilePayload{
-					BaseFile: file.BaseFile{
-						ID:        "file-1",
+					CreateFilePayload: file.CreateFilePayload{
 						ProjectID: "project-1",
 						Name:      "test.md",
-						Attributes: file.Attributes{
-							Title: "Test File",
-						},
+						Content:   "content",
 					},
-					Content: "content",
+					Type:   file.FileTypeSource,
+					Locked: true,
 				},
 				file.EntityName,
 				"file-1",
