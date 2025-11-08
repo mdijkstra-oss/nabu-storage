@@ -12,18 +12,29 @@ func (f File) GetID() string {
 	return f.ID
 }
 
+type FileType string
+
+const (
+	FileTypeCodebook FileType = "codebook" // Formal code definitions (user-created)
+	FileTypeSource   FileType = "source"   // Documents being coded (immutable)
+	FileTypeMemo     FileType = "memo"     // Analytical notes (user writes)
+	FileTypeContext  FileType = "context"  // LLM working memory (AI + user)
+)
+
 type BaseFile struct {
 	ID        string `json:"id"`
 	ProjectID string `json:"project_id" validate:"required"`
 	Name      string `json:"name" validate:"required,max=255" normalize:"trim"`
-
 	Attributes
 }
 
 type Attributes struct {
-	Title   string    `json:"title" validate:"required,min=1,max=200"`
-	Summary string    `json:"summary" validate:"max=1500"` // todo: halfpage
-	Time    time.Time `json:"time" validate:"omitempty,lte"`
+	Title    string    `json:"title" validate:"required,min=1,max=200"`
+	Summary  string    `json:"summary" validate:"max=1500"` // todo: halfpage
+	Time     time.Time `json:"time" validate:"omitempty,lte"`
+	Type     FileType  `json:"type" validate:"omitempty,oneof=codebook source memo context"`
+	Original string    `json:"original"` // original file (eg pdf converted into File format)
+	Locked   bool      `json:"locked"`   // whether file is read-only
 }
 
 type CodedSection struct {

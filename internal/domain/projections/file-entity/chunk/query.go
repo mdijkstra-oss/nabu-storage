@@ -11,12 +11,12 @@ import (
 type ChunkQuery struct {
 	projection.GetByIDQuery
 	ChunkFilter
-	ID *int `query:"index"`
+	ID *int `query:"id"`
 }
 
 type ChunkResult struct {
 	Chunk       file.Chunk `json:"chunk"`
-	ChunkIndex  int        `json:"chunk_index"`
+	ChunkID     int        `json:"chunk_id"`
 	TotalChunks int        `json:"total_chunks"`
 	Next        *int       `json:"next"`
 }
@@ -49,7 +49,7 @@ func ByChunk(files []fileview.File, q ChunkQuery) []ChunkResult {
 
 	return []ChunkResult{{
 		Chunk:       currentChunk,
-		ChunkIndex:  parseID(currentChunk.ID),
+		ChunkID:     parseID(currentChunk.ID),
 		TotalChunks: len(chunks),
 		Next:        next,
 	}}

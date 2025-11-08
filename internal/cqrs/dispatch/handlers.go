@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func ToCreateEntityEvent[P any](commandAction, eventAction commands.Action) CommandRouter {
+func ToCreateEntityEvent[P any](commandAction, eventAction commands.Action, transform ...func(*P)) CommandRouter {
 
 	return func(message *commands.AnyMessage, publisher PublishFunc) (*commands.AnyMessage, error) {
 
@@ -16,20 +16,27 @@ func ToCreateEntityEvent[P any](commandAction, eventAction commands.Action) Comm
 		withID.Timestamp = time.Now()
 
 		// What is a create but an update with more fields
-		return ToUpdateEntityEvent[P](commandAction, eventAction)(message, publisher)
+		return ToUpdateEntityEvent[P](commandAction, eventAction, transform...)(message, publisher)
 	}
 }
 
-func ToUpdateEntityEvent[P any](commandAction, eventAction commands.Action) CommandRouter {
+func ToUpdateEntityEvent[P any](commandAction, eventAction commands.Action, transform ...func(*P)) CommandRouter {
 	return func(message *commands.AnyMessage, publisher PublishFunc) (*commands.AnyMessage, error) {
 		if message.Action != commandAction {
 			return nil, nil
 		}
 
 		var payload P
+
+		// Validate first (as before)
 		err := commands.EnsureValidPayload(message, &payload)
 		if err != nil {
 			return nil, err
+		}
+
+		// Apply transform after validation (to set defaults)
+		if len(transform) > 0 && transform[0] != nil {
+			transform[0](&payload)
 		}
 
 		return commands.ToDomainEvent(message, eventAction), nil

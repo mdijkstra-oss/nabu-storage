@@ -63,6 +63,9 @@ func (p *InMemoryPublisher) Publish(event *commands.AnyMessage) (*commands.AnyMe
 				firstResult = result
 			}
 
+			// Cascade events should not fail the primary event.
+			// Log errors but continue processing.
+			// Todo: Add replay limiter
 			utils.Should(p.Publish(result))
 		}
 
