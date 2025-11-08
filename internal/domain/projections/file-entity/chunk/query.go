@@ -11,7 +11,7 @@ import (
 type ChunkQuery struct {
 	projection.GetByIDQuery
 	ChunkFilter
-	ID *int `query:"id"`
+	ID *int `query:"chunkId"`
 }
 
 type ChunkResult struct {

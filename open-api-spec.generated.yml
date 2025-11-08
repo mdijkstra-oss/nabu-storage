@@ -3,27 +3,35 @@ info:
   title: hermes-relay-api
   version: 1.0.0
   description: |
-    CQRS-based qualitative data analysis API for managing research projects, analytical codes, and source documents.
+    CQRS-based qualitative data analysis API for coding and analyzing research data.
 
-    This API uses Command Query Responsibility Segregation (CQRS) with event sourcing. Commands are sent to `/commands`
-    and trigger domain events. Queries retrieve read-optimized projections from `/queries/*` endpoints.
+    This API uses a Command Query Responsibility Segregation (CQRS) pattern where:
+    - Commands modify state via POST /commands
+    - Queries read state via GET /queries/*
+    - Events are broadcast via WebSocket (GET /ws/)
 
 servers:
   - url: http://localhost:8080
-    description: Local development server
 
 paths:
   /commands:
     post:
-      summary: Execute command(s)
+      summary: Execute single or batch commands
       description: |
-        Send one or more commands to the system. Supports both single command and batch processing.
+        Send one or more commands to modify system state. Commands are processed
+        through the CQRS pipeline and return domain events on success.
 
-        **Single Command**: Send one `AnyMessage` object with `type: "Command"`
-        **Batch Commands**: Send array of `AnyMessage` objects
+        **Single Command**: Send one AnyMessage object with type "Command"
+        **Batch Commands**: Send an array of AnyMessage objects
 
-        Commands are processed independently in batch mode (best-effort).
-      operationId: executeCommands
+        **Batch Processing**:
+        - All commands are processed independently (best-effort)
+        - No cross-command transactions
+        - Status codes:
+          - 200: All succeeded
+          - 202: All accepted (async processing)
+          - 207: Partial success (some failed)
+          - 400: All failed
       requestBody:
         required: true
         content:
@@ -35,159 +43,186 @@ paths:
                   items:
                     $ref: '#/components/schemas/AnyMessage'
             examples:
-              singleCreateProject:
-                summary: Create a project
+              createProject:
+                summary: Create a new research project
                 value:
+                  type: Command
                   action: CreateProject
-                  type: Command
-                  aggregateId: ""
                   aggregateType: Project
-                  payload:
-                    name: Healthcare Interview Study 2025
-              singleCreateCode:
-                summary: Create an analytical code
-                value:
-                  action: CreateCode
-                  type: Command
                   aggregateId: ""
-                  aggregateType: Code
                   payload:
-                    project_id: 550e8400-e29b-41d4-a716-446655440000
-                    slug: topic:patient-experience
-                    color: blue-500
-                    reasoning: "Segments discussing patients' subjective experiences with healthcare services, including emotional responses, satisfaction levels, and personal narratives about treatment."
-              singleUpdateCode:
+                    name: Healthcare Patient Experience Study
+              createCode:
+                summary: Create a new analytical code
+                value:
+                  type: Command
+                  action: CreateCode
+                  aggregateType: Code
+                  aggregateId: ""
+                  payload:
+                    project_id: "550e8400-e29b-41d4-a716-446655440000"
+                    slug: "emotion:anxiety"
+                    color: "red-500"
+                    reasoning: "Identifies expressions of patient anxiety about procedures, outcomes, or waiting times. Look for words like worried, nervous, scared, uncertain. Include both explicit statements and implicit indicators like questions about risks."
+              updateCode:
                 summary: Update code properties
                 value:
+                  type: Command
                   action: UpdateCode
-                  type: Command
-                  aggregateId: 650e8400-e29b-41d4-a716-446655440000
                   aggregateType: Code
+                  aggregateId: "660e8400-e29b-41d4-a716-446655440001"
                   payload:
-                    color: green-600
-                    reasoning: "Refined to focus specifically on positive patient experiences and moments of exceptional care."
-              singleCreateFile:
-                summary: Create a source document
+                    color: "orange-600"
+                    reasoning: "Updated to focus specifically on pre-procedure anxiety, excluding post-treatment concerns."
+              createFile:
+                summary: Create a source file
                 value:
-                  action: CreateFile
                   type: Command
-                  aggregateId: ""
+                  action: CreateFile
                   aggregateType: File
+                  aggregateId: ""
                   payload:
-                    project_id: 550e8400-e29b-41d4-a716-446655440000
-                    name: Interview_P01_20250115.txt
-                    content: "Interviewer: How would you describe your recovery process?\n\nParticipant: Well, the first week was challenging. I felt quite anxious about the pain levels and whether they were normal..."
-              batchCommands:
-                summary: Batch create multiple codes
+                    project_id: "550e8400-e29b-41d4-a716-446655440000"
+                    name: "Interview with Patient P07"
+                    content: "I was really worried about the surgery. The doctor explained everything but I still felt nervous waiting for the results."
+              codeFile:
+                summary: Apply codes to file sections
                 value:
-                  - action: CreateCode
-                    type: Command
-                    aggregateId: ""
+                  type: Command
+                  action: CodeFile
+                  aggregateType: File
+                  aggregateId: "770e8400-e29b-41d4-a716-446655440002"
+                  payload:
+                    actions:
+                      - code_id: "660e8400-e29b-41d4-a716-446655440001"
+                        code_slug: "emotion:anxiety"
+                        action: SetCoding
+                        chunk_id: "1"
+                        texts:
+                          - text: "I was really worried about the surgery"
+                            ai_reason: "Explicit expression of pre-procedure worry"
+                            comment: ""
+              batchCommands:
+                summary: Create multiple codes in one request
+                value:
+                  - type: Command
+                    action: CreateCode
                     aggregateType: Code
-                    payload:
-                      project_id: 550e8400-e29b-41d4-a716-446655440000
-                      slug: emotion:anxiety
-                      color: red-400
-                      reasoning: "Expressions of worry, fear, or nervousness about medical procedures or outcomes."
-                  - action: CreateCode
-                    type: Command
                     aggregateId: ""
-                    aggregateType: Code
                     payload:
-                      project_id: 550e8400-e29b-41d4-a716-446655440000
-                      slug: theme:communication
-                      color: purple-500
-                      reasoning: "Discussions about information exchange between healthcare providers and patients, including clarity, frequency, and quality of communication."
+                      project_id: "550e8400-e29b-41d4-a716-446655440000"
+                      slug: "usability:friction-point"
+                      color: "amber-500"
+                      reasoning: "Areas where users struggle with the interface, experience confusion, or express frustration"
+                  - type: Command
+                    action: CreateCode
+                    aggregateType: Code
+                    aggregateId: ""
+                    payload:
+                      project_id: "550e8400-e29b-41d4-a716-446655440000"
+                      slug: "theme:accessibility"
+                      color: "blue-400"
+                      reasoning: "Comments about ease of access for users with disabilities or special needs"
       responses:
         '200':
-          description: |
-            Command(s) executed successfully.
-            - Single command: Returns domain event
-            - Batch: All commands succeeded
+          description: Command(s) executed successfully
           content:
             application/json:
               schema:
                 oneOf:
-                  - $ref: '#/components/schemas/AnyMessage'
+                  - $ref: '#/components/schemas/DomainEvent'
                   - $ref: '#/components/schemas/BatchResponse'
               examples:
                 singleSuccess:
-                  summary: Single command success (event returned)
+                  summary: Single command success
                   value:
-                    id: 7c9e6679-7425-40de-944b-e07fc1f90ae7
-                    action: CreatedProject
+                    id: "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
                     type: DomainEvent
-                    aggregateId: 550e8400-e29b-41d4-a716-446655440000
+                    action: CreatedProject
                     aggregateType: Project
-                    payload:
-                      name: Healthcare Interview Study 2025
-                    causationId: a3c45e34-2f9a-4b8c-9c3d-e12f34567890
+                    aggregateId: "550e8400-e29b-41d4-a716-446655440000"
+                    causationId: "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e"
                     timestamp: "2025-01-15T10:30:00Z"
                     version: 1
+                    payload:
+                      name: Healthcare Patient Experience Study
                 batchSuccess:
-                  summary: Batch - all succeeded
+                  summary: Batch command success
                   value:
+                    total: 2
+                    success_count: 2
+                    failure_count: 0
                     results:
                       - index: 0
                         success: true
                         result:
-                          id: 1a2b3c4d-5e6f-7g8h-9i0j-k1l2m3n4o5p6
-                          action: CreatedCode
+                          id: "c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f"
                           type: DomainEvent
-                          aggregateId: 650e8400-e29b-41d4-a716-446655440000
+                          action: CreatedCode
                           aggregateType: Code
+                          aggregateId: "660e8400-e29b-41d4-a716-446655440001"
+                          causationId: "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a"
+                          timestamp: "2025-01-15T10:30:00Z"
+                          version: 1
                           payload:
-                            project_id: 550e8400-e29b-41d4-a716-446655440000
-                            slug: emotion:anxiety
-                            color: red-400
-                            reasoning: "Expressions of worry, fear, or nervousness..."
+                            project_id: "550e8400-e29b-41d4-a716-446655440000"
+                            slug: "usability:friction-point"
+                            color: "amber-500"
+                            reasoning: "Areas where users struggle with the interface"
                       - index: 1
                         success: true
                         result:
-                          id: 2b3c4d5e-6f7g-8h9i-0j1k-l2m3n4o5p6q7
-                          action: CreatedCode
+                          id: "e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b"
                           type: DomainEvent
-                          aggregateId: 750e8400-e29b-41d4-a716-446655440000
+                          action: CreatedCode
                           aggregateType: Code
-                    total: 2
-                    success_count: 2
-                    failure_count: 0
-        '201':
-          description: Single command created a resource successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AnyMessage'
+                          aggregateId: "770e8400-e29b-41d4-a716-446655440002"
+                          causationId: "f6a7b8c9-d0e1-4f2a-3b4c-5d6e7f8a9b0c"
+                          timestamp: "2025-01-15T10:30:00Z"
+                          version: 1
+                          payload:
+                            project_id: "550e8400-e29b-41d4-a716-446655440000"
+                            slug: "theme:accessibility"
+                            color: "blue-400"
+                            reasoning: "Comments about ease of access for users with disabilities"
         '202':
-          description: Command(s) accepted for processing (async mode)
+          description: Command(s) accepted for async processing
         '207':
-          description: Batch - partial success (some commands failed)
+          description: Batch partially succeeded
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/BatchResponse'
-              examples:
-                partialSuccess:
-                  summary: Batch with failures
-                  value:
-                    results:
-                      - index: 0
-                        success: true
-                        result:
-                          action: CreatedCode
-                          type: DomainEvent
-                          aggregateId: 650e8400-e29b-41d4-a716-446655440000
-                      - index: 1
-                        success: false
-                        error: "validation failed: Slug must match code slug format (lowercase with colon and optional dashes)"
-                    total: 2
-                    success_count: 1
-                    failure_count: 1
+              example:
+                total: 3
+                success_count: 2
+                failure_count: 1
+                results:
+                  - index: 0
+                    success: true
+                    result:
+                      id: "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+                      type: DomainEvent
+                      action: CreatedCode
+                      aggregateType: Code
+                      aggregateId: "660e8400-e29b-41d4-a716-446655440001"
+                      timestamp: "2025-01-15T10:30:00Z"
+                      version: 1
+                  - index: 1
+                    success: false
+                    error: "validation failed: Slug already in use"
+                  - index: 2
+                    success: true
+                    result:
+                      id: "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e"
+                      type: DomainEvent
+                      action: CreatedCode
+                      aggregateType: Code
+                      aggregateId: "770e8400-e29b-41d4-a716-446655440002"
+                      timestamp: "2025-01-15T10:30:00Z"
+                      version: 1
         '400':
-          description: |
-            Validation error or bad request.
-            - Single command: Validation failed
-            - Batch: All commands failed
+          description: Validation error or all batch commands failed
           content:
             application/json:
               schema:
@@ -195,97 +230,78 @@ paths:
                   - $ref: '#/components/schemas/ErrorResponse'
                   - $ref: '#/components/schemas/BatchResponse'
               examples:
-                validationError:
-                  summary: Validation error - required field
+                validationSingle:
+                  summary: Single field validation error
                   value:
                     message: "validation failed: Name is required"
                     fields:
-                      Name: required
-                codeSlugError:
-                  summary: Validation error - invalid code slug format
-                  value:
-                    message: "validation failed: Slug must match code slug format (lowercase with colon and optional dashes)"
-                    fields:
-                      Slug: code_slug
-                multipleFieldsError:
-                  summary: Validation error - multiple fields
+                      Name: "required"
+                validationMultiple:
+                  summary: Multiple field validation errors
                   value:
                     message: "validation failed: Color is required, Reasoning is required"
                     fields:
-                      Color: required
-                      Reasoning: required
-                batchAllFailed:
-                  summary: Batch - all failed
+                      Color: "required"
+                      Reasoning: "required"
+                validationPattern:
+                  summary: Pattern validation error
                   value:
-                    results:
-                      - index: 0
-                        success: false
-                        error: "validation failed: Name is required"
-                      - index: 1
-                        success: false
-                        error: "validation failed: Slug must match code slug format (lowercase with colon and optional dashes)"
-                    total: 2
-                    success_count: 0
-                    failure_count: 2
-        '404':
-          description: Resource not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              examples:
-                notFound:
-                  summary: Entity not found
-                  value:
-                    message: "Code not found"
-        '409':
-          description: Conflict (e.g., duplicate resource)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              examples:
-                conflict:
-                  summary: Duplicate slug
-                  value:
-                    message: "validation failed: Slug already in use"
+                    message: "validation failed: Slug must match code slug format (lowercase with colon and optional dashes)"
                     fields:
-                      Slug: "already in use"
+                      Slug: "code_slug"
+                duplicateSlug:
+                  summary: Duplicate slug error
+                  value:
+                    message: "validation failed"
+                    fields:
+                      slug: "already in use"
+        '404':
+          description: Referenced entity not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                message: "validation failed"
+                fields:
+                  project_id: "not found"
+        '409':
+          description: Conflict error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              examples:
-                internalError:
-                  summary: Internal error
-                  value:
-                    message: "Internal server error"
 
   /ws/:
     get:
-      summary: WebSocket connection
+      summary: WebSocket connection for real-time events
       description: |
-        Establish WebSocket connection for real-time bidirectional communication.
+        Establish a WebSocket connection to:
+        - Send commands (same format as POST /commands)
+        - Receive domain events in real-time
 
-        **Client → Server**: Send commands (same format as POST /commands)
-        **Server → Client**: Receive domain events in real-time
+        **Client → Server**: Send AnyMessage commands (single or batch)
+        **Server → Client**: Receive domain events and command responses
 
-        The WebSocket automatically forwards all domain events to connected clients.
-        Commands sent via WebSocket receive immediate response (success/error).
-      operationId: websocketConnection
+        **Message Format**: All messages are JSON-encoded
+        **Error Handling**: Errors are sent back through the WebSocket as JSON responses
       responses:
         '101':
-          description: WebSocket connection established
+          description: WebSocket upgrade successful
         '400':
-          description: WebSocket upgrade failed
+          description: Upgrade failed
+        '500':
+          description: Server error
 
   /queries/projects:
     get:
-      summary: List all projects (paginated)
-      description: Retrieve all projects with pagination support
-      operationId: listProjects
+      summary: List all projects with pagination
       parameters:
         - name: page
           in: query
@@ -293,7 +309,6 @@ paths:
             type: integer
             minimum: 1
             default: 1
-          description: Page number (1-indexed)
         - name: page_size
           in: query
           schema:
@@ -301,7 +316,6 @@ paths:
             minimum: 1
             maximum: 100
             default: 20
-          description: Number of items per page
       responses:
         '200':
           description: Paginated list of projects
@@ -309,31 +323,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProjectPaginationResult'
-              examples:
-                success:
-                  summary: Project list (page 1)
-                  value:
-                    items:
-                      - id: 550e8400-e29b-41d4-a716-446655440000
-                        name: Healthcare Interview Study 2025
-                        code_ids:
-                          - 650e8400-e29b-41d4-a716-446655440000
-                          - 750e8400-e29b-41d4-a716-446655440000
-                        file_ids:
-                          - 850e8400-e29b-41d4-a716-446655440000
-                      - id: 660e8400-e29b-41d4-a716-446655440001
-                        name: UX Research - Mobile App Redesign
-                        code_ids: []
-                        file_ids: []
-                    total: 2
-                    page: 1
-                    page_size: 20
+              example:
+                items:
+                  - id: "550e8400-e29b-41d4-a716-446655440000"
+                    name: "Healthcare Patient Experience Study"
+                    code_ids: ["660e8400-e29b-41d4-a716-446655440001", "770e8400-e29b-41d4-a716-446655440002"]
+                    file_ids: ["880e8400-e29b-41d4-a716-446655440003"]
+                  - id: "550e8400-e29b-41d4-a716-446655440010"
+                    name: "UX Research Q1 2025"
+                    code_ids: ["990e8400-e29b-41d4-a716-446655440011"]
+                    file_ids: []
+                total: 15
+                page: 1
+                page_size: 20
 
   /queries/projects/{projectId}:
     get:
       summary: Get project by ID
-      description: Retrieve a single project by its UUID
-      operationId: getProjectById
       parameters:
         - name: projectId
           in: path
@@ -341,7 +347,6 @@ paths:
           schema:
             type: string
             format: uuid
-          description: Project UUID
       responses:
         '200':
           description: Project details
@@ -349,28 +354,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Project'
-              examples:
-                success:
-                  summary: Project details
-                  value:
-                    id: 550e8400-e29b-41d4-a716-446655440000
-                    name: Healthcare Interview Study 2025
-                    code_ids:
-                      - 650e8400-e29b-41d4-a716-446655440000
-                    file_ids:
-                      - 850e8400-e29b-41d4-a716-446655440000
+              example:
+                id: "550e8400-e29b-41d4-a716-446655440000"
+                name: "Policy Impact Assessment"
+                code_ids: ["660e8400-e29b-41d4-a716-446655440001"]
+                file_ids: ["770e8400-e29b-41d4-a716-446655440002"]
         '404':
           description: Project not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
 
   /queries/projects/{projectId}/files:
     get:
-      summary: List all files in project
-      description: Retrieve all files belonging to a project
-      operationId: listProjectFiles
+      summary: List all files in a project
       parameters:
         - name: projectId
           in: path
@@ -387,31 +381,24 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/File'
-              examples:
-                success:
-                  summary: File list
-                  value:
-                    - id: 850e8400-e29b-41d4-a716-446655440000
-                      project_id: 550e8400-e29b-41d4-a716-446655440000
-                      name: Interview_P01_20250115.txt
-                      title: Interview with Patient 01
-                      summary: Semi-structured interview discussing post-operative recovery
-                      type: source
-                      locked: false
-                      content: "Full interview transcript..."
-                      chunks: []
-        '404':
-          description: Project not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                - id: "770e8400-e29b-41d4-a716-446655440002"
+                  project_id: "550e8400-e29b-41d4-a716-446655440000"
+                  name: "Interview Transcript - Participant E12"
+                  title: "Employee Interview - Remote Work Experience"
+                  summary: "Discussion about challenges and benefits of remote work during organizational transition"
+                  time: "2025-01-10T14:30:00Z"
+                  type: "source"
+                  locked: true
+                  content: "I found the transition to remote work challenging at first..."
+                  chunks:
+                    - id: "1"
+                      content: "I found the transition to remote work challenging at first..."
+                      codes: []
 
   /queries/projects/{projectId}/files/{id}:
     get:
-      summary: Get file content (markdown)
-      description: Retrieve file content as markdown text
-      operationId: getFileContent
+      summary: Get file content as markdown
       parameters:
         - name: projectId
           in: path
@@ -425,10 +412,9 @@ paths:
           schema:
             type: string
             format: uuid
-          description: File UUID
       responses:
         '200':
-          description: File content as plain text
+          description: File content as markdown text
           headers:
             Content-Type:
               schema:
@@ -438,26 +424,23 @@ paths:
             text/markdown:
               schema:
                 type: string
-              examples:
-                success:
-                  summary: File content
-                  value: |
-                    # Interview with Patient 01
-
-                    Interviewer: How would you describe your recovery process?
-
-                    Participant: Well, the first week was challenging...
+              example: |
+                I found the transition to remote work challenging at first. The lack of in-person
+                interaction made collaboration difficult. However, over time I've learned to use
+                the tools more effectively.
         '404':
           description: File not found
 
   /queries/projects/{projectId}/files/{id}/chunks:
     get:
-      summary: Get file chunks with filtering
+      summary: Get file chunks with optional filtering
       description: |
-        Retrieve file chunks with optional filtering by text search and code coverage.
+        Retrieve file chunks with optional filtering by:
+        - Text search
+        - Coverage percentage (proportion of chunk text that is coded)
+        - Specific code slugs
 
-        If no chunk ID is provided, returns the first chunk.
-      operationId: getFileChunks
+        **Note**: Chunk IDs are 1-based (first chunk has ID "1")
       parameters:
         - name: projectId
           in: path
@@ -471,45 +454,45 @@ paths:
           schema:
             type: string
             format: uuid
-          description: File UUID
-        - name: id
+        - name: chunkId
           in: query
+          description: Specific chunk to retrieve (1-based index)
           schema:
             type: integer
-          description: Chunk ID to retrieve (omit to get first chunk)
+            minimum: 1
         - name: searchText
           in: query
+          description: Filter chunks containing this text
           schema:
             type: string
-          description: Filter chunks containing this text
         - name: minCoverage
           in: query
+          description: Minimum coding coverage (0.0 to 1.0)
           schema:
             type: number
-            format: float
-            minimum: 0
-            maximum: 1
-          description: Minimum code coverage (0.0-1.0)
+            format: double
+            minimum: 0.0
+            maximum: 1.0
         - name: maxCoverage
           in: query
+          description: Maximum coding coverage (0.0 to 1.0)
           schema:
             type: number
-            format: float
-            minimum: 0
-            maximum: 1
-          description: Maximum code coverage (0.0-1.0)
+            format: double
+            minimum: 0.0
+            maximum: 1.0
         - name: codeSlugs
           in: query
+          description: Filter by specific code slugs (comma-separated)
           schema:
             type: array
             items:
               type: string
-          description: Filter by specific code slugs
           style: form
-          explode: true
+          explode: false
       responses:
         '200':
-          description: Chunk result with navigation
+          description: Chunk data with navigation info
           content:
             application/json:
               schema:
@@ -520,14 +503,14 @@ paths:
                   value:
                     chunk:
                       id: "1"
-                      content: "Interviewer: How would you describe your recovery process?\n\nParticipant: Well, the first week was challenging. I felt quite anxious about the pain levels..."
+                      content: "Participant describes feeling anxious about the upcoming procedure. They mention worrying about potential complications."
                       codes:
-                        - start_index: 95
-                          end_index: 145
-                          code_slug: emotion:anxiety
-                          code_id: 650e8400-e29b-41d4-a716-446655440000
-                          text: "I felt quite anxious about the pain levels"
-                          ai_reason: "Clear expression of anxiety regarding post-operative pain"
+                        - start_index: 28
+                          end_index: 65
+                          code_slug: "emotion:anxiety"
+                          code_id: "660e8400-e29b-41d4-a716-446655440001"
+                          text: "feeling anxious about the upcoming procedure"
+                          ai_reason: "Direct expression of pre-procedure anxiety"
                           comment: ""
                     chunk_id: 1
                     total_chunks: 5
@@ -537,7 +520,7 @@ paths:
                   value:
                     chunk:
                       id: "5"
-                      content: "Final thoughts from the participant..."
+                      content: "Final thoughts and reflections on the experience."
                       codes: []
                     chunk_id: 5
                     total_chunks: 5
@@ -547,9 +530,7 @@ paths:
 
   /queries/projects/{projectId}/codes:
     get:
-      summary: List all codes in project (paginated)
-      description: Retrieve all analytical codes in a project with pagination
-      operationId: listProjectCodes
+      summary: List all codes in a project with pagination
       parameters:
         - name: projectId
           in: path
@@ -577,30 +558,25 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CodePaginationResult'
-              examples:
-                success:
-                  summary: Code list
-                  value:
-                    items:
-                      - id: 650e8400-e29b-41d4-a716-446655440000
-                        project_id: 550e8400-e29b-41d4-a716-446655440000
-                        slug: topic:patient-experience
-                        color: blue-500
-                        reasoning: "Segments discussing patients' subjective experiences with healthcare services..."
-                      - id: 750e8400-e29b-41d4-a716-446655440000
-                        project_id: 550e8400-e29b-41d4-a716-446655440000
-                        slug: emotion:anxiety
-                        color: red-400
-                        reasoning: "Expressions of worry, fear, or nervousness about medical procedures..."
-                    total: 2
-                    page: 1
-                    page_size: 20
+              example:
+                items:
+                  - id: "660e8400-e29b-41d4-a716-446655440001"
+                    project_id: "550e8400-e29b-41d4-a716-446655440000"
+                    slug: "emotion:anxiety"
+                    color: "red-500"
+                    reasoning: "Patient expressions of worry, nervousness, or fear about medical procedures"
+                  - id: "770e8400-e29b-41d4-a716-446655440002"
+                    project_id: "550e8400-e29b-41d4-a716-446655440000"
+                    slug: "theme:communication"
+                    color: "blue-400"
+                    reasoning: "Interactions between patients and healthcare providers"
+                total: 8
+                page: 1
+                page_size: 20
 
   /queries/projects/{projectId}/codes/{id}:
     get:
       summary: Get code by ID
-      description: Retrieve a single code by its UUID
-      operationId: getCodeById
       parameters:
         - name: projectId
           in: path
@@ -614,7 +590,6 @@ paths:
           schema:
             type: string
             format: uuid
-          description: Code UUID
       responses:
         '200':
           description: Code details
@@ -622,23 +597,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Code'
-              examples:
-                success:
-                  summary: Code details
-                  value:
-                    id: 650e8400-e29b-41d4-a716-446655440000
-                    project_id: 550e8400-e29b-41d4-a716-446655440000
-                    slug: topic:patient-experience
-                    color: blue-500
-                    reasoning: "Segments discussing patients' subjective experiences with healthcare services, including emotional responses, satisfaction levels, and personal narratives about treatment."
+              example:
+                id: "660e8400-e29b-41d4-a716-446655440001"
+                project_id: "550e8400-e29b-41d4-a716-446655440000"
+                slug: "topic:energy-transition"
+                color: "green-600"
+                reasoning: "References to renewable energy, fossil fuel phase-out, or sustainability initiatives in policy documents"
         '404':
           description: Code not found
 
   /queries/projects/{projectId}/codes/slug/{slug}:
     get:
       summary: Get code by slug
-      description: Retrieve a code by its unique slug identifier
-      operationId: getCodeBySlug
       parameters:
         - name: projectId
           in: path
@@ -652,7 +622,7 @@ paths:
           schema:
             type: string
             pattern: '^[a-z]+(-[a-z]+)*:[a-z]+(-[a-z]+)*$'
-          description: Code slug (e.g., "topic:patient-experience")
+          description: Code slug in format category:name (e.g., emotion:anxiety)
       responses:
         '200':
           description: Code details
@@ -660,57 +630,75 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Code'
+              example:
+                id: "660e8400-e29b-41d4-a716-446655440001"
+                project_id: "550e8400-e29b-41d4-a716-446655440000"
+                slug: "usability:friction-point"
+                color: "amber-500"
+                reasoning: "Moments where users express confusion, frustration, or struggle with interface elements"
+        '400':
+          description: Invalid slug format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                message: "validation failed: Slug must match code slug format (lowercase with colon and optional dashes)"
+                fields:
+                  Slug: "code_slug"
         '404':
-          description: Code with slug not found
+          description: Code not found
 
 components:
   schemas:
     AnyMessage:
       type: object
       required:
-        - action
         - type
-        - aggregateType
+        - action
       properties:
         id:
           type: string
           format: uuid
-          description: Message UUID (auto-generated if not provided)
-        action:
-          type: string
-          description: |
-            Command or event action name.
-            See x-command-reference extension for full list.
-          example: CreateProject
+          description: Message ID (auto-generated if not provided)
         type:
           type: string
           enum: [Command, DomainEvent, SystemEvent]
           description: Message type
+        action:
+          type: string
+          description: Action name (e.g., CreateProject, UpdateCode)
+        aggregateType:
+          type: string
+          description: Entity type (Project, Code, File) - capitalized
         aggregateId:
           type: string
           description: |
-            Entity UUID. Use empty string "" for CREATE operations.
-            Use entity UUID for UPDATE/DELETE operations.
-          example: ""
-        aggregateType:
-          type: string
-          description: Entity type (Project, Code, File)
-          example: Project
+            Entity ID - use empty string "" for CREATE operations,
+            use entity UUID for UPDATE/DELETE operations
         payload:
           type: object
-          description: Command/event payload (structure varies by action)
+          description: Command-specific payload (see command reference)
         causationId:
           type: string
           format: uuid
-          description: ID of the message that caused this message (auto-set)
+          description: ID of the message that caused this message
         timestamp:
           type: string
           format: date-time
           description: Message timestamp (auto-set by server)
         version:
           type: integer
-          description: Event schema version (always 1)
-          default: 1
+          description: Event version (always 1 currently)
+
+    DomainEvent:
+      allOf:
+        - $ref: '#/components/schemas/AnyMessage'
+        - type: object
+          properties:
+            type:
+              type: string
+              enum: [DomainEvent]
 
     ErrorResponse:
       type: object
@@ -720,14 +708,11 @@ components:
         message:
           type: string
           description: Human-readable error message
-          example: "validation failed: Name is required"
         fields:
           type: object
           additionalProperties:
             type: string
-          description: Field-specific validation errors (tag → field name)
-          example:
-            Name: required
+          description: Field-level validation errors (field name → validation tag)
 
     BatchResponse:
       type: object
@@ -740,7 +725,23 @@ components:
         results:
           type: array
           items:
-            $ref: '#/components/schemas/BatchResult'
+            type: object
+            required:
+              - index
+              - success
+            properties:
+              index:
+                type: integer
+                description: Position in the batch (0-based)
+              success:
+                type: boolean
+                description: Whether this command succeeded
+              result:
+                $ref: '#/components/schemas/DomainEvent'
+                description: Resulting domain event (only present on success)
+              error:
+                type: string
+                description: Error message (only present on failure)
         total:
           type: integer
           description: Total number of commands in batch
@@ -750,25 +751,6 @@ components:
         failure_count:
           type: integer
           description: Number of failed commands
-
-    BatchResult:
-      type: object
-      required:
-        - index
-        - success
-      properties:
-        index:
-          type: integer
-          description: Command index in batch (0-indexed)
-        success:
-          type: boolean
-          description: Whether command succeeded
-        result:
-          $ref: '#/components/schemas/AnyMessage'
-          description: Domain event (only present on success)
-        error:
-          type: string
-          description: Error message (only present on failure)
 
     Project:
       type: object
@@ -782,20 +764,37 @@ components:
         name:
           type: string
           minLength: 1
-          description: Project name
-          example: Healthcare Interview Study 2025
         code_ids:
           type: array
           items:
             type: string
             format: uuid
-          description: List of code UUIDs in this project
+          description: List of code IDs in this project
         file_ids:
           type: array
           items:
             type: string
             format: uuid
-          description: List of file UUIDs in this project
+          description: List of file IDs in this project
+
+    ProjectPaginationResult:
+      type: object
+      required:
+        - items
+        - total
+        - page
+        - page_size
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Project'
+        total:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
 
     Code:
       type: object
@@ -818,177 +817,26 @@ components:
           maxLength: 100
           pattern: '^[a-z]+(-[a-z]+)*:[a-z]+(-[a-z]+)*$'
           description: |
-            Unique code identifier in lowercase with category:label format.
-            Only lowercase letters (a-z), hyphens (-) for spaces, and exactly one colon (:).
-            Examples: topic:patient-experience, emotion:anxiety, theme:communication
-          example: topic:patient-experience
+            Unique code identifier in format category:name (e.g., emotion:anxiety,
+            topic:patient-experience, usability:friction-point).
+            Must be lowercase with optional dashes, separated by colon.
+          example: "emotion:anxiety"
         color:
           type: string
           description: |
-            Tailwind CSS color (e.g., red-500, blue-400, light-blue-300).
-            Supports shades from 50 to 950.
-          example: blue-500
+            Tailwind CSS color format (e.g., red-500, blue-400, amber-600).
+            Supports standard colors with shades 50-950.
+            Can be multi-word colors like light-blue-400.
+          example: "red-500"
         reasoning:
           type: string
-          minLength: 1
           description: |
-            Detailed reasoning for when this code should be applied.
-            Should be thorough enough to enable consistent re-application.
-          example: "Segments discussing patients' subjective experiences with healthcare services, including emotional responses, satisfaction levels, and personal narratives about treatment."
-
-    File:
-      type: object
-      required:
-        - id
-        - project_id
-        - name
-        - title
-        - content
-      properties:
-        id:
-          type: string
-          format: uuid
-        project_id:
-          type: string
-          format: uuid
-        name:
-          type: string
-          maxLength: 255
-          description: Filename
-          example: Interview_P01_20250115.txt
-        title:
-          type: string
-          minLength: 1
-          maxLength: 200
-          description: Human-readable title
-          example: Interview with Patient 01
-        summary:
-          type: string
-          maxLength: 1500
-          description: Brief summary of file contents
-        time:
-          type: string
-          format: date-time
-          description: File timestamp (cannot be in the future)
-        type:
-          type: string
-          enum: [codebook, source, memo, context]
-          description: |
-            File type:
-            - codebook: Formal code definitions (user-created)
-            - source: Documents being coded (immutable)
-            - memo: Analytical notes (user writes)
-            - context: LLM working memory (AI + user)
-        original:
-          type: string
-          description: Original filename if converted (e.g., from PDF)
-        locked:
-          type: boolean
-          description: Whether file is read-only
-        content:
-          type: string
-          description: Full file content
-        chunks:
-          type: array
-          items:
-            $ref: '#/components/schemas/Chunk'
-          description: File chunks with coded sections
-
-    Chunk:
-      type: object
-      required:
-        - id
-        - content
-      properties:
-        id:
-          type: string
-          description: Chunk identifier
-          example: "1"
-        content:
-          type: string
-          description: Chunk text content
-        codes:
-          type: array
-          items:
-            $ref: '#/components/schemas/CodedSection'
-          description: Coded sections within this chunk
-
-    CodedSection:
-      type: object
-      required:
-        - start_index
-        - end_index
-        - code_slug
-        - code_id
-        - text
-      properties:
-        start_index:
-          type: integer
-          minimum: 0
-          description: Start character index (0-indexed)
-        end_index:
-          type: integer
-          description: End character index (must be > start_index)
-        code_slug:
-          type: string
-          minLength: 3
-          maxLength: 100
-          pattern: '^[a-z]+(-[a-z]+)*:[a-z]+(-[a-z]+)*$'
-        code_id:
-          type: string
-          format: uuid
-        text:
-          type: string
-          minLength: 1
-          maxLength: 1500
-          description: The actual coded text segment
-        ai_reason:
-          type: string
-          maxLength: 1500
-          description: AI-generated reasoning for this coding
-        comment:
-          type: string
-          maxLength: 1500
-          description: User comment on this coding
-
-    ChunkResult:
-      type: object
-      required:
-        - chunk
-        - chunk_id
-        - total_chunks
-      properties:
-        chunk:
-          $ref: '#/components/schemas/Chunk'
-        chunk_id:
-          type: integer
-          description: Current chunk ID
-        total_chunks:
-          type: integer
-          description: Total number of chunks in file
-        next:
-          type: integer
-          nullable: true
-          description: Next chunk ID (null if last chunk)
-
-    ProjectPaginationResult:
-      type: object
-      required:
-        - items
-        - total
-        - page
-        - page_size
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/Project'
-        total:
-          type: integer
-        page:
-          type: integer
-        page_size:
-          type: integer
+            Detailed rationale for applying this code. Should include:
+            - What to look for
+            - Examples of when to apply
+            - Optional exclusions
+            Limited to 1-3 paragraphs.
+          example: "Identifies expressions of patient anxiety about procedures, outcomes, or waiting times. Look for words like worried, nervous, scared, uncertain. Include both explicit statements and implicit indicators like questions about risks."
 
     CodePaginationResult:
       type: object
@@ -1009,6 +857,130 @@ components:
         page_size:
           type: integer
 
+    File:
+      type: object
+      required:
+        - id
+        - project_id
+        - name
+        - title
+      properties:
+        id:
+          type: string
+          format: uuid
+        project_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          maxLength: 255
+          description: File name
+        content:
+          type: string
+          description: Full file content
+        chunks:
+          type: array
+          items:
+            $ref: '#/components/schemas/Chunk'
+          description: File divided into chunks for coding
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Document title
+        summary:
+          type: string
+          maxLength: 1500
+          description: Document summary (max half page)
+        time:
+          type: string
+          format: date-time
+          description: Document timestamp (must not be in future)
+        type:
+          type: string
+          enum: [codebook, source, memo, context]
+          description: |
+            File type:
+            - codebook: Formal code definitions
+            - source: Documents being coded (immutable)
+            - memo: Analytical notes
+            - context: LLM working memory
+        original:
+          type: string
+          description: Reference to original file (e.g., PDF path)
+        locked:
+          type: boolean
+          description: Whether file is read-only
+
+    Chunk:
+      type: object
+      required:
+        - id
+        - content
+      properties:
+        id:
+          type: string
+          description: Chunk ID (1-based, e.g., "1", "2", "3")
+        content:
+          type: string
+          description: Chunk text content
+        codes:
+          type: array
+          items:
+            $ref: '#/components/schemas/CodedSection'
+          description: Code applications within this chunk
+
+    CodedSection:
+      type: object
+      required:
+        - code_slug
+        - code_id
+        - text
+      properties:
+
+        code_slug:
+          type: string
+          pattern: '^[a-z]+(-[a-z]+)*:[a-z]+(-[a-z]+)*$'
+          minLength: 3
+          maxLength: 100
+        code_id:
+          type: string
+          format: uuid
+        text:
+          type: string
+          minLength: 1
+          maxLength: 1500
+          description: The coded text excerpt
+        ai_reason:
+          type: string
+          maxLength: 1500
+          description: AI-generated reasoning for this code application
+        comment:
+          type: string
+          maxLength: 1500
+          description: User comment on this coding
+
+    ChunkResult:
+      type: object
+      required:
+        - chunk
+        - chunk_id
+        - total_chunks
+      properties:
+        chunk:
+          $ref: '#/components/schemas/Chunk'
+        chunk_id:
+          type: integer
+          minimum: 1
+          description: Current chunk number (1-based)
+        total_chunks:
+          type: integer
+          description: Total number of chunks in file
+        next:
+          type: integer
+          nullable: true
+          description: Next chunk ID (null if this is the last chunk)
+
     CreateProjectPayload:
       type: object
       required:
@@ -1017,8 +989,7 @@ components:
         name:
           type: string
           minLength: 1
-          description: Project name
-          example: Policy Analysis - Energy Transition Debate 2025
+          description: Project name (whitespace trimmed)
 
     CreateCodePayload:
       type: object
@@ -1033,24 +1004,26 @@ components:
           format: uuid
         slug:
           type: string
+          pattern: '^[a-z]+(-[a-z]+)*:[a-z]+(-[a-z]+)*$'
           minLength: 3
           maxLength: 100
-          pattern: '^[a-z]+(-[a-z]+)*:[a-z]+(-[a-z]+)*$'
-          example: theme:energy-transition
+          description: Automatically lowercased and trimmed
         color:
           type: string
-          example: green-600
+          description: Tailwind color format (automatically lowercased and trimmed)
         reasoning:
           type: string
           minLength: 1
-          example: "Discussions about transitioning from fossil fuels to renewable energy sources, including policy mechanisms, timelines, and challenges."
 
     UpdateCodePayload:
       type: object
+      description: All fields optional - only include fields to update
       properties:
         slug:
           type: string
           pattern: '^[a-z]+(-[a-z]+)*:[a-z]+(-[a-z]+)*$'
+          minLength: 3
+          maxLength: 100
         color:
           type: string
         reasoning:
@@ -1064,6 +1037,7 @@ components:
         project_id:
           type: string
           format: uuid
+          description: Required for validation only
 
     MergeCodesPayload:
       type: object
@@ -1078,30 +1052,24 @@ components:
         target_id:
           type: string
           format: uuid
-          description: Code to merge into (will be kept)
+          description: Code to merge into (will retain all codings)
 
     CreateFilePayload:
       type: object
       required:
         - project_id
         - name
-        - content
       properties:
-        id:
-          type: string
-          format: uuid
-          description: Optional ID (auto-generated if not provided)
         project_id:
           type: string
           format: uuid
         name:
           type: string
           maxLength: 255
-          example: Observation_Notes_20250115.txt
+          description: File name (whitespace trimmed)
         content:
           type: string
-          minLength: 1
-          example: "Full text content of the document..."
+          description: File content (optional, can be empty)
 
     CodeFilePayload:
       type: object
@@ -1133,8 +1101,8 @@ components:
           type: string
           enum: [SetCoding, AppendCoding, RemoveCoding]
           description: |
-            - SetCoding: Replace all codings for this code in chunk
-            - AppendCoding: Add new codings without removing existing
+            - SetCoding: Replace all existing codings for this code in chunk
+            - AppendCoding: Add new codings to existing ones
             - RemoveCoding: Remove specified codings
         texts:
           type: array
@@ -1143,7 +1111,7 @@ components:
             $ref: '#/components/schemas/CodedSectionAttributes'
         chunk_id:
           type: string
-          description: Chunk ID to apply coding to
+          description: Chunk ID to apply coding to (e.g., "1", "2")
 
     CodedSectionAttributes:
       type: object
@@ -1161,64 +1129,171 @@ components:
           type: string
           maxLength: 1500
 
-  x-command-reference:
-    description: |
-      Complete reference of all supported commands by aggregate type.
+x-command-reference:
+  description: |
+    Complete reference of all supported commands by aggregate type.
 
-      For aggregateId field:
-      - CREATE operations: Use empty string ""
-      - UPDATE/DELETE operations: Use entity UUID
+    For aggregateId field:
+    - CREATE operations: Use empty string ""
+    - UPDATE/DELETE operations: Use entity UUID
 
-    Project:
-      CreateProject:
-        description: Create a new research project
-        payload: CreateProjectPayload
-        aggregateId: empty string for create
-        event: CreatedProject
+  Project:
+    CreateProject:
+      description: Create a new research project
+      payload: CreateProjectPayload
+      aggregateId: empty string for create
+      event: CreatedProject
+      example: |
+        {
+          "type": "Command",
+          "action": "CreateProject",
+          "aggregateType": "Project",
+          "aggregateId": "",
+          "payload": {
+            "name": "Market Research Q1 2025"
+          }
+        }
 
-    Code:
-      CreateCode:
-        description: Create a new analytical code
-        payload: CreateCodePayload
-        aggregateId: empty string for create
-        event: CreatedCode
+  Code:
+    CreateCode:
+      description: Create a new analytical code
+      payload: CreateCodePayload
+      aggregateId: empty string for create
+      event: CreatedCode
+      validation:
+        - Slug must be unique within project
+        - Project must exist
+      example: |
+        {
+          "type": "Command",
+          "action": "CreateCode",
+          "aggregateType": "Code",
+          "aggregateId": "",
+          "payload": {
+            "project_id": "550e8400-e29b-41d4-a716-446655440000",
+            "slug": "speaker:mark-rutte",
+            "color": "purple-500",
+            "reasoning": "Quotes and statements by Mark Rutte in parliamentary debates"
+          }
+        }
 
-      UpdateCode:
-        description: Update code properties (slug, color, or reasoning)
-        payload: UpdateCodePayload
-        aggregateId: code UUID
-        event: UpdatedCode
-        note: All payload fields are optional; only provided fields are updated
+    UpdateCode:
+      description: Update code properties (slug, color, or reasoning)
+      payload: UpdateCodePayload
+      aggregateId: code UUID
+      event: UpdatedCode
+      validation:
+        - If updating slug, new slug must be unique
+      note: All payload fields are optional - only include fields to update
+      example: |
+        {
+          "type": "Command",
+          "action": "UpdateCode",
+          "aggregateType": "Code",
+          "aggregateId": "660e8400-e29b-41d4-a716-446655440001",
+          "payload": {
+            "reasoning": "Updated to focus on economic policy statements only"
+          }
+        }
 
-      DeleteCode:
-        description: Delete a code and remove from project
-        payload: DeleteCodePayload
-        aggregateId: code UUID
-        event: DeletedCode
-        note: Payload required for validation only
+    DeleteCode:
+      description: Delete a code
+      payload: DeleteCodePayload
+      aggregateId: code UUID
+      event: DeletedCode
+      note: Payload required for validation only (project_id)
+      example: |
+        {
+          "type": "Command",
+          "action": "DeleteCode",
+          "aggregateType": "Code",
+          "aggregateId": "660e8400-e29b-41d4-a716-446655440001",
+          "payload": {
+            "project_id": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        }
 
-      MergeCodes:
-        description: Merge source code into target code (source deleted)
-        payload: MergeCodesPayload
-        aggregateId: empty string
-        event: MergedCodes
+    MergeCodes:
+      description: Merge two codes (source code deleted, all its codings moved to target)
+      payload: MergeCodesPayload
+      aggregateId: source code UUID
+      event: MergedCodes
+      validation:
+        - Both source and target codes must exist
+        - Cannot merge a code with itself
+      example: |
+        {
+          "type": "Command",
+          "action": "MergeCodes",
+          "aggregateType": "Code",
+          "aggregateId": "660e8400-e29b-41d4-a716-446655440001",
+          "payload": {
+            "source_id": "660e8400-e29b-41d4-a716-446655440001",
+            "target_id": "770e8400-e29b-41d4-a716-446655440002"
+          }
+        }
 
-    File:
-      CreateFile:
-        description: Create a new file (source document, memo, etc.)
-        payload: CreateFilePayload
-        aggregateId: empty string for create
-        event: CreatedFile
+  File:
+    CreateFile:
+      description: Create a new file (defaults to type=source, locked=true)
+      payload: CreateFilePayload
+      aggregateId: empty string for create
+      event: CreatedFile
+      note: File type and locked status are set automatically to "source" and true
+      example: |
+        {
+          "type": "Command",
+          "action": "CreateFile",
+          "aggregateType": "File",
+          "aggregateId": "",
+          "payload": {
+            "project_id": "550e8400-e29b-41d4-a716-446655440000",
+            "name": "Focus Group Session 3",
+            "content": "Participants discussed their experiences with the new product..."
+          }
+        }
 
-      CodeFile:
-        description: Apply coding actions to file chunks
-        payload: CodeFilePayload
-        aggregateId: file UUID
-        event: CodedFile
+    CodeFile:
+      description: Apply codes to file sections using actions (SetCoding, AppendCoding, RemoveCoding)
+      payload: CodeFilePayload
+      aggregateId: file UUID
+      event: CodedFile
+      example: |
+        {
+          "type": "Command",
+          "action": "CodeFile",
+          "aggregateType": "File",
+          "aggregateId": "770e8400-e29b-41d4-a716-446655440002",
+          "payload": {
+            "actions": [
+              {
+                "code_id": "660e8400-e29b-41d4-a716-446655440001",
+                "code_slug": "usability:confusion",
+                "action": "SetCoding",
+                "chunk_id": "1",
+                "texts": [
+                  {
+                    "text": "I didn't understand how to submit the form",
+                    "ai_reason": "User expresses confusion about a core interface function",
+                    "comment": ""
+                  }
+                ]
+              }
+            ]
+          }
+        }
 
-      ClearCoding:
-        description: Remove all coding from a file
-        payload: none
-        aggregateId: file UUID
-        event: ClearedCoding
-        note: No payload required
+    ClearCoding:
+      description: Remove all coding from a file
+      payload: none required
+      aggregateId: file UUID
+      event: ClearedCoding
+      note: No payload required
+      example: |
+        {
+          "type": "Command",
+          "action": "ClearCoding",
+          "aggregateType": "File",
+          "aggregateId": "770e8400-e29b-41d4-a716-446655440002",
+          "payload": {}
+        }

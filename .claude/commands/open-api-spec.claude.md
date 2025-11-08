@@ -4,10 +4,6 @@ Generate a complete OpenAPI 3.0 spec for this CQRS-based qualitative data analys
 
 ## Workflow
 
-**IMPORTANT**: This command ONLY shows diffs. It NEVER applies changes automatically.
-After showing the diff, ALWAYS wait for explicit user confirmation before applying any changes.
-Do NOT assume consent from related discussion - only apply when user explicitly says to apply.
-
 ### Phase 1: DISCOVERY (COMPREHENSIVE SCAN)
 
 **CRITICAL**: ALWAYS perform a complete, thorough scan. Do NOT rely on previous knowledge.
@@ -53,17 +49,9 @@ Do NOT assume consent from related discussion - only apply when user explicitly 
 
 ### Phase 3: SHOW DIFF & WAIT
 - Show the complete diff
-- If first-time generation (file doesn't exist): Show "New file will be created"
 - STOP and wait for explicit user confirmation
 - Do NOT apply changes unless user explicitly says to apply in a follow-up message
 - User must say something like "apply", "yes, apply that", "make those changes", etc.
-
-## Output
-
-- **File**: `open-api-spec.generated.yml` (repository root)
-- **Name**: hermes-relay-api
-- **Version**: 1.0.0
-- **Server**: http://localhost:8080
 
 ## Where to Find Things
 
@@ -227,7 +215,13 @@ Document all found commands in a "Supported Commands by Aggregate" section. For 
 - `normalize:"trim,lowercase"` → automatic normalization
 
 **Pattern Discovery**:
-- **Code slugs**: Check code entity `messages.go` for validation pattern
+- **Code slugs**: MUST use this exact pattern in all OpenAPI schema locations: `^[a-z]+(-[a-z]+)*:[a-z]+(-[a-z]+)*$`
+  - Only lowercase letters (a-z)
+  - Hyphens (-) for word separation (where spaces would be)
+  - Exactly one colon (:) separating category from label
+  - NO numbers allowed
+  - Examples: `topic:patient-experience`, `emotion:anxiety`, `theme:climate-change`
+  - Source: `internal/lib/utils/validate.go` line 22
 - **Colors**: Check code entity for Tailwind color format and examples
   - Should support multi-word colors (e.g., `light-blue-400`)
   - Should document shade range (50-950)
@@ -242,6 +236,7 @@ Common validation error messages (based on validation tags):
 - `min=X` → "validation failed: {Field} must be at least X characters"
 - `max=X` → "validation failed: {Field} must be at most X characters"
 - `code_slug` → "validation failed: {Field} must match code slug format (lowercase with colon and optional dashes)"
+  - **IMPORTANT**: Pattern is `^[a-z]+(-[a-z]+)*:[a-z]+(-[a-z]+)*$` (NO numbers, only lowercase letters and hyphens)
 - `lte` → "validation failed: {Field} must not be in the future"
 - `gtfield=X` → "validation failed: {Field} must be greater than X"
 - `gte=X` → "validation failed: {Field} must be at least X"
@@ -310,9 +305,9 @@ Always perform complete discovery by reading all code:
    - Error type distinctions (ValidationError, NotFoundError, ConflictError, InternalError)
 9. **Validation**: Read `internal/lib/utils/validate.go` for custom validators (e.g., code_slug pattern)
 
-## Comparison Steps (Phase 2, if existing file)
+## Comparison Steps (Phase 2)
 
-If `open-api-spec.generated.yml` exists:
+Always:
 
 1. **Parse Existing Spec**: Read and parse the existing YAML file
 2. **Compare Endpoints**:
@@ -348,27 +343,7 @@ If `open-api-spec.generated.yml` exists:
 
 ## Generation Steps (Phase 3)
 
-Based on mode:
-
-1. **--check mode**:
-   - Show diff summary
-   - Output: "No changes applied. Run without --check to apply changes."
-   - STOP (do not use Write tool)
-
-2. **--apply mode** (default):
-   - Show diff summary (if existing file)
-   - If changes exist: Ask "Apply these changes? [y/N]"
-   - Use AskUserQuestion tool with yes/no options
-   - Only Write if user confirms "yes"
-   - If first-time generation: Write directly with message "First-time generation - creating open-api-spec.generated.yml"
-
-3. **--force mode**:
-   - Show diff summary (if existing file)
-   - Write without asking
-   - Output: "Applied changes without confirmation (--force mode)"
-   - If first-time: Same as apply mode
-
-4. **Write the Spec**: Use Write tool to create complete, accurate OpenAPI 3.0.3 spec
+- Show diff summary
 
 ## Safety Checks
 
@@ -427,24 +402,12 @@ COMPARING WITH EXISTING SPEC (open-api-spec.generated.yml):
 Total changes: 10 (5 additions, 2 removals, 3 modifications)
 ```
 
-For first-time generation:
-```
-OpenAPI Spec Generation - First Time
-
-DISCOVERY COMPLETE:
-  - 3 entities discovered
-  - 8 commands found
-  - 12 endpoints discovered
-  - 45 query parameters found
-
-No existing spec found. Generating complete specification...
-```
-
 ## Output Requirements
 
 - **Format**: Valid OpenAPI 3.0.3 YAML
 - **Accuracy**: All schemas match exact struct definitions from code
 - **Validation**: All validation constraints from struct tags included
+  - **CRITICAL**: Code slug pattern MUST be `^[a-z]+(-[a-z]+)*:[a-z]+(-[a-z]+)*$` in ALL locations (see Pattern Discovery section)
 - **Examples**: Realistic, diverse examples across multiple qualitative research domains
 - **Completeness**:
   - All endpoints from `routes.go`
@@ -460,3 +423,14 @@ No existing spec found. Generating complete specification...
   - Multiple field errors: `{"message": "validation failed: Color is required, Reasoning is required", "fields": {"Color": "required", "Reasoning": "required"}}`
   - Pattern validation errors: `{"message": "validation failed: Slug must match code slug format (lowercase with colon and optional dashes)", "fields": {"Slug": "code_slug"}}`
 - **Documentation**: Clear descriptions explaining what each endpoint/command does
+
+**IMPORTANT**: This command ONLY shows diffs. It NEVER applies changes automatically.
+After showing the diff, ALWAYS wait for explicit user confirmation before applying any changes.
+Do NOT assume consent from related discussion - only apply when user explicitly says to apply.
+
+## Output
+
+- **File**: `open-api-spec.generated.yml` (repository root)
+- **Name**: hermes-relay-api
+- **Version**: 1.0.0
+- **Server**: http://localhost:8080
