@@ -76,11 +76,7 @@ paths:
                   payload:
                     project_id: 550e8400-e29b-41d4-a716-446655440000
                     name: Interview_P01_20250115.txt
-                    title: Interview with Patient 01
-                    summary: Semi-structured interview discussing post-operative recovery experience
-                    type: source
-                    locked: false
-                    content: "Interviewer: How would you describe your recovery process?\n\nParticipant: Well, the first week was challenging..."
+                    content: "Interviewer: How would you describe your recovery process?\n\nParticipant: Well, the first week was challenging. I felt quite anxious about the pain levels and whether they were normal..."
               batchCommands:
                 summary: Batch create multiple codes
                 value:
@@ -460,7 +456,7 @@ paths:
       description: |
         Retrieve file chunks with optional filtering by text search and code coverage.
 
-        Chunks are indexed starting from 1 (first chunk = 1).
+        If no chunk ID is provided, returns the first chunk.
       operationId: getFileChunks
       parameters:
         - name: projectId
@@ -480,8 +476,7 @@ paths:
           in: query
           schema:
             type: integer
-            minimum: 1
-          description: Chunk ID to retrieve (1-indexed, defaults to first chunk)
+          description: Chunk ID to retrieve (omit to get first chunk)
         - name: searchText
           in: query
           schema:
@@ -656,7 +651,7 @@ paths:
           required: true
           schema:
             type: string
-            pattern: '^[a-z][a-z0-9-]*:[a-z0-9-]+$'
+            pattern: '^[a-z]+(-[a-z]+)*:[a-z]+(-[a-z]+)*$'
           description: Code slug (e.g., "topic:patient-experience")
       responses:
         '200':
@@ -821,9 +816,10 @@ components:
           type: string
           minLength: 3
           maxLength: 100
-          pattern: '^[a-z][a-z0-9-]*:[a-z0-9-]+$'
+          pattern: '^[a-z]+(-[a-z]+)*:[a-z]+(-[a-z]+)*$'
           description: |
             Unique code identifier in lowercase with category:label format.
+            Only lowercase letters (a-z), hyphens (-) for spaces, and exactly one colon (:).
             Examples: topic:patient-experience, emotion:anxiety, theme:communication
           example: topic:patient-experience
         color:
@@ -906,7 +902,7 @@ components:
       properties:
         id:
           type: string
-          description: Chunk ID (1-indexed as string)
+          description: Chunk identifier
           example: "1"
         content:
           type: string
@@ -937,7 +933,7 @@ components:
           type: string
           minLength: 3
           maxLength: 100
-          pattern: '^[a-z][a-z0-9-]*:[a-z0-9-]+$'
+          pattern: '^[a-z]+(-[a-z]+)*:[a-z]+(-[a-z]+)*$'
         code_id:
           type: string
           format: uuid
@@ -966,8 +962,7 @@ components:
           $ref: '#/components/schemas/Chunk'
         chunk_id:
           type: integer
-          minimum: 1
-          description: Current chunk ID (1-indexed)
+          description: Current chunk ID
         total_chunks:
           type: integer
           description: Total number of chunks in file
@@ -1040,7 +1035,7 @@ components:
           type: string
           minLength: 3
           maxLength: 100
-          pattern: '^[a-z][a-z0-9-]*:[a-z0-9-]+$'
+          pattern: '^[a-z]+(-[a-z]+)*:[a-z]+(-[a-z]+)*$'
           example: theme:energy-transition
         color:
           type: string
@@ -1055,7 +1050,7 @@ components:
       properties:
         slug:
           type: string
-          pattern: '^[a-z][a-z0-9-]*:[a-z0-9-]+$'
+          pattern: '^[a-z]+(-[a-z]+)*:[a-z]+(-[a-z]+)*$'
         color:
           type: string
         reasoning:
@@ -1090,9 +1085,12 @@ components:
       required:
         - project_id
         - name
-        - title
         - content
       properties:
+        id:
+          type: string
+          format: uuid
+          description: Optional ID (auto-generated if not provided)
         project_id:
           type: string
           format: uuid
@@ -1100,27 +1098,10 @@ components:
           type: string
           maxLength: 255
           example: Observation_Notes_20250115.txt
-        title:
-          type: string
-          minLength: 1
-          maxLength: 200
-          example: Classroom Observation - Math Lesson
-        summary:
-          type: string
-          maxLength: 1500
-        time:
-          type: string
-          format: date-time
-        type:
-          type: string
-          enum: [codebook, source, memo, context]
-        original:
-          type: string
-        locked:
-          type: boolean
         content:
           type: string
           minLength: 1
+          example: "Full text content of the document..."
 
     CodeFilePayload:
       type: object
@@ -1144,7 +1125,7 @@ components:
       properties:
         code_slug:
           type: string
-          pattern: '^[a-z][a-z0-9-]*:[a-z0-9-]+$'
+          pattern: '^[a-z]+(-[a-z]+)*:[a-z]+(-[a-z]+)*$'
         code_id:
           type: string
           format: uuid

@@ -92,15 +92,9 @@ func seedFiles(publisher *dispatch.InMemoryPublisher, sourceDir string, reset bo
 			Type:          commands.Command,
 			AggregateType: file.EntityName,
 			Payload: file.CreateFilePayload{
-				BaseFile: file.BaseFile{
-					ProjectID: projectID,
-					Name:      filename,
-					Attributes: file.Attributes{
-						Title:   filename,
-						Summary: "TBD",
-					},
-				},
-				Content: string(content),
+				ProjectID: projectID,
+				Name:      filename,
+				Content:   string(content),
 			},
 			Timestamp:   time.Now(),
 			AggregateID: uuid.New().String(),
