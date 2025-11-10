@@ -39,39 +39,57 @@ func NewStoreWithDefaults[T Entity](reducer Reducer[T], defaults []T) *Store[T] 
 	return store
 }
 
-// Event application
 func (s *Store[T]) ApplyEvent(message *commands.AnyMessage) {
-	s.ApplyEvents([]commands.AnyMessage{*message})
-}
-
-func (s *Store[T]) ApplyEvents(events []commands.AnyMessage) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	grouped := make(map[string][]commands.AnyMessage)
-	for _, event := range events {
-		grouped[event.AggregateID] = append(grouped[event.AggregateID], event)
+	current, exists := s.data[message.AggregateID]
+
+	if exists {
+		s.applyToEntity(current, message)
+	} else if commands.IsCreatedEvent(message.Action) {
+		if newState := s.reducer(nil, message); newState != nil {
+			s.createEntity(newState)
+		}
+	} else {
+		s.applyAcrossEntities(message)
 	}
+}
 
-	for id, msgs := range grouped {
-		var currentState *T
-		if existing, ok := s.data[id]; ok {
-			currentState = &existing
-		}
+func (s *Store[T]) applyToEntity(current T, message *commands.AnyMessage) {
+	currentPtr := &current
+	newState := s.reducer(currentPtr, message)
 
-		for _, event := range msgs {
-			currentState = s.reducer(currentState, &event)
-		}
+	if newState == nil {
+		delete(s.data, message.AggregateID)
+	} else {
+		entityID := (*newState).GetID()
+		s.data[entityID] = *newState
+	}
+}
 
-		if currentState == nil {
+func (s *Store[T]) createEntity(newState *T) {
+	entityID := (*newState).GetID()
+	s.data[entityID] = *newState
+}
+
+func (s *Store[T]) applyAcrossEntities(message *commands.AnyMessage) {
+	for id, entity := range s.data {
+		currentPtr := &entity
+		newState := s.reducer(currentPtr, message)
+
+		if newState == nil {
 			delete(s.data, id)
 		} else {
-			s.data[id] = *currentState
+			entityID := (*newState).GetID()
+			if entityID != id {
+				delete(s.data, id)
+			}
+			s.data[entityID] = *newState
 		}
 	}
 }
 
-// Direct accessors
 func (s *Store[T]) GetByID(id string) *T {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

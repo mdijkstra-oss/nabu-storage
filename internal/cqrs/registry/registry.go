@@ -9,7 +9,6 @@ import (
 	"hermes-relay/internal/domain/entities/project"
 	"hermes-relay/internal/lib/utils"
 	"log/slog"
-	"strings"
 	"sync"
 )
 
@@ -159,12 +158,11 @@ func (pvr *ProjectViewRegistry) UpdateEntityLookups(message *commands.AnyMessage
 	pvr.mu.Lock()
 	defer pvr.mu.Unlock()
 
-	action := string(message.Action)
 	key := string(message.AggregateType) + ":" + message.AggregateID
 
-	if strings.HasPrefix(action, "Created") {
+	if commands.IsCreatedEvent(message.Action) {
 		pvr.entityToProject[key] = projectID
-	} else if strings.HasPrefix(action, "Deleted") {
+	} else if commands.IsDeletedEvent(message.Action) {
 		delete(pvr.entityToProject, key)
 	}
 }

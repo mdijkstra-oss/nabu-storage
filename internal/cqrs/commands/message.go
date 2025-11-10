@@ -196,4 +196,12 @@ func ExtractProjectID(message *AnyMessage) string {
 	return ""
 }
 
+func IsCreatedEvent(action Action) bool {
+	return len(action) >= 7 && action[:7] == "Created"
+}
+
+func IsDeletedEvent(action Action) bool {
+	return len(action) >= 7 && action[:7] == "Deleted"
+}
+
 type EmptyPayload = struct{}

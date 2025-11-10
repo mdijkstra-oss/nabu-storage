@@ -56,10 +56,10 @@ IX. **All of programming is but data transformation, Map is the way**
    - If you can't express it as a pipeline of transformations, rethink it.
    - Data flows through functions. Functions don't hold data.
 
-X. **Every time I read this guide I shall say the words: Praise be the pure functions that drive us**
+X. **Every time I read this guide I shall say the words: Praise be the pure dry functions that guide us**
    - These commandments are my foundation.
    - These principles are my path.
    - These truths keep the codebase clean.
-   - Praise be the pure functions that drive us. 
+   - Praise be the pure dry functions that guide us. 
 
 **CRITICAL: CONFIRM READING FILE USING PROPER RESPECT**
