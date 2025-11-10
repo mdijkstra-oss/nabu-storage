@@ -52,6 +52,7 @@ paths:
                   aggregateId: ""
                   payload:
                     name: Healthcare Patient Experience Study
+                    description: Qualitative analysis of patient interviews regarding hospital experiences
               createCode:
                 summary: Create a new analytical code
                 value:
@@ -84,6 +85,7 @@ paths:
                   payload:
                     project_id: "550e8400-e29b-41d4-a716-446655440000"
                     name: "Interview with Patient P07"
+                    description: "Pre-operative patient interview discussing anxiety and information needs"
                     content: "I was really worried about the surgery. The doctor explained everything but I still felt nervous waiting for the results."
               codeFile:
                 summary: Apply codes to file sections
@@ -146,6 +148,7 @@ paths:
                     version: 1
                     payload:
                       name: Healthcare Patient Experience Study
+                      description: Study analyzing patient experiences in hospital settings
                 batchSuccess:
                   summary: Batch command success
                   value:
@@ -327,10 +330,12 @@ paths:
                 items:
                   - id: "550e8400-e29b-41d4-a716-446655440000"
                     name: "Healthcare Patient Experience Study"
+                    description: "Qualitative analysis of patient interviews"
                     code_ids: ["660e8400-e29b-41d4-a716-446655440001", "770e8400-e29b-41d4-a716-446655440002"]
                     file_ids: ["880e8400-e29b-41d4-a716-446655440003"]
                   - id: "550e8400-e29b-41d4-a716-446655440010"
                     name: "UX Research Q1 2025"
+                    description: "User experience research for new features"
                     code_ids: ["990e8400-e29b-41d4-a716-446655440011"]
                     file_ids: []
                 total: 15
@@ -357,6 +362,7 @@ paths:
               example:
                 id: "550e8400-e29b-41d4-a716-446655440000"
                 name: "Policy Impact Assessment"
+                description: "Analysis of energy transition policy documents"
                 code_ids: ["660e8400-e29b-41d4-a716-446655440001"]
                 file_ids: ["770e8400-e29b-41d4-a716-446655440002"]
         '404':
@@ -385,6 +391,7 @@ paths:
                 - id: "770e8400-e29b-41d4-a716-446655440002"
                   project_id: "550e8400-e29b-41d4-a716-446655440000"
                   name: "Interview Transcript - Participant E12"
+                  description: "Employee perspectives on remote work transition"
                   title: "Employee Interview - Remote Work Experience"
                   summary: "Discussion about challenges and benefits of remote work during organizational transition"
                   time: "2025-01-10T14:30:00Z"
@@ -764,6 +771,10 @@ components:
         name:
           type: string
           minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 2000
         code_ids:
           type: array
           items:
@@ -873,8 +884,11 @@ components:
           format: uuid
         name:
           type: string
-          maxLength: 255
+          maxLength: 200
           description: File name
+        description:
+          type: string
+          maxLength: 2000
         content:
           type: string
           description: Full file content
@@ -989,7 +1003,31 @@ components:
         name:
           type: string
           minLength: 1
+          maxLength: 200
           description: Project name (whitespace trimmed)
+        description:
+          type: string
+          maxLength: 2000
+          description: Project description (whitespace trimmed)
+
+    UpdateProjectPayload:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Project name (whitespace trimmed)
+        description:
+          type: string
+          maxLength: 2000
+          description: Project description (whitespace trimmed)
+
+    DeleteProjectPayload:
+      type: object
+      description: No fields required (empty payload)
 
     CreateCodePayload:
       type: object
@@ -1065,11 +1103,30 @@ components:
           format: uuid
         name:
           type: string
-          maxLength: 255
+          maxLength: 200
           description: File name (whitespace trimmed)
+        description:
+          type: string
+          maxLength: 2000
+          description: File description (whitespace trimmed)
         content:
           type: string
           description: File content (optional, can be empty)
+
+    UpdateFilePayload:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: File name (whitespace trimmed)
+        description:
+          type: string
+          maxLength: 2000
+          description: File description (whitespace trimmed)
 
     CodeFilePayload:
       type: object
@@ -1150,8 +1207,41 @@ x-command-reference:
           "aggregateType": "Project",
           "aggregateId": "",
           "payload": {
-            "name": "Market Research Q1 2025"
+            "name": "Market Research Q1 2025",
+            "description": "Quarterly market analysis and consumer sentiment tracking"
           }
+        }
+
+    UpdateProject:
+      description: Update project name and/or description
+      payload: UpdateProjectPayload
+      aggregateId: project UUID
+      event: UpdatedProject
+      example: |
+        {
+          "type": "Command",
+          "action": "UpdateProject",
+          "aggregateType": "Project",
+          "aggregateId": "550e8400-e29b-41d4-a716-446655440000",
+          "payload": {
+            "name": "Updated Project Name",
+            "description": "Updated project description"
+          }
+        }
+
+    DeleteProject:
+      description: Delete a project
+      payload: DeleteProjectPayload
+      aggregateId: project UUID
+      event: DeletedProject
+      note: No payload required
+      example: |
+        {
+          "type": "Command",
+          "action": "DeleteProject",
+          "aggregateType": "Project",
+          "aggregateId": "550e8400-e29b-41d4-a716-446655440000",
+          "payload": {}
         }
 
   Code:
@@ -1249,7 +1339,25 @@ x-command-reference:
           "payload": {
             "project_id": "550e8400-e29b-41d4-a716-446655440000",
             "name": "Focus Group Session 3",
+            "description": "Consumer feedback on new product features",
             "content": "Participants discussed their experiences with the new product..."
+          }
+        }
+
+    UpdateFile:
+      description: Update file name and/or description
+      payload: UpdateFilePayload
+      aggregateId: file UUID
+      event: UpdatedFile
+      example: |
+        {
+          "type": "Command",
+          "action": "UpdateFile",
+          "aggregateType": "File",
+          "aggregateId": "770e8400-e29b-41d4-a716-446655440002",
+          "payload": {
+            "name": "Updated File Name",
+            "description": "Updated file description"
           }
         }
 
