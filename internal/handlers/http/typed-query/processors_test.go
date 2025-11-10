@@ -52,21 +52,21 @@ func TestQuery(t *testing.T) {
 		expectBody   string
 	}{
 		{
-			name:         "GetByID with valid ID returns 200",
+			name:         "GetByID with valid ChunkID returns 200",
 			processor:    Query(projection.BindQueryOne(singleEntityStore, projection.ByID[TestEntity])),
 			pathParams:   map[string]string{"id": "test-1"},
 			expectStatus: 200,
 			expectBody:   `{"id":"test-1","name":"Entity One","value":100}`,
 		},
 		{
-			name:         "GetByID with missing ID returns 404",
+			name:         "GetByID with missing ChunkID returns 404",
 			processor:    Query(projection.BindQueryOne(emptyStore, projection.ByID[TestEntity])),
 			pathParams:   map[string]string{"id": "nonexistent"},
 			expectStatus: 404,
 			expectBody:   `{"message":"No results found"}`,
 		},
 		{
-			name:         "GetByID with empty ID returns 400 validation error",
+			name:         "GetByID with empty ChunkID returns 400 validation error",
 			processor:    Query(projection.BindQueryOne(singleEntityStore, projection.ByID[TestEntity])),
 			pathParams:   map[string]string{"id": ""},
 			expectStatus: 400,

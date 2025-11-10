@@ -13,6 +13,13 @@ func IsNilPtr[T any](v T) bool {
 }
 
 func SetFieldFromString(field reflect.Value, value string, fieldName string) error {
+	if field.Kind() == reflect.Ptr {
+		if field.IsNil() {
+			field.Set(reflect.New(field.Type().Elem()))
+		}
+		return SetFieldFromString(field.Elem(), value, fieldName)
+	}
+
 	switch field.Kind() {
 	case reflect.String:
 		field.SetString(value)
@@ -28,6 +35,12 @@ func SetFieldFromString(field reflect.Value, value string, fieldName string) err
 			return fmt.Errorf("invalid bool value for %s: %w", fieldName, err)
 		}
 		field.SetBool(boolVal)
+	case reflect.Float32, reflect.Float64:
+		floatVal, err := strconv.ParseFloat(value, 64)
+		if err != nil {
+			return fmt.Errorf("invalid float value for %s: %w", fieldName, err)
+		}
+		field.SetFloat(floatVal)
 	default:
 		return fmt.Errorf("unsupported field type: %s", field.Kind())
 	}
@@ -47,17 +60,30 @@ func ApplyDefaults(dst any) error {
 
 	t := v.Type()
 	for i := 0; i < v.NumField(); i++ {
+		structField := t.Field(i)
 		field := v.Field(i)
-		if !field.CanSet() || !field.IsZero() {
+
+		if !field.CanSet() {
 			continue
 		}
 
-		defaultVal := t.Field(i).Tag.Get("default")
+		if structField.Anonymous && structField.Type.Kind() == reflect.Struct {
+			if err := ApplyDefaults(field.Addr().Interface()); err != nil {
+				return err
+			}
+			continue
+		}
+
+		if !field.IsZero() {
+			continue
+		}
+
+		defaultVal := structField.Tag.Get("default")
 		if defaultVal == "" {
 			continue
 		}
 
-		if err := SetFieldFromString(field, defaultVal, t.Field(i).Name); err != nil {
+		if err := SetFieldFromString(field, defaultVal, structField.Name); err != nil {
 			return err
 		}
 	}

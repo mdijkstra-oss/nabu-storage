@@ -3,8 +3,8 @@ package handlers
 import (
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/domain/entities/file"
-	"hermes-relay/internal/lib/utils"
 	rh "hermes-relay/internal/lib/test-helpers/router-helpers"
+	"hermes-relay/internal/lib/utils"
 	"testing"
 )
 
@@ -244,7 +244,7 @@ func TestFileRouter(t *testing.T) {
 			ExpectErr: "validation failed: Name is required",
 		},
 		{
-			Name:        "DeleteFile with valid aggregate ID",
+			Name:        "DeleteFile with valid aggregate ChunkID",
 			Input:       commands.ToAny(commands.NewCommand[file.DeleteFilePayload, any](file.DeleteFile, file.DeleteFilePayload{}, file.EntityName, testFileID1, nil)),
 			ExpectErr:   "",
 			ExpectEvent: commands.ToAny(commands.NewDomainEvent[any, any](file.DeletedFile, nil, file.EntityName, testFileID1, nil)),

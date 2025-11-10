@@ -3,8 +3,8 @@ package handlers
 import (
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/domain/entities/project"
-	"hermes-relay/internal/lib/utils"
 	rh "hermes-relay/internal/lib/test-helpers/router-helpers"
+	"hermes-relay/internal/lib/utils"
 	"testing"
 )
 
@@ -49,7 +49,7 @@ func TestProjectRouter(t *testing.T) {
 			ExpectErr: "validation failed: Name is required",
 		},
 		{
-			Name:        "DeleteProject with valid aggregate ID",
+			Name:        "DeleteProject with valid aggregate ChunkID",
 			Input:       commands.ToAny(commands.NewCommand[project.DeleteProjectPayload, any](project.DeleteProject, project.DeleteProjectPayload{}, project.EntityName, testProjectID, nil)),
 			ExpectErr:   "",
 			ExpectEvent: commands.ToAny(commands.NewDomainEvent[any, any](project.DeletedProject, nil, project.EntityName, testProjectID, nil)),

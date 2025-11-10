@@ -40,7 +40,7 @@ func (d *DiskPersistence) PersistEvent(message *commands.AnyMessage) error {
 		return fmt.Errorf("cannot persist event without aggregate type")
 	}
 	if message.AggregateID == "" {
-		return fmt.Errorf("cannot persist event without aggregate ID")
+		return fmt.Errorf("cannot persist event without aggregate ChunkID")
 	}
 
 	filePath := d.getEventFilePath(message.AggregateType, message.AggregateID)
@@ -182,7 +182,7 @@ func appendEventToFile(filePath string, event *commands.AnyMessage) error {
 	if err := file.Sync(); err != nil {
 		return fmt.Errorf("failed to sync file: %w", err)
 	}
-	
+
 	return nil
 }
 

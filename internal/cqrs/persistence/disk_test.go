@@ -38,12 +38,12 @@ func TestPersistence(t *testing.T) {
 			ExpectErr: "cannot persist event without aggregate type",
 		},
 		{
-			Name: "Missing aggregate ID returns error",
+			Name: "Missing aggregate ChunkID returns error",
 			Input: []*commands.AnyMessage{
 				{Type: commands.DomainEvent, Action: "TestAction", AggregateType: "Test"},
 			},
 			Expected:  nil,
-			ExpectErr: "cannot persist event without aggregate ID",
+			ExpectErr: "cannot persist event without aggregate ChunkID",
 		},
 		{
 			Name: "Single event persists and loads",

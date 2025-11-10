@@ -61,7 +61,7 @@ func TestByChunk(t *testing.T) {
 			Name: "First chunk explicitly",
 			Input: ChunkQuery{
 				GetByIDQuery: projection.GetByIDQuery{ID: "file-1"},
-				ID:           intPtr(1),
+				ChunkID:      "1",
 			},
 			Expected: []ChunkResult{
 				{
@@ -76,7 +76,7 @@ func TestByChunk(t *testing.T) {
 			Name: "Middle chunk",
 			Input: ChunkQuery{
 				GetByIDQuery: projection.GetByIDQuery{ID: "file-1"},
-				ID:           intPtr(2),
+				ChunkID:      "2",
 			},
 			Expected: []ChunkResult{
 				{
@@ -91,7 +91,7 @@ func TestByChunk(t *testing.T) {
 			Name: "Last chunk",
 			Input: ChunkQuery{
 				GetByIDQuery: projection.GetByIDQuery{ID: "file-1"},
-				ID:           intPtr(3),
+				ChunkID:      "3",
 			},
 			Expected: []ChunkResult{
 				{
@@ -106,7 +106,7 @@ func TestByChunk(t *testing.T) {
 			Name: "Out of bounds index returns nil",
 			Input: ChunkQuery{
 				GetByIDQuery: projection.GetByIDQuery{ID: "file-1"},
-				ID:           intPtr(10),
+				ChunkID:      "10",
 			},
 			Expected: nil,
 		},
@@ -114,7 +114,7 @@ func TestByChunk(t *testing.T) {
 			Name: "Non-existent file returns nil",
 			Input: ChunkQuery{
 				GetByIDQuery: projection.GetByIDQuery{ID: "nonexistent"},
-				ID:           intPtr(1),
+				ChunkID:      "1",
 			},
 			Expected: nil,
 		},
@@ -142,7 +142,7 @@ func TestByChunk(t *testing.T) {
 				ChunkFilter: ChunkFilter{
 					SearchText: "Climate",
 				},
-				ID: intPtr(3),
+				ChunkID: "3",
 			},
 			Expected: []ChunkResult{
 				{
@@ -160,7 +160,7 @@ func TestByChunk(t *testing.T) {
 				ChunkFilter: ChunkFilter{
 					SearchText: "Climate",
 				},
-				ID: intPtr(2),
+				ChunkID: "2",
 			},
 			Expected: nil,
 		},

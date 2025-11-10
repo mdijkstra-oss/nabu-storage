@@ -11,7 +11,7 @@ import (
 type ChunkQuery struct {
 	projection.GetByIDQuery
 	ChunkFilter
-	ID *int `query:"chunkId"`
+	ChunkID string `query:"chunkId"`
 }
 
 type ChunkResult struct {
@@ -34,7 +34,7 @@ func ByChunk(files []fileview.File, q ChunkQuery) []ChunkResult {
 		return nil
 	}
 
-	chunkID := findChunkIndex(chunks, q.ID)
+	chunkID := findChunkIndex(chunks, q.ChunkID)
 	if chunkID == -1 {
 		return nil
 	}
@@ -55,13 +55,13 @@ func ByChunk(files []fileview.File, q ChunkQuery) []ChunkResult {
 	}}
 }
 
-func findChunkIndex(chunks []file.Chunk, requestedID *int) int {
-	if requestedID == nil {
+func findChunkIndex(chunks []file.Chunk, requestedID string) int {
+	if requestedID == "" {
 		return 0
 	}
 
 	return utils.FindIndex(chunks, func(c file.Chunk) bool {
-		return parseID(c.ID) == *requestedID
+		return c.ID == requestedID
 	})
 }
 

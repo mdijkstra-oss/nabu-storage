@@ -173,7 +173,7 @@ func Validate[P any](registry *ProjectViewRegistry, validator func(*ProjectView,
 	return func(message *commands.AnyMessage, publisher dispatch.PublishFunc) (*commands.AnyMessage, error) {
 		projectId := commands.ExtractProjectID(message)
 
-		// If ExtractProjectID didn't find a projectID, try looking it up by entity ID
+		// If ExtractProjectID didn't find a projectID, try looking it up by entity ChunkID
 		if projectId == "" {
 			projectId = registry.GetProjectIDForEntity(message.AggregateType, message.AggregateID)
 		}

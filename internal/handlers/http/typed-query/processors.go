@@ -100,19 +100,26 @@ func bindParams(params map[string]string, dst any, tagName string) error {
 	t := v.Type()
 	for i := 0; i < v.NumField(); i++ {
 		field := t.Field(i)
-		tag := field.Tag.Get(tagName)
+		fieldValue := v.Field(i)
 
+		if !fieldValue.CanSet() {
+			continue
+		}
+
+		if field.Anonymous && field.Type.Kind() == reflect.Struct {
+			if err := bindParams(params, fieldValue.Addr().Interface(), tagName); err != nil {
+				return err
+			}
+			continue
+		}
+
+		tag := field.Tag.Get(tagName)
 		if tag == "" {
 			continue
 		}
 
 		value, ok := params[tag]
 		if !ok || value == "" {
-			continue
-		}
-
-		fieldValue := v.Field(i)
-		if !fieldValue.CanSet() {
 			continue
 		}
 
