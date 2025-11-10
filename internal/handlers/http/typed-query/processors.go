@@ -3,12 +3,10 @@ package typedquery
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"hermes-relay/internal/cqrs/projection"
 	httphandlers "hermes-relay/internal/handlers/http"
 	"hermes-relay/internal/lib/utils"
 	"reflect"
-	"strconv"
 
 	"github.com/go-playground/validator/v10"
 )
@@ -33,6 +31,14 @@ func Query[Q, R any](
 			body, _ := json.Marshal(utils.ValidationError{Message: err.Error()})
 			return httphandlers.Response{
 				StatusCode: 400,
+				Body:       body,
+			}
+		}
+
+		if err := utils.ApplyDefaults(&query); err != nil {
+			body, _ := json.Marshal(utils.InternalError{Message: err.Error()})
+			return httphandlers.Response{
+				StatusCode: 500,
 				Body:       body,
 			}
 		}
@@ -110,23 +116,8 @@ func bindParams(params map[string]string, dst any, tagName string) error {
 			continue
 		}
 
-		switch fieldValue.Kind() {
-		case reflect.String:
-			fieldValue.SetString(value)
-		case reflect.Int, reflect.Int64, reflect.Int32:
-			intVal, err := strconv.ParseInt(value, 10, 64)
-			if err != nil {
-				return fmt.Errorf("invalid int value for %s: %w", tag, err)
-			}
-			fieldValue.SetInt(intVal)
-		case reflect.Bool:
-			boolVal, err := strconv.ParseBool(value)
-			if err != nil {
-				return fmt.Errorf("invalid bool value for %s: %w", tag, err)
-			}
-			fieldValue.SetBool(boolVal)
-		default:
-			return fmt.Errorf("unsupported field type: %s", fieldValue.Kind())
+		if err := utils.SetFieldFromString(fieldValue, value, tag); err != nil {
+			return err
 		}
 	}
 
