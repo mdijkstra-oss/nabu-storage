@@ -2,37 +2,49 @@
 
 Generate a complete OpenAPI 3.0 spec for this CQRS-based qualitative data analysis API.
 
+**Key Principles:**
+1. **Adaptive Discovery**: Check what exists, don't assume rigid structure
+2. **Consistent Formatting**: Match existing spec formatting exactly (see YAML Formatting Rules)
+3. **Complete x-command-reference**: Critical for MCP generation
+4. **Wait for Approval**: Show diff, then STOP - don't apply without explicit confirmation
+
 ## Workflow
 
-### Phase 1: DISCOVERY (COMPREHENSIVE SCAN)
+### Phase 1: DISCOVERY (ADAPTIVE SCAN)
 
 **CRITICAL**: ALWAYS perform a complete, thorough scan. Do NOT rely on previous knowledge.
 
-**1. Scan ENTIRE domain folder:**
-   - `ls internal/domain/entities/` to discover ALL entities
-   - For EACH entity folder, read ALL files:
-     - `commands.go` - ALL command constants
-     - `events.go` - ALL event constants
-     - `messages.go` - ALL payload structs with validation tags
-     - `entity.go` - complete entity structure
-   - Check for `validators.go` and `handlers.go` for custom validation
+**1. Discover entities (try these in order):**
+   - Primary: `ls internal/domain/entities/` to discover entity folders
+   - For EACH entity folder, check which files exist (don't assume all exist):
+     - `commands.go` - command action constants (if exists)
+     - `events.go` - event action constants (if exists)
+     - `messages.go` OR `payloads.go` - payload structs with validation tags
+     - `entity.go` - entity structure
+     - `validators.go` - custom validators (if exists)
+     - `handlers/handlers.go` - handler logic and transforms (if exists)
+   - If files have different names, adapt - use grep to find command/event constants
 
-**2. Scan routes.go THOROUGHLY:**
-   - Read `internal/handlers/routes.go` completely
+**2. Discover routes (try these in order):**
+   - Primary: Read `internal/handlers/routes.go` for ALL endpoints
+   - Fallback: Check `internal/handlers/http/routes.go`
    - Extract EVERY endpoint path and method
    - Note which query functions are used (Paginate, ByID, ByAll, custom)
    - Identify middleware and special handlers
 
-**3. Scan projections for query details:**
-   - For each entity, check `internal/domain/projections/{entity}-entity/`:
+**3. Discover projections and queries:**
+   - For each entity, check if `internal/domain/projections/{entity}-entity/` exists
+   - If exists, check for these files (all optional):
      - `view.go` - response types
-     - `query.go` - custom query types (if exists)
-     - `filter.go` - filter query parameters (CRITICAL - do not skip)
-   - Read `internal/cqrs/projection/queries.go` for generic patterns
+     - `query.go` - custom query types
+     - `filter.go` - filter query parameters (CRITICAL for query params)
+   - Read `internal/cqrs/projection/queries.go` for generic patterns (if exists)
+   - Look for `query:"paramName"` tags in ANY structs - these become query parameters
 
 **4. Extract validation patterns:**
-   - From struct tags: `validate:"..."`, `normalize:"..."`
-   - From `internal/lib/utils/errors.go`: error message formats
+   - From struct tags: `validate:"..."`, `normalize:"..."`, `query:"..."`
+   - From validation files (check these): `internal/lib/utils/errors.go`, `internal/lib/utils/validate.go`
+   - Look for custom validator functions
 
 **5. Build complete API model:**
    - All entities with their commands/events/payloads
@@ -40,39 +52,226 @@ Generate a complete OpenAPI 3.0 spec for this CQRS-based qualitative data analys
    - All validation rules
    - All error response formats
 
-### Phase 2: GENERATE & COMPARE
+### Phase 2: ANALYZE CODEBASE CHANGES
+
+**Before comparing specs, understand what changed in the code:**
+
+1. **Find last spec update**:
+   ```bash
+   git log --all -1 --format="%H %s" -- open-api-spec.generated.yml
+   ```
+   This gives you the commit hash and message of last spec update
+
+2. **Diff codebase since that commit**:
+   ```bash
+   git diff <commit-hash> HEAD -- internal/domain/entities/ internal/handlers/routes.go internal/domain/projections/
+   ```
+   Focus on files that affect the API:
+   - `internal/domain/entities/*/` - commands, events, payloads
+   - `internal/handlers/routes.go` - endpoints
+   - `internal/domain/projections/*/filter.go` - query params
+   - `internal/lib/utils/validate.go` - validation patterns
+
+3. **Analyze the diff to identify**:
+   - New entity files (new commands/events)
+   - Deleted entity files (removed commands/events)
+   - Modified structs (changed validation, new fields)
+   - New routes or removed routes
+   - New query parameters in filters
+
+4. **Use this to guide comparison**:
+   - If diff shows new `CreateFoo` command, expect it in new spec
+   - If diff shows deleted route, expect it removed from new spec
+   - If diff shows new validation tag, expect schema change
+
+### Phase 3: GENERATE & COMPARE
+
 1. Generate complete spec from discovered model
 2. If `open-api-spec.generated.yml` exists, compare with existing spec
-3. Categorize changes: ADDED, REMOVED, MODIFIED, UNCHANGED
-4. Validate removals (verify they're actually gone from code)
-5. Show diff to user in a clear, readable format
+3. Use codebase diff from Phase 2 to validate changes
+4. Categorize changes: ADDED, REMOVED, MODIFIED, UNCHANGED
+5. Cross-reference with code changes:
+   - "Added CreateFoo command ✓ (new in commit abc123)"
+   - "Removed OldEndpoint ✓ (deleted in commit def456)"
+   - "Modified File schema ✓ (validation changed in commit ghi789)"
+6. Show diff to user in a clear, readable format
 
-### Phase 3: SHOW DIFF & WAIT
+### Phase 4: SHOW DIFF & WAIT
 - Show the complete diff
 - STOP and wait for explicit user confirmation
 - Do NOT apply changes unless user explicitly says to apply in a follow-up message
 - User must say something like "apply", "yes, apply that", "make those changes", etc.
 
-## Where to Find Things
+## YAML Formatting Rules
+
+**CRITICAL**: Match the exact formatting style of the existing spec. Consistency is key for MCP generation.
+
+### Indentation & Spacing
+- **Indentation**: 2 spaces (never tabs)
+- **Section spacing**: Single empty line between major sections (paths, components, each schema)
+- **Property spacing**: No empty lines between properties within a schema
+- **Example spacing**: No empty line before `example:` or `examples:`
+
+### Descriptions
+- **Multi-line descriptions**: Use pipe `|` with proper indentation
+  ```yaml
+  description: |
+    First line of description.
+
+    Second paragraph after blank line.
+  ```
+- **Single-line descriptions**: Inline string (no pipe)
+  ```yaml
+  description: Brief description here
+  ```
+- **When to use multi-line**: Use pipe if description has multiple paragraphs or needs line breaks
+
+### Schema Ordering
+**Top-level schemas in `components/schemas`**: Alphabetical order
+- AnyMessage
+- BatchResponse
+- Chunk
+- ChunkResult
+- Code
+- CodePaginationResult
+- (etc.)
+
+**Within each schema**, order properties semantically:
+1. `type` (always first)
+2. `required` (if present)
+3. `properties` (main content)
+4. `enum` (if present)
+5. `description`, `example`, etc. (metadata last)
+
+**Within `properties`**, order fields logically:
+1. ID fields first (`id`, `project_id`, etc.)
+2. Core fields (`name`, `slug`, etc.)
+3. Descriptive fields (`description`, `reasoning`, etc.)
+4. Collection fields (`code_ids`, `file_ids`, arrays, etc.)
+5. Metadata fields (`timestamp`, `version`, etc.)
+
+### Examples
+- **Named examples**: Use when multiple examples needed
+  ```yaml
+  examples:
+    exampleName:
+      summary: Brief description
+      value:
+        field: value
+  ```
+- **Inline examples**: Use for simple single examples
+  ```yaml
+  example: simple value
+  ```
+- **Example values**: Use realistic qualitative research data (healthcare, UX, policy, etc.)
+
+### Enums & Arrays
+- **Inline arrays**: `[value1, value2, value3]` for short lists
+- **Multi-line arrays**: Only if list is very long or values are complex
+  ```yaml
+  enum:
+    - longValue1
+    - longValue2
+  ```
+
+### References
+- Always use `$ref: '#/components/schemas/TypeName'`
+- Keep schema names in PascalCase
+
+### Query Parameters
+Each parameter as separate object:
+```yaml
+parameters:
+  - name: paramName
+    in: query
+    description: What this param does
+    schema:
+      type: string
+      default: value
+```
+
+### Response Examples
+Use named examples with clear summaries:
+```yaml
+responses:
+  '200':
+    description: Success response
+    content:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/Type'
+        examples:
+          exampleName:
+            summary: Clear description of this example
+            value:
+              field: value
+```
+
+### x-command-reference Section
+**CRITICAL**: This section is used for MCP generation. Format exactly as:
+```yaml
+x-command-reference:
+  description: |
+    Complete reference of all supported commands by aggregate type.
+
+  EntityName:
+    CommandName:
+      description: What this command does
+      payload: PayloadTypeName
+      aggregateId: empty string for create | entity UUID for update
+      event: EventName
+      validation:
+        - First validation rule
+        - Second validation rule
+      note: Additional notes (optional)
+      example: |
+        {
+          "type": "Command",
+          "action": "CommandName",
+          ...
+        }
+```
+
+### Property Formatting
+- **String types**: Include `minLength`, `maxLength`, `pattern` from validation tags
+- **Number types**: Include `minimum`, `maximum`, `format` (int32, double, etc.)
+- **Arrays**: Specify `minItems`, `maxItems` if validated
+- **Format hints**: Use `format: uuid`, `format: date-time`, etc. where applicable
+
+### Validation in Schemas
+Translate Go struct tags to OpenAPI:
+- `validate:"required"` → `required: [field]`
+- `validate:"min=X,max=Y"` → `minLength: X, maxLength: Y`
+- `validate:"pattern"` → `pattern: 'regex'`
+- `validate:"gte=X"` → `minimum: X`
+- `validate:"lte=X"` → `maximum: X`
+
+## Where to Find Things (Typical Locations)
+
+These are the typical locations. If files don't exist at these paths, search for them or use alternative discovery methods.
 
 ### Core Message Structure
-**`internal/cqrs/message.go`**
-- `Message[T]` - generic wrapper for commands/events
-- `AnyMessage` - type-erased version for HTTP
-- Fields: `action`, `type`, `aggregateId`, `aggregateType`, `payload`, `timestamp`, `causationId`
+**Check these locations:**
+- `internal/cqrs/commands/message.go` OR `internal/cqrs/message.go`
+- Look for: `Message[T]`, `AnyMessage`, core message fields
 
 ### Entities (Commands & Payloads)
-**`internal/domain/entities/{entity}/`**
+**Primary location**: `internal/domain/entities/{entity}/`
 
-Each entity folder contains:
-- **`commands.go`** - command action constants (e.g., `CreateCode`, `UpdateCode`, `DeleteCode`)
-- **`messages.go`** - payload structs with validation/normalization tags
-- **`events.go`** - event action constants (e.g., `CreatedCode`, `UpdatedCode`, `DeletedCode`)
-- **`entity.go`** - entity structure with all fields
+**Typical files in each entity folder (check which exist):**
+- `commands.go` - command action constants (e.g., `CreateCode`, `UpdateCode`)
+- `events.go` - event action constants (e.g., `CreatedCode`, `UpdatedCode`)
+- `messages.go` OR `payloads.go` - payload structs with validation tags
+- `entity.go` - entity structure with all fields
+- `handlers/handlers.go` - command handlers and transformations (optional)
+- `validators.go` - custom validators (optional)
 
-**Discovery**: Use `ls internal/domain/entities/` to find all entities, then read each folder.
+**Discovery strategy:**
+1. Use `ls internal/domain/entities/` to find entity folders
+2. For each entity, check which files exist (don't assume all are present)
+3. If expected files missing, use grep to find constants/structs
 
-**Struct Tags**: Look for:
+**Struct Tags to extract:**
 - `validate:"required"` - required fields
 - `validate:"min=X,max=Y"` - length/value constraints
 - `validate:"gtfield=OtherField"` - field comparison (e.g., end_index > start_index)
@@ -85,13 +284,18 @@ Each entity folder contains:
 - **`handlers.go`** - Validate calls in route for custom validation (eg duplicate checks, existence checks etc)
 
 ### Query Endpoints & Responses
-**`internal/handlers/routes.go`** - ALL endpoint paths and route definitions
+**Routes location (check these):**
+- `internal/handlers/routes.go` (primary)
+- `internal/handlers/http/routes.go` (fallback)
 
-**`internal/domain/projections/{entity}-entity/view.go`** - response structs (type aliases to entity)
-**`internal/domain/projections/{entity}-entity/query.go`** - custom query types (if exists)
-**`internal/domain/projections/{entity}-entity/filter.go`** - filter types with query parameters (IMPORTANT: check for these!)
+**Projection locations (check if exist):**
+- `internal/domain/projections/{entity}-entity/view.go` - response types
+- `internal/domain/projections/{entity}-entity/query.go` - custom query types
+- `internal/domain/projections/{entity}-entity/filter.go` - **CRITICAL** for query parameters
+- `internal/domain/projections/{entity}-entity/chunk/filter.go` - chunk-specific filters
 
-**`internal/projection/queries.go`** - generic query patterns:
+**Generic query patterns (check these):**
+- `internal/cqrs/projection/queries.go` OR `internal/projection/queries.go`
 - `PaginationResult[T]` - wrapper for paginated responses
 - `PaginationQuery` - pagination parameters
 - `GetByIDQuery` - ID-based queries
@@ -107,15 +311,21 @@ For EACH endpoint in `routes.go`, check for:
 5. All `query:` tagged fields MUST be documented as query parameters in the OpenAPI spec
 
 ### HTTP Layer
-**`internal/handlers/http/`**
-- **`handlers.go`** - command/query processing, `BatchResponse` format
-- **`processors.go`** - batch processing logic
-- **`responses.go`** - `batchStatus()` function defines status codes (200/202/207/400)
-- **`types.go`** - HTTP-specific types
-- **`socket.go`** - WebSocket handler details
+**Check these locations:**
+- `internal/handlers/http/handlers.go` - command/query processing
+- `internal/handlers/http/processors.go` - batch processing logic
+- `internal/handlers/http/responses.go` - status code logic (`batchStatus()` function)
+- `internal/handlers/http/types.go` - HTTP-specific types (e.g., `BatchResponse`)
+- `internal/handlers/http/socket.go` - WebSocket implementation
+
+**What to extract:**
+- Batch response format
+- Status code logic (200/202/207/400)
+- WebSocket message format
 
 ### Error Responses
-**`internal/lib/utils/errors.go`**
+**Check these files:**
+- `internal/lib/utils/errors.go` (primary)
 - `ValidationError` - validation errors with descriptive messages and field details
   - Format: `{"message": "validation failed: {field} {description}", "fields": {"FieldName": "tag"}}`
   - Message includes human-readable descriptions (e.g., "validation failed: Name is required")
@@ -277,53 +487,87 @@ Example code slugs: `topic:patient-experience`, `emotion:anxiety`, `usability:fr
 
 ## Discovery Steps (Phase 1)
 
-Always perform complete discovery by reading all code:
+Always perform complete discovery. Be adaptive - check if files exist before trying to read them.
 
-1. **Core CQRS Types**: Read `internal/cqrs/commands/message.go` for `Message[T]` and `AnyMessage` structure
-2. **Discover Entities**: `ls internal/domain/entities/` to find all entity folders
-3. **For Each Entity**:
-   - Read `commands.go` for command action constants
-   - Read `events.go` for event action constants
-   - Read `messages.go` for payload structs (check validation/normalization tags)
-   - Read `entity.go` for complete entity structure
-   - Read `handlers/handlers.go` for handler structure (check for transforms in ToCreateEntityEvent)
-4. **Endpoints**: Read `internal/handlers/routes.go` to discover ALL endpoint paths and their handlers
-5. **Projections**: For each entity, check if `internal/domain/projections/{entity}-entity/` exists:
-   - Read `view.go` for response types
-   - Read `query.go` (if exists) for custom query types
-   - **CRITICAL**: Read `filter.go` (if exists) for filter structs with query parameters
-   - Extract ALL fields with `query:"paramName"` tags and document as OpenAPI query parameters
-6. **Pagination**: Read `internal/cqrs/projection/queries.go` for `PaginationResult` and related types
-7. **HTTP Layer**:
-   - Read `internal/handlers/http/responses.go` for `batchStatus()` to understand status codes
-   - Read `internal/handlers/http/processors.go` for batch processing behavior
-   - Read `internal/handlers/http/handlers.go` for `BatchResponse` format
-   - Read `internal/handlers/http/socket.go` for WebSocket specifics
-8. **Error Types**: Read `internal/lib/utils/errors.go` for:
-   - Error response struct definitions
-   - `formatFieldError()` function for validation error message templates
-   - Error type distinctions (ValidationError, NotFoundError, ConflictError, InternalError)
-9. **Validation**: Read `internal/lib/utils/validate.go` for custom validators (e.g., code_slug pattern)
+1. **Core CQRS Types**:
+   - Try: `internal/cqrs/commands/message.go`, `internal/cqrs/message.go`
+   - Extract: `Message[T]`, `AnyMessage`, core fields
 
-## Comparison Steps (Phase 2)
+2. **Discover Entities**:
+   - Primary: `ls internal/domain/entities/`
+   - Fallback: Search for entity definitions with grep
 
-Always:
+3. **For Each Entity** (be adaptive about which files exist):
+   - Check for and read: `commands.go`, `events.go`
+   - Check for and read: `messages.go` OR `payloads.go`
+   - Check for and read: `entity.go`
+   - Optionally read: `handlers/handlers.go`, `validators.go`
+   - Extract all struct tags: `validate:`, `normalize:`, `json:`
+
+4. **Discover Endpoints**:
+   - Try: `internal/handlers/routes.go`, `internal/handlers/http/routes.go`
+   - Extract: ALL paths, methods, query function calls
+
+5. **Projections** (for each entity, check what exists):
+   - Look for: `internal/domain/projections/{entity}-entity/`
+   - If exists, check for: `view.go`, `query.go`, `filter.go`
+   - **CRITICAL**: Extract ALL `query:"paramName"` tags from any structs
+   - These become OpenAPI query parameters
+
+6. **Pagination**:
+   - Try: `internal/cqrs/projection/queries.go`, `internal/projection/queries.go`
+   - Extract: `PaginationResult[T]`, `PaginationQuery` structures
+
+7. **HTTP Layer** (check what exists):
+   - `internal/handlers/http/responses.go` - status code logic
+   - `internal/handlers/http/processors.go` - batch behavior
+   - `internal/handlers/http/handlers.go` - response formats
+   - `internal/handlers/http/socket.go` - WebSocket details
+
+8. **Error Handling**:
+   - Try: `internal/lib/utils/errors.go`
+   - Extract: Error response formats, `formatFieldError()` templates
+
+9. **Validation**:
+   - Try: `internal/lib/utils/validate.go`
+   - Extract: Custom validators (especially code_slug pattern)
+
+## Comparison Steps (Phase 3)
+
+Always perform comparison with git context:
 
 1. **Parse Existing Spec**: Read and parse the existing YAML file
-2. **Compare Endpoints**:
+
+2. **Get Git Context** (from Phase 2):
+   - Last spec commit hash
+   - List of files changed since then
+   - Specific changes (new commands, modified structs, etc.)
+
+3. **Compare Endpoints**:
    - Check each path in existing spec against discovered routes
    - Categorize: ADDED (in code, not in spec), REMOVED (in spec, not in code), MODIFIED (params/schema changed)
-3. **Compare Schemas**:
+   - Cross-reference with git diff: "Added GET /foo ✓ (route added in commit abc123)"
+
+4. **Compare Schemas**:
    - Check each schema in existing spec against discovered structs
    - Check fields, validation rules, types
    - Categorize: ADDED, REMOVED, MODIFIED
-4. **Compare Parameters**:
+   - Cross-reference: "Added Description field ✓ (struct modified in commit def456)"
+
+5. **Compare Commands in x-command-reference**:
+   - Check each command in spec against discovered commands
+   - Cross-reference: "Added UpdateProject ✓ (command added in commit ghi789)"
+
+6. **Compare Parameters**:
    - Check query parameters against filter.go structs
    - Check path parameters against route definitions
-5. **Validate Removals**:
-   - For each REMOVED item, verify it's actually gone from code
-   - Flag if removal seems suspicious (e.g., endpoint exists in routes but flagged as removed)
-6. **Build Diff Summary**:
+
+7. **Validate Removals**:
+   - For each REMOVED item, check git diff confirms deletion
+   - Flag if git diff shows item still exists
+   - Flag if removal seems suspicious
+
+8. **Build Diff Summary with Git Context**:
    ```
    ➕ ADDITIONS (X):
      - Path: GET /new/endpoint
@@ -357,7 +601,7 @@ If verification fails, don't mark as removed - mark as WARNING instead.
 
 ## Diff Output Format
 
-Show clear, actionable diff:
+Show clear, actionable diff with git context:
 
 ```
 OpenAPI Spec Generation - Comparison Summary
@@ -368,46 +612,185 @@ DISCOVERY COMPLETE:
   - 12 endpoints discovered
   - 45 query parameters found
 
+CODEBASE CHANGES (since last spec update):
+  Last spec commit: fac786d docs: update open api spec
+  Commits since: 3 commits
+
+  Code changes detected:
+    + internal/domain/entities/project/commands.go: UpdateProject, DeleteProject
+    + internal/domain/entities/file/commands.go: UpdateFile
+    ~ internal/domain/entities/project/messages.go: Description field added
+    ~ internal/domain/entities/file/entity.go: Description field added
+    ~ internal/cqrs/projection/reducer.go: IfExists wrapper added (no API impact)
+
 COMPARING WITH EXISTING SPEC (open-api-spec.generated.yml):
 
-➕ ADDITIONS (5):
-  Endpoints:
-    + GET /queries/projects/{projectId}/files/{id}/chunks?searchText=string
-    + GET /queries/projects/{projectId}/files/{id}/chunks?minCoverage=number
-    + GET /queries/projects/{projectId}/files/{id}/chunks?maxCoverage=number
-    + GET /queries/projects/{projectId}/files/{id}/chunks?codeSlugs=array
+➕ ADDITIONS (6):
+  Commands:
+    + UpdateProject ✓ (added in commit 8f8d780)
+    + DeleteProject ✓ (added in commit 8f8d780)
+    + UpdateFile ✓ (added in commit deec6e8)
 
   Schemas:
-    + File.Type: FileType enum (codebook|source|memo|context)
-    + File.Original: string
-    + File.Locked: boolean
+    + UpdateProjectPayload (Name, Description fields)
+    + UpdateFilePayload (Name, Description fields)
+    + Project.Description field
+    + File.Description field
 
-➖ REMOVALS (2):
-  Endpoints:
-    - GET /queries/files/ ✓ VERIFIED (route removed from routes.go)
+➖ REMOVALS (0):
+  (No removals detected)
 
+🔄 MODIFICATIONS (2):
   Schemas:
-    - OldFileType ✓ VERIFIED (type no longer exists)
+    ~ Project: added Description field ✓ (commit 8f8d780)
+    ~ File: added Description field ✓ (commit deec6e8)
 
-🔄 MODIFICATIONS (3):
-  Schemas:
-    ~ File: added 3 fields (Type, Original, Locked)
-    ~ CreateFilePayload: Type field now optional (omitempty validation)
+  x-command-reference:
+    ~ Project section: added UpdateProject, DeleteProject entries
+    ~ File section: added UpdateFile entry
 
-  Endpoints:
-    ~ POST /commands: CreateFile now sets Type default to 'source'
+✅ UNCHANGED: 52 items
 
-✅ UNCHANGED: 47 items
+Total changes: 8 (6 additions, 0 removals, 2 modifications)
 
-Total changes: 10 (5 additions, 2 removals, 3 modifications)
+All changes align with codebase changes since last spec update.
 ```
+
+## x-command-reference Section (CRITICAL FOR MCP)
+
+**This section is used to generate MCP (Model Context Protocol) tools. It MUST be complete and correctly formatted.**
+
+### Format Requirements
+
+```yaml
+x-command-reference:
+  description: |
+    Complete reference of all supported commands by aggregate type.
+
+    For aggregateId field:
+    - CREATE operations: Use empty string ""
+    - UPDATE/DELETE operations: Use entity UUID
+
+  EntityName:
+    CommandName:
+      description: Clear description of what this command does
+      payload: PayloadSchemaName
+      aggregateId: empty string for create | entity UUID for update/delete
+      event: EventName
+      validation:  # Optional - only if there are special validation rules
+        - First validation rule
+        - Second validation rule
+      note: Additional notes  # Optional
+      example: |
+        {
+          "type": "Command",
+          "action": "CommandName",
+          "aggregateType": "EntityName",
+          "aggregateId": "",
+          "payload": {
+            "field": "value"
+          }
+        }
+```
+
+### Content Requirements
+
+**For EACH discovered command:**
+1. Group by entity (Project, Code, File, etc.)
+2. Include ALL commands found in `commands.go` files
+3. Map command to its payload schema (from components/schemas)
+4. Show resulting event name (from `events.go`)
+5. List any special validation rules
+6. Provide complete example with realistic data
+
+**Commands without payloads:**
+- Some commands (DeleteCode, ClearCoding) may not need payload
+- Still document them with `payload: none required` or empty payload object
+- Example should show minimal structure
+
+**Order:**
+- Group commands by entity
+- Within each entity, order: Create, Update, Delete, then other commands
+- Match capitalization from code (EntityName, CommandName)
+
+## Adaptive Discovery Philosophy
+
+**Be flexible, not rigid:**
+- Check if files exist before reading them
+- If expected file doesn't exist, search for alternatives
+- Don't assume all entities have all file types
+- Use grep/search when direct paths don't work
+- Adapt to project structure changes
+
+**Report what you find:**
+- "Found commands.go in entity X"
+- "No messages.go found, checked for payloads.go - found"
+- "filter.go exists, extracting query parameters"
+- "handlers/handlers.go not found, skipping transforms"
+
+**Still be thorough:**
+- Check all typical locations
+- Look for patterns across entities
+- Extract all validation tags
+- Find all query parameters
+- Document everything discovered
+
+## Critical Patterns & Validation
+
+### Code Slug Pattern (CRITICAL - Gets Wrong Often)
+
+**The ONLY correct pattern for code slugs is:**
+```
+^[a-z]+(-[a-z]+)*:[a-z]+(-[a-z]+)*$
+```
+
+**Rules:**
+- ONLY lowercase letters `a-z` (NO uppercase, NO numbers)
+- Hyphens `-` allowed for word separation (multi-word slugs)
+- Exactly ONE colon `:` separating category from label
+- Format: `category:label` or `multi-word-category:multi-word-label`
+
+**Valid examples:**
+- `emotion:anxiety`
+- `topic:patient-experience`
+- `usability:friction-point`
+- `theme:climate-change`
+- `speaker:mark-rutte`
+
+**Invalid (DO NOT ACCEPT):**
+- `Emotion:Anxiety` (uppercase)
+- `emotion-anxiety` (no colon)
+- `emotion:anxiety:detail` (multiple colons)
+- `emotion:123` (numbers not allowed)
+- `emotion_anxiety` (underscore not allowed)
+
+**Where to use this pattern:**
+- `Code.slug` schema property
+- `CreateCodePayload.slug` schema property
+- `UpdateCodePayload.slug` schema property
+- `CodedSection.code_slug` schema property
+- `CodingAction.code_slug` schema property
+- Path parameter validation in `/queries/projects/{projectId}/codes/slug/{slug}`
+- ALL examples using code slugs
+
+**Source**: `internal/lib/utils/validate.go` line 22
+
+### Validation Tag Translations
+
+Always translate Go validation tags to OpenAPI constraints:
+- `validate:"required"` → `required: [fieldName]`
+- `validate:"min=X,max=Y"` → `minLength: X, maxLength: Y` (for strings)
+- `validate:"gte=X,lte=Y"` → `minimum: X, maximum: Y` (for numbers)
+- `validate:"code_slug"` → `pattern: '^[a-z]+(-[a-z]+)*:[a-z]+(-[a-z]+)*$'`
+- `validate:"uuid"` → `format: uuid`
+- `json:"field_name"` → property name is `field_name`
 
 ## Output Requirements
 
-- **Format**: Valid OpenAPI 3.0.3 YAML
+- **Format**: Valid OpenAPI 3.0.3 YAML matching the formatting rules above
 - **Accuracy**: All schemas match exact struct definitions from code
 - **Validation**: All validation constraints from struct tags included
-  - **CRITICAL**: Code slug pattern MUST be `^[a-z]+(-[a-z]+)*:[a-z]+(-[a-z]+)*$` in ALL locations (see Pattern Discovery section)
+  - **CRITICAL**: Code slug pattern MUST be `^[a-z]+(-[a-z]+)*:[a-z]+(-[a-z]+)*$` in ALL locations
 - **Examples**: Realistic, diverse examples across multiple qualitative research domains
 - **Completeness**:
   - All endpoints from `routes.go`
@@ -418,6 +801,7 @@ Total changes: 10 (5 additions, 2 removals, 3 modifications)
   - WebSocket protocol details from `socket.go`
   - Pagination format from `queries.go`
   - Batch status codes from `responses.go`
+  - **CRITICAL**: Complete `x-command-reference` section (used for MCP generation)
 - **Error Examples**: Include realistic validation error examples with descriptive messages:
   - Single field errors: `{"message": "validation failed: Name is required", "fields": {"Name": "required"}}`
   - Multiple field errors: `{"message": "validation failed: Color is required, Reasoning is required", "fields": {"Color": "required", "Reasoning": "required"}}`
