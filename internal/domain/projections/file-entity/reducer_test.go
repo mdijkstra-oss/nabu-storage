@@ -18,8 +18,7 @@ func createTestFile(projectID string) *File {
 			Name:       "test.txt",
 			Attributes: file.Attributes{Time: testTime},
 		},
-		Content: "Test content",
-		Chunks:  []file.Chunk{{ID: "1", Content: "Test content\n", Codes: []file.CodedSection{}}},
+		Chunks: []file.Chunk{{ID: "1", Content: "Test content\n", Codes: []file.CodedSection{}}},
 	}
 }
 
@@ -52,7 +51,6 @@ func TestFileReducer(t *testing.T) {
 						Locked:  true,
 					},
 				},
-				Content: "Short test content",
 				Chunks: []file.Chunk{
 					{
 						ID:      "1",
@@ -72,8 +70,7 @@ func TestFileReducer(t *testing.T) {
 					Description: "Old description",
 					Attributes:  file.Attributes{Time: testTime},
 				},
-				Content: "Test content",
-				Chunks:  []file.Chunk{{ID: "1", Content: "Test content\n", Codes: []file.CodedSection{}}},
+				Chunks: []file.Chunk{{ID: "1", Content: "Test content\n", Codes: []file.CodedSection{}}},
 			},
 			Event: domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.UpdatedFile, &file.UpdatedFilePayload{
 				Name:        "new-name.txt",
@@ -87,8 +84,7 @@ func TestFileReducer(t *testing.T) {
 					Description: "New description",
 					Attributes:  file.Attributes{Time: testTime},
 				},
-				Content: "Test content",
-				Chunks:  []file.Chunk{{ID: "1", Content: "Test content\n", Codes: []file.CodedSection{}}},
+				Chunks: []file.Chunk{{ID: "1", Content: "Test content\n", Codes: []file.CodedSection{}}},
 			},
 		},
 		{
@@ -106,7 +102,6 @@ func TestFileReducer(t *testing.T) {
 					Name:       "test.txt",
 					Attributes: file.Attributes{Time: testTime},
 				},
-				Content: "Climate change impacts global warming.",
 				Chunks: []file.Chunk{
 					{
 						ID:      "1",
@@ -135,7 +130,6 @@ func TestFileReducer(t *testing.T) {
 					Name:       "test.txt",
 					Attributes: file.Attributes{Time: testTime},
 				},
-				Content: "Climate change impacts global warming.",
 				Chunks: []file.Chunk{
 					{
 						ID:      "1",
@@ -156,7 +150,6 @@ func TestFileReducer(t *testing.T) {
 					Name:       "test.txt",
 					Attributes: file.Attributes{Time: testTime},
 				},
-				Content: "Climate change impacts global warming.",
 				Chunks: []file.Chunk{
 					{
 						ID:      "1",
@@ -188,7 +181,6 @@ func TestFileReducer(t *testing.T) {
 					Name:       "test.txt",
 					Attributes: file.Attributes{Time: testTime},
 				},
-				Content: "Climate change impacts global warming.",
 				Chunks: []file.Chunk{
 					{
 						ID:      "1",
@@ -209,7 +201,6 @@ func TestFileReducer(t *testing.T) {
 					Name:       "test.txt",
 					Attributes: file.Attributes{Time: testTime},
 				},
-				Content: "Climate change impacts global warming.",
 				Chunks: []file.Chunk{
 					{
 						ID:      "1",
@@ -239,7 +230,6 @@ func TestFileReducer(t *testing.T) {
 					Name:       "test.txt",
 					Attributes: file.Attributes{Time: testTime},
 				},
-				Content: "Climate change impacts global warming.",
 				Chunks: []file.Chunk{
 					{
 						ID:      "1",
@@ -260,7 +250,6 @@ func TestFileReducer(t *testing.T) {
 					Name:       "test.txt",
 					Attributes: file.Attributes{Time: testTime},
 				},
-				Content: "Test content",
 				Chunks: []file.Chunk{
 					{
 						ID:      "1",
@@ -279,7 +268,6 @@ func TestFileReducer(t *testing.T) {
 					Name:       "test.txt",
 					Attributes: file.Attributes{Time: testTime},
 				},
-				Content: "Test content",
 				Chunks: []file.Chunk{
 					{
 						ID:      "1",
@@ -298,7 +286,6 @@ func TestFileReducer(t *testing.T) {
 					Name:       "test.txt",
 					Attributes: file.Attributes{Time: testTime},
 				},
-				Content: "Climate change impacts global warming.",
 				Chunks: []file.Chunk{
 					{
 						ID:      "1",
@@ -318,7 +305,6 @@ func TestFileReducer(t *testing.T) {
 					Name:       "test.txt",
 					Attributes: file.Attributes{Time: testTime},
 				},
-				Content: "Climate change impacts global warming.",
 				Chunks: []file.Chunk{
 					{
 						ID:      "1",
@@ -339,7 +325,6 @@ func TestFileReducer(t *testing.T) {
 					Name:       "test.txt",
 					Attributes: file.Attributes{Time: testTime},
 				},
-				Content: "Climate change impacts global warming.",
 				Chunks: []file.Chunk{
 					{
 						ID:      "1",
@@ -359,7 +344,6 @@ func TestFileReducer(t *testing.T) {
 					Name:       "test.txt",
 					Attributes: file.Attributes{Time: testTime},
 				},
-				Content: "Climate change impacts global warming.",
 				Chunks: []file.Chunk{
 					{
 						ID:      "1",
@@ -381,7 +365,6 @@ func TestFileReducer(t *testing.T) {
 					Name:       "test.txt",
 					Attributes: file.Attributes{Time: testTime},
 				},
-				Content: "Climate change impacts global warming.",
 				Chunks: []file.Chunk{
 					{
 						ID:      "1",
@@ -401,7 +384,6 @@ func TestFileReducer(t *testing.T) {
 					Name:       "test.txt",
 					Attributes: file.Attributes{Time: testTime},
 				},
-				Content: "Climate change impacts global warming.",
 				Chunks: []file.Chunk{
 					{
 						ID:      "1",

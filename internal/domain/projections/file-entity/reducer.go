@@ -53,8 +53,7 @@ func CreatedFileReducer(_ *File, message *commands.AnyMessage, payload *file.Cre
 				Locked:  payload.Locked,
 			},
 		},
-		Content: payload.Content,
-		Chunks:  chunks,
+		Chunks: chunks,
 	}
 }
 

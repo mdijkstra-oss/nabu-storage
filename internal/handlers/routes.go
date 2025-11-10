@@ -46,14 +46,8 @@ func SetupHTTPHandlers(r chi.Router, publisher *dispatch.InMemoryPublisher, regi
 			r.Get("/", tq.QueryOneRoute(http.ProjectStoreFromRequest, projection.ByID))
 
 			r.Route("/files", func(r chi.Router) {
-				r.Get("/", tq.QueryRoute(http.FileStoreFromRequest, projection.ByAll))
-
-				r.Get("/{id}",
-					http.WithHeaders(http.MarkDownHeaders)(
-						tq.QueryOneRoute(http.FileStoreFromRequest, projection.ThenMap(projection.ByID, fileview.ToContent)),
-					).ServeHTTP,
-				)
-
+				r.Get("/", tq.QueryRoute(http.FileStoreFromRequest, projection.ThenMap(projection.ByAll, fileview.ToSummary)))
+				r.Get("/{id}", tq.QueryOneRoute(http.FileStoreFromRequest, projection.ThenMap(projection.ByID, fileview.ToSummary)))
 				r.Get("/{id}/chunks", tq.QueryOneRoute(http.FileStoreFromRequest, chunk.ByChunk))
 			})
 

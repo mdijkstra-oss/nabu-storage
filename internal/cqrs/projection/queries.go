@@ -19,8 +19,8 @@ func ByAll[T Entity](items []T, _ EmptyQuery) []T {
 }
 
 type PaginationQuery struct {
-	Page     int `query:"page" validate:"min=1"`
-	PageSize int `query:"page_size" validate:"min=1,max=100"`
+	Page     int `query:"page" validate:"min=1" default:"1"`
+	PageSize int `query:"page_size" validate:"min=1,max=100" default:"20"`
 }
 
 type PaginationResult[T any] struct {

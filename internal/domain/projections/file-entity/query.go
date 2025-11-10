@@ -1,5 +1,6 @@
 package fileview
 
-func ToContent(file File) string {
-	return file.Content
+// ToSummary strips chunks from File for context-efficient responses
+func ToSummary(f File) FileSummary {
+	return FileSummary{BaseFile: f.BaseFile}
 }

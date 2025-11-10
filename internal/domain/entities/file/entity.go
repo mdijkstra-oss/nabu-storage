@@ -4,8 +4,7 @@ import "time"
 
 type File struct {
 	BaseFile
-	Content string `json:"content"`
-	Chunks  []Chunk
+	Chunks []Chunk
 }
 
 func (f File) GetID() string {

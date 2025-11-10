@@ -24,7 +24,6 @@ func TestByChunk(t *testing.T) {
 				ProjectID: "project-1",
 				Name:      "test.txt",
 			},
-			Content: "Test content",
 			Chunks: []file.Chunk{
 				{ID: "1", Content: "Climate change impacts", Codes: []file.CodedSection{
 					{StartIndex: 0, EndIndex: 14, CodeSlug: "topic:climate", CodeID: "code-1", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change"}},

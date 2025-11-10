@@ -371,6 +371,7 @@ paths:
   /queries/projects/{projectId}/files:
     get:
       summary: List all files in a project
+      description: Returns file metadata without chunks for efficient listing
       parameters:
         - name: projectId
           in: path
@@ -380,13 +381,13 @@ paths:
             format: uuid
       responses:
         '200':
-          description: List of files
+          description: List of files (without chunks)
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/File'
+                  $ref: '#/components/schemas/FileSummary'
               example:
                 - id: "770e8400-e29b-41d4-a716-446655440002"
                   project_id: "550e8400-e29b-41d4-a716-446655440000"
@@ -397,15 +398,11 @@ paths:
                   time: "2025-01-10T14:30:00Z"
                   type: "source"
                   locked: true
-                  content: "I found the transition to remote work challenging at first..."
-                  chunks:
-                    - id: "1"
-                      content: "I found the transition to remote work challenging at first..."
-                      codes: []
 
   /queries/projects/{projectId}/files/{id}:
     get:
-      summary: Get file content as markdown
+      summary: Get file metadata by ID
+      description: Returns file metadata without chunks. Use /files/{id}/chunks to get file content.
       parameters:
         - name: projectId
           in: path
@@ -421,20 +418,21 @@ paths:
             format: uuid
       responses:
         '200':
-          description: File content as markdown text
-          headers:
-            Content-Type:
-              schema:
-                type: string
-                example: text/markdown
+          description: File metadata (without chunks)
           content:
-            text/markdown:
+            application/json:
               schema:
-                type: string
-              example: |
-                I found the transition to remote work challenging at first. The lack of in-person
-                interaction made collaboration difficult. However, over time I've learned to use
-                the tools more effectively.
+                $ref: '#/components/schemas/FileSummary'
+              example:
+                id: "770e8400-e29b-41d4-a716-446655440002"
+                project_id: "550e8400-e29b-41d4-a716-446655440000"
+                name: "Interview Transcript - Participant E12"
+                description: "Employee perspectives on remote work transition"
+                title: "Employee Interview - Remote Work Experience"
+                summary: "Discussion about challenges and benefits of remote work"
+                time: "2025-01-10T14:30:00Z"
+                type: "source"
+                locked: true
         '404':
           description: File not found
 
@@ -868,7 +866,7 @@ components:
         page_size:
           type: integer
 
-    File:
+    FileSummary:
       type: object
       required:
         - id
@@ -889,14 +887,6 @@ components:
         description:
           type: string
           maxLength: 2000
-        content:
-          type: string
-          description: Full file content
-        chunks:
-          type: array
-          items:
-            $ref: '#/components/schemas/Chunk'
-          description: File divided into chunks for coding
         title:
           type: string
           minLength: 1
@@ -925,6 +915,19 @@ components:
         locked:
           type: boolean
           description: Whether file is read-only
+
+    File:
+      allOf:
+        - $ref: '#/components/schemas/FileSummary'
+        - type: object
+          required:
+            - chunks
+          properties:
+            chunks:
+              type: array
+              items:
+                $ref: '#/components/schemas/Chunk'
+              description: File divided into chunks for coding
 
     Chunk:
       type: object
