@@ -1,6 +1,7 @@
 package bootstrap
 
 import (
+	"fmt"
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/cqrs/dispatch"
 	domainprojection "hermes-relay/internal/cqrs/registry"
@@ -30,9 +31,14 @@ func SetupProjectViewRegistry(publisher *dispatch.InMemoryPublisher) *domainproj
 	)
 
 	publisher.Subscribe(dispatch.LimitOnType(commands.DomainEvent, dispatch.ReadOnlyRoutes(func(message *commands.AnyMessage) error {
+
 		projectID := commands.ExtractProjectID(message)
 		if projectID == "" {
-			return nil
+			projectID = registry.GetProjectIDForEntity(message.AggregateType, message.AggregateID)
+		}
+
+		if projectID == "" {
+			return fmt.Errorf("required project ID for any domain event. %+v", message)
 		}
 
 		projectRegistry := registry.EnsureProjectExists(message, projectID)
