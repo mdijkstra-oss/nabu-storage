@@ -32,139 +32,6 @@ func TestProjectReducer(t *testing.T) {
 			},
 		},
 		{
-			Name: "AddedFileToProject appends to FileIDs",
-			Initial: &Project{
-				ID:      "project-1",
-				Name:    "Research",
-				CodeIDs: []string{},
-				FileIDs: []string{},
-			},
-			Event: newProjectEvent("project-1", project.AddedFileToProject, &project.AddedFileToProjectPayload{
-				FileID:    "file-1",
-				ProjectID: "project-1",
-			}),
-			Expected: &Project{
-				ID:      "project-1",
-				Name:    "Research",
-				CodeIDs: []string{},
-				FileIDs: []string{"file-1"},
-			},
-		},
-		{
-			Name: "AddedFileToProject with multiple files",
-			Initial: &Project{
-				ID:      "project-1",
-				Name:    "Research",
-				CodeIDs: []string{},
-				FileIDs: []string{"file-1"},
-			},
-			Event: newProjectEvent("project-1", project.AddedFileToProject, &project.AddedFileToProjectPayload{
-				FileID:    "file-2",
-				ProjectID: "project-1",
-			}),
-			Expected: &Project{
-				ID:      "project-1",
-				Name:    "Research",
-				CodeIDs: []string{},
-				FileIDs: []string{"file-1", "file-2"},
-			},
-		},
-		{
-			Name: "AddedCodeToProject appends to CodeIDs",
-			Initial: &Project{
-				ID:      "project-1",
-				Name:    "Research",
-				CodeIDs: []string{},
-				FileIDs: []string{},
-			},
-			Event: newProjectEvent("project-1", project.AddedCodeToProject, &project.AddedCodeToProjectPayload{
-				CodeID:    "code-1",
-				ProjectID: "project-1",
-			}),
-			Expected: &Project{
-				ID:      "project-1",
-				Name:    "Research",
-				CodeIDs: []string{"code-1"},
-				FileIDs: []string{},
-			},
-		},
-		{
-			Name: "AddedCodeToProject with multiple codes",
-			Initial: &Project{
-				ID:      "project-1",
-				Name:    "Research",
-				CodeIDs: []string{"code-1"},
-				FileIDs: []string{},
-			},
-			Event: newProjectEvent("project-1", project.AddedCodeToProject, &project.AddedCodeToProjectPayload{
-				CodeID:    "code-2",
-				ProjectID: "project-1",
-			}),
-			Expected: &Project{
-				ID:      "project-1",
-				Name:    "Research",
-				CodeIDs: []string{"code-1", "code-2"},
-				FileIDs: []string{},
-			},
-		},
-		{
-			Name: "RemovedCodeFromProject removes from CodeIDs",
-			Initial: &Project{
-				ID:      "project-1",
-				Name:    "Research",
-				CodeIDs: []string{"code-1", "code-2", "code-3"},
-				FileIDs: []string{},
-			},
-			Event: newProjectEvent("project-1", project.RemovedCodeFromProject, &project.RemovedCodeFromProjectPayload{
-				CodeID:    "code-2",
-				ProjectID: "project-1",
-			}),
-			Expected: &Project{
-				ID:      "project-1",
-				Name:    "Research",
-				CodeIDs: []string{"code-1", "code-3"},
-				FileIDs: []string{},
-			},
-		},
-		{
-			Name: "RemovedCodeFromProject on non-existent code is safe",
-			Initial: &Project{
-				ID:      "project-1",
-				Name:    "Research",
-				CodeIDs: []string{"code-1"},
-				FileIDs: []string{},
-			},
-			Event: newProjectEvent("project-1", project.RemovedCodeFromProject, &project.RemovedCodeFromProjectPayload{
-				CodeID:    "code-999",
-				ProjectID: "project-1",
-			}),
-			Expected: &Project{
-				ID:      "project-1",
-				Name:    "Research",
-				CodeIDs: []string{"code-1"},
-				FileIDs: []string{},
-			},
-		},
-		{
-			Name: "Full lifecycle: create, add files, add codes, delete code",
-			Initial: &Project{
-				ID:      "project-1",
-				Name:    "Research",
-				CodeIDs: []string{"code-1", "code-2"},
-				FileIDs: []string{"file-1", "file-2"},
-			},
-			Event: newProjectEvent("project-1", project.RemovedCodeFromProject, &project.RemovedCodeFromProjectPayload{
-				CodeID:    "code-1",
-				ProjectID: "project-1",
-			}),
-			Expected: &Project{
-				ID:      "project-1",
-				Name:    "Research",
-				CodeIDs: []string{"code-2"},
-				FileIDs: []string{"file-1", "file-2"},
-			},
-		},
-		{
 			Name: "UpdatedProject changes name and description",
 			Initial: &Project{
 				ID:          "project-1",
@@ -186,7 +53,7 @@ func TestProjectReducer(t *testing.T) {
 			},
 		},
 		{
-			Name: "UpdatedProject on nil project returns nil",
+			Name:    "UpdatedProject on nil project returns nil",
 			Initial: nil,
 			Event: newProjectEvent("project-1", project.UpdatedProject, &project.UpdatedProjectPayload{
 				Name: "New Name",

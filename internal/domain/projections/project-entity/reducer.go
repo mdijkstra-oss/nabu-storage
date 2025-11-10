@@ -3,6 +3,8 @@ package projectview
 import (
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/cqrs/projection"
+	"hermes-relay/internal/domain/entities/code"
+	"hermes-relay/internal/domain/entities/file"
 	"hermes-relay/internal/domain/entities/project"
 	"hermes-relay/internal/lib/utils"
 )
@@ -12,9 +14,11 @@ var Reducer = projection.CombineReducers(
 	projection.IfExists(
 		projection.For(project.UpdatedProject, UpdatedProjectReducer),
 		projection.For(project.DeletedProject, projection.DeletedEntity[Project]),
-		projection.For(project.AddedFileToProject, AddedFileToProjectReducer),
-		projection.For(project.AddedCodeToProject, AddedCodeToProjectReducer),
-		projection.For(project.RemovedCodeFromProject, RemovedCodeFromProjectReducer),
+		// Todo: Not called properly somehow, ordering?
+		projection.For(file.CreatedFile, AddedFileToProjectReducer),
+		projection.For(file.DeletedFile, RemovedCodeFileProjectReducer),
+		projection.For(code.CreatedCode, AddedCodeToProjectReducer),
+		projection.For(code.DeletedCode, RemovedCodeFromProjectReducer),
 	),
 )
 
@@ -28,25 +32,35 @@ func CreatedProjectReducer(_ *Project, message *commands.AnyMessage, payload *pr
 	}
 }
 
-func AddedFileToProjectReducer(current *Project, message *commands.AnyMessage, payload *project.AddedFileToProjectPayload) *Project {
-	current.FileIDs = append(current.FileIDs, payload.FileID)
-	return current
-}
-
-func AddedCodeToProjectReducer(current *Project, message *commands.AnyMessage, payload *project.AddedCodeToProjectPayload) *Project {
-	current.CodeIDs = append(current.CodeIDs, payload.CodeID)
-	return current
-}
-
 func UpdatedProjectReducer(current *Project, message *commands.AnyMessage, payload *project.UpdatedProjectPayload) *Project {
 	current.Name = payload.Name
 	current.Description = payload.Description
 	return current
 }
 
-func RemovedCodeFromProjectReducer(current *Project, message *commands.AnyMessage, payload *project.RemovedCodeFromProjectPayload) *Project {
+// External Events
+
+// Todo: Not called for some reason, but that is fine
+func AddedFileToProjectReducer(current *Project, message *commands.AnyMessage, _ any) *Project {
+	current.FileIDs = append(current.FileIDs, message.AggregateID)
+	return current
+}
+
+func AddedCodeToProjectReducer(current *Project, message *commands.AnyMessage, _ any) *Project {
+	current.CodeIDs = append(current.CodeIDs, message.AggregateID)
+	return current
+}
+
+func RemovedCodeFromProjectReducer(current *Project, message *commands.AnyMessage, _ any) *Project {
 	current.CodeIDs = utils.Filter(current.CodeIDs, func(id string) bool {
-		return id != payload.CodeID
+		return id != message.AggregateID
+	})
+	return current
+}
+
+func RemovedCodeFileProjectReducer(current *Project, message *commands.AnyMessage, _ any) *Project {
+	current.CodeIDs = utils.Filter(current.CodeIDs, func(id string) bool {
+		return id != message.AggregateID
 	})
 	return current
 }

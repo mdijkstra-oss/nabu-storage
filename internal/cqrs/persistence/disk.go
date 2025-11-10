@@ -97,6 +97,10 @@ func (d *DiskPersistence) LoadAllEvents() ([]commands.AnyMessage, error) {
 		return loaded
 	})
 
+	utils.Sort(allEvents, func(a, b commands.AnyMessage) bool {
+		return a.Timestamp.Before(b.Timestamp)
+	})
+
 	slog.Info("loaded events from disk", "count", len(allEvents))
 	return allEvents, nil
 }
