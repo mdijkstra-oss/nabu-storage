@@ -231,6 +231,12 @@ func TestFileRouter(t *testing.T) {
 			ExpectErr: "validation failed: Name is required",
 		},
 		{
+			Name:        "DeleteFile with valid aggregate ID",
+			Input:       commands.ToAny(commands.NewCommand[file.DeleteFilePayload, any](file.DeleteFile, file.DeleteFilePayload{}, file.EntityName, "file-123", nil)),
+			ExpectErr:   "",
+			ExpectEvent: commands.ToAny(commands.NewDomainEvent[any, any](file.DeletedFile, nil, file.EntityName, "file-123", nil)),
+		},
+		{
 			Name: "CreateFile with missing Name",
 			Input: commands.ToAny(commands.NewCommand[file.CreateFilePayload, any](file.CreateFile, file.CreateFilePayload{
 				ProjectID: "project-1",

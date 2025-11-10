@@ -416,7 +416,15 @@ func TestFileReducer(t *testing.T) {
 		},
 	}
 
-	tests = append(tests, reducer_helpers.DeletedProjectCascadeTests(createTestFile)...)
+	deletedEntityTests := reducer_helpers.DeletedEntityTests(
+		file.EntityName,
+		file.DeletedFile,
+		func() *File { return createTestFile("project-1") },
+	)
+	deletedProjectTests := reducer_helpers.DeletedProjectCascadeTests(createTestFile)
+
+	combinedTests := append(tests, deletedEntityTests...)
+	combinedTests = append(combinedTests, deletedProjectTests...)
 
 	// Normalize Time field to testTime for comparison
 	normalizeTime := func(f *File) *File {
@@ -426,5 +434,5 @@ func TestFileReducer(t *testing.T) {
 		return f
 	}
 
-	reducer_helpers.RunReducerTests(t, tests, Reducer, normalizeTime)
+	reducer_helpers.RunReducerTests(t, combinedTests, Reducer, normalizeTime)
 }

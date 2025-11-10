@@ -7,6 +7,16 @@ import (
 	"testing"
 )
 
+func createTestProject() *Project {
+	return &Project{
+		ID:          "project-1",
+		Name:        "Test Project",
+		Description: "Test description",
+		CodeIDs:     []string{"code-1"},
+		FileIDs:     []string{"file-1"},
+	}
+}
+
 func TestProjectReducer(t *testing.T) {
 	tests := []reducer_helpers.ReducerTestCase[*Project]{
 		{
@@ -183,26 +193,17 @@ func TestProjectReducer(t *testing.T) {
 			}),
 			Expected: nil,
 		},
-		{
-			Name: "DeletedProject removes project",
-			Initial: &Project{
-				ID:      "project-1",
-				Name:    "Research",
-				CodeIDs: []string{"code-1"},
-				FileIDs: []string{"file-1"},
-			},
-			Event:    newProjectEvent("project-1", project.DeletedProject, nil),
-			Expected: nil,
-		},
-		{
-			Name:     "DeletedProject on nil project returns nil",
-			Initial:  nil,
-			Event:    newProjectEvent("project-1", project.DeletedProject, nil),
-			Expected: nil,
-		},
 	}
 
-	reducer_helpers.RunReducerTests(t, tests, Reducer)
+	deletedEntityTests := reducer_helpers.DeletedEntityTests(
+		project.EntityName,
+		project.DeletedProject,
+		createTestProject,
+	)
+
+	combinedTests := append(tests, deletedEntityTests...)
+
+	reducer_helpers.RunReducerTests(t, combinedTests, Reducer)
 }
 
 func newProjectEvent(aggregateID string, action commands.Action, payload any) *commands.AnyMessage {

@@ -154,23 +154,19 @@ func TestCodeReducer(t *testing.T) {
 				Reasoning: "Temperature topics",
 			},
 		},
-		{
-			Name: "DeletedCode returns nil",
-			Initial: &Code{
-				ID:        "code-1",
-				ProjectID: "project-1",
-				Slug:      "topic:climate",
-				Color:     "green-500",
-				Reasoning: "Climate topics",
-			},
-			Event:    newCodeEvent("code-1", code.DeletedCode, nil),
-			Expected: nil,
-		},
 	}
 
-	tests = append(tests, reducer_helpers.DeletedProjectCascadeTests(createTestCode)...)
+	deletedEntityTests := reducer_helpers.DeletedEntityTests(
+		code.EntityName,
+		code.DeletedCode,
+		func() *Code { return createTestCode("project-1") },
+	)
+	deletedProjectTests := reducer_helpers.DeletedProjectCascadeTests(createTestCode)
 
-	reducer_helpers.RunReducerTests(t, tests, Reducer)
+	combinedTests := append(tests, deletedEntityTests...)
+	combinedTests = append(combinedTests, deletedProjectTests...)
+
+	reducer_helpers.RunReducerTests(t, combinedTests, Reducer)
 }
 
 func newCodeEvent(aggregateID string, action commands.Action, payload any) *commands.AnyMessage {

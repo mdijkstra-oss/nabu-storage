@@ -1128,6 +1128,10 @@ components:
           maxLength: 2000
           description: File description (whitespace trimmed)
 
+    DeleteFilePayload:
+      type: object
+      description: No fields required (empty payload)
+
     CodeFilePayload:
       type: object
       required:
@@ -1359,6 +1363,21 @@ x-command-reference:
             "name": "Updated File Name",
             "description": "Updated file description"
           }
+        }
+
+    DeleteFile:
+      description: Delete a file
+      payload: DeleteFilePayload
+      aggregateId: file UUID
+      event: DeletedFile
+      note: No payload required
+      example: |
+        {
+          "type": "Command",
+          "action": "DeleteFile",
+          "aggregateType": "File",
+          "aggregateId": "770e8400-e29b-41d4-a716-446655440002",
+          "payload": {}
         }
 
     CodeFile:

@@ -17,6 +17,7 @@ var Reducer = projection.CombineReducers(
 	projection.For(file.CreatedFile, CreatedFileReducer),
 	projection.IfExists(
 		projection.For(file.UpdatedFile, UpdatedFileReducer),
+		projection.For(file.DeletedFile, projection.DeletedEntity[File]),
 		projection.For(file.CodedFile, CodedFileReducer),
 		projection.For(file.ClearedCoding, ClearedCodingReducer),
 		projection.For(code.DeletedCode, DeletedCodeReducer),

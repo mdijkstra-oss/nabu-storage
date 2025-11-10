@@ -1,8 +1,11 @@
 package file
 
+import "hermes-relay/internal/cqrs/commands"
+
 const (
 	CreatedFile   = "CreatedFile"
 	UpdatedFile   = "UpdatedFile"
+	DeletedFile   = "DeletedFile"
 	CodedFile     = "CodedFile"
 	ClearedCoding = "ClearedCoding"
 )
@@ -17,5 +20,6 @@ type CreatedFilePayload struct {
 }
 
 type UpdatedFilePayload = UpdateFilePayload
+type DeletedFilePayload = commands.EmptyPayload
 
 type CodedFilePayload = CodeFileData

@@ -11,7 +11,7 @@ var Reducer = projection.CombineReducers(
 	projection.For(project.CreatedProject, CreatedProjectReducer),
 	projection.IfExists(
 		projection.For(project.UpdatedProject, UpdatedProjectReducer),
-		projection.For(project.DeletedProject, DeletedProjectReducer),
+		projection.For(project.DeletedProject, projection.DeletedEntity[Project]),
 		projection.For(project.AddedFileToProject, AddedFileToProjectReducer),
 		projection.For(project.AddedCodeToProject, AddedCodeToProjectReducer),
 		projection.For(project.RemovedCodeFromProject, RemovedCodeFromProjectReducer),
@@ -42,10 +42,6 @@ func UpdatedProjectReducer(current *Project, message *commands.AnyMessage, paylo
 	current.Name = payload.Name
 	current.Description = payload.Description
 	return current
-}
-
-func DeletedProjectReducer(_ *Project, _ *commands.AnyMessage, _ any) *Project {
-	return nil
 }
 
 func RemovedCodeFromProjectReducer(current *Project, message *commands.AnyMessage, payload *project.RemovedCodeFromProjectPayload) *Project {

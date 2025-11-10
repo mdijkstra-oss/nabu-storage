@@ -7,6 +7,7 @@ const EntityName = "File"
 const (
 	CreateFile  commands.Action = "CreateFile"
 	UpdateFile  commands.Action = "UpdateFile"
+	DeleteFile  commands.Action = "DeleteFile"
 	CodeFile    commands.Action = "CodeFile"
 	ClearCoding commands.Action = "ClearCoding" // Remove all coding from given file
 )
@@ -22,5 +23,7 @@ type UpdateFilePayload struct {
 	Name        string `json:"name" validate:"required,max=200" normalize:"trim"`
 	Description string `json:"description" validate:"max=2000" normalize:"trim"`
 }
+
+type DeleteFilePayload = commands.EmptyPayload
 
 type CodeFilePayload = CodeFileData

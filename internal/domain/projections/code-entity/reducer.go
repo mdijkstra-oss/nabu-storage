@@ -10,7 +10,7 @@ var Reducer = projection.CombineReducers(
 	projection.For(code.CreatedCode, CreatedCodeReducer),
 	projection.IfExists(
 		projection.For(code.UpdatedCode, UpdatedCodeReducer),
-		projection.For(code.DeletedCode, DeletedCodeReducer),
+		projection.For(code.DeletedCode, projection.DeletedEntity[Code]),
 		projection.For(code.MergedCodes, MergedCodesReducer),
 	),
 	projection.DeletedProjectReducer[code.Code],
@@ -37,10 +37,6 @@ func UpdatedCodeReducer(current *Code, _ *commands.AnyMessage, payload *code.Upd
 		current.Reasoning = payload.Reasoning
 	}
 	return current
-}
-
-func DeletedCodeReducer(_ *Code, _ *commands.AnyMessage, _ any) *Code {
-	return nil
 }
 
 func MergedCodesReducer(current *Code, message *commands.AnyMessage, payload *code.MergedCodesPayload) *Code {

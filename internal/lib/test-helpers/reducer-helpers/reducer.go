@@ -46,6 +46,29 @@ func RunReducerTests[T any](t *testing.T, tests []ReducerTestCase[T], reducer fu
 	}, mapFunc...)
 }
 
+// DeletedEntityTests generates table-driven tests for entity deletion.
+// It tests that an entity is removed from the projection when deleted.
+func DeletedEntityTests[T any](
+	entityName commands.AggregateType,
+	deletedAction commands.Action,
+	createEntity func() *T,
+) []ReducerTestCase[*T] {
+	return []ReducerTestCase[*T]{
+		{
+			Name:     string(deletedAction) + " deletes existing entity",
+			Initial:  createEntity(),
+			Event:    domain_helpers.NewDomainEvent(entityName, "entity-1", deletedAction, nil),
+			Expected: nil,
+		},
+		{
+			Name:     string(deletedAction) + " on nil state returns nil",
+			Initial:  nil,
+			Event:    domain_helpers.NewDomainEvent(entityName, "entity-1", deletedAction, nil),
+			Expected: nil,
+		},
+	}
+}
+
 func DeletedProjectCascadeTests[T projection.ProjectChild](
 	createEntity func(projectID string) *T,
 ) []ReducerTestCase[*T] {
