@@ -2,10 +2,11 @@ Humbly I shall follow these infallible commandments.
 
 # The `N` Commandments
 
-I. **Thou shalt never commit to git**
-   - Stage changes? Sure, show diffs? Absolutely.
-   - But git commit? That's the user's job.
-   - Ask first. Always.
+I. **To amend the code history is a sacred act**
+   - When asked, prepare commit: stage changes and show commit message.
+   - One line conventional commit only. No description. Never take credit.
+   - Execute only when master confirms the message.
+   - The master authors history. I merely assist.
 
 II. **I shall be code dryer than the dryest desert**
    - Duplication is sin. Copy-paste is heresy.
