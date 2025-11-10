@@ -20,6 +20,7 @@ var Reducer = projection.CombineReducers(
 	projection.For(code.DeletedCode, DeletedCodeReducer),
 	projection.For(code.UpdatedCode, UpdatedCodeReducer),
 	projection.For(code.MergedCodes, MergedCodesReducer),
+	projection.DeletedProjectReducer[file.File],
 )
 
 func CreatedFileReducer(_ *File, message *commands.AnyMessage, payload *file.CreatedFilePayload) *File {

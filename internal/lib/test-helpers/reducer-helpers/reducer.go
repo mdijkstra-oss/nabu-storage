@@ -2,7 +2,9 @@ package reducer_helpers
 
 import (
 	"hermes-relay/internal/cqrs/commands"
+	"hermes-relay/internal/cqrs/projection"
 	"hermes-relay/internal/lib/test-helpers"
+	"hermes-relay/internal/lib/test-helpers/domain-helpers"
 	"hermes-relay/internal/lib/utils"
 	"testing"
 )
@@ -42,4 +44,29 @@ func RunReducerTests[T any](t *testing.T, tests []ReducerTestCase[T], reducer fu
 	test_helpers.RunFunctionTests(t, genericTests, func(input reducerInput[T]) T {
 		return reducer(input.initial, input.event)
 	}, mapFunc...)
+}
+
+func DeletedProjectCascadeTests[T projection.ProjectChild](
+	createEntity func(projectID string) *T,
+) []ReducerTestCase[*T] {
+	return []ReducerTestCase[*T]{
+		{
+			Name:     "DeletedProject cascades to entity with matching ProjectID",
+			Initial:  createEntity("project-1"),
+			Event:    domain_helpers.NewDomainEvent("Project", "project-1", "DeletedProject", nil),
+			Expected: nil,
+		},
+		{
+			Name:     "DeletedProject does not affect entity with different ProjectID",
+			Initial:  createEntity("project-2"),
+			Event:    domain_helpers.NewDomainEvent("Project", "project-1", "DeletedProject", nil),
+			Expected: createEntity("project-2"),
+		},
+		{
+			Name:     "DeletedProject on nil entity returns nil",
+			Initial:  nil,
+			Event:    domain_helpers.NewDomainEvent("Project", "project-1", "DeletedProject", nil),
+			Expected: nil,
+		},
+	}
 }

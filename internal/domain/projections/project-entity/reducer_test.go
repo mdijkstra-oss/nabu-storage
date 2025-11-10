@@ -153,6 +153,49 @@ func TestProjectReducer(t *testing.T) {
 				FileIDs: []string{"file-1", "file-2"},
 			},
 		},
+		{
+			Name: "UpdatedProject changes name",
+			Initial: &Project{
+				ID:      "project-1",
+				Name:    "Old Name",
+				CodeIDs: []string{"code-1"},
+				FileIDs: []string{"file-1"},
+			},
+			Event: newProjectEvent("project-1", project.UpdatedProject, &project.UpdatedProjectPayload{
+				Name: "New Name",
+			}),
+			Expected: &Project{
+				ID:      "project-1",
+				Name:    "New Name",
+				CodeIDs: []string{"code-1"},
+				FileIDs: []string{"file-1"},
+			},
+		},
+		{
+			Name: "UpdatedProject on nil project returns nil",
+			Initial: nil,
+			Event: newProjectEvent("project-1", project.UpdatedProject, &project.UpdatedProjectPayload{
+				Name: "New Name",
+			}),
+			Expected: nil,
+		},
+		{
+			Name: "DeletedProject removes project",
+			Initial: &Project{
+				ID:      "project-1",
+				Name:    "Research",
+				CodeIDs: []string{"code-1"},
+				FileIDs: []string{"file-1"},
+			},
+			Event:    newProjectEvent("project-1", project.DeletedProject, nil),
+			Expected: nil,
+		},
+		{
+			Name:     "DeletedProject on nil project returns nil",
+			Initial:  nil,
+			Event:    newProjectEvent("project-1", project.DeletedProject, nil),
+			Expected: nil,
+		},
 	}
 
 	reducer_helpers.RunReducerTests(t, tests, Reducer)

@@ -7,6 +7,16 @@ import (
 	"testing"
 )
 
+func createTestCode(projectID string) *Code {
+	return &Code{
+		ID:        "code-1",
+		ProjectID: projectID,
+		Slug:      "topic:climate",
+		Color:     "green-500",
+		Reasoning: "Climate topics",
+	}
+}
+
 func TestCodeReducer(t *testing.T) {
 	tests := []reducer_helpers.ReducerTestCase[*Code]{
 		{
@@ -157,6 +167,8 @@ func TestCodeReducer(t *testing.T) {
 			Expected: nil,
 		},
 	}
+
+	tests = append(tests, reducer_helpers.DeletedProjectCascadeTests(createTestCode)...)
 
 	reducer_helpers.RunReducerTests(t, tests, Reducer)
 }

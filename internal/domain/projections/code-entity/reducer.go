@@ -11,6 +11,7 @@ var Reducer = projection.CombineReducers(
 	projection.For(code.UpdatedCode, UpdatedCodeReducer),
 	projection.For(code.DeletedCode, DeletedCodeReducer),
 	projection.For(code.MergedCodes, MergedCodesReducer),
+	projection.DeletedProjectReducer[code.Code],
 )
 
 func CreatedCodeReducer(_ *Code, message *commands.AnyMessage, payload *code.CreatedCodePayload) *Code {

@@ -197,3 +197,5 @@ func ExtractProjectID(message *AnyMessage) string {
 
 	return ""
 }
+
+type EmptyPayload = struct{}

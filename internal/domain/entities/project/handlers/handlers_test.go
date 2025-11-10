@@ -27,6 +27,27 @@ func TestProjectRouter(t *testing.T) {
 			ExpectErr: "validation failed: Name is required",
 		},
 		{
+			Name: "UpdateProject with valid payload",
+			Input: commands.ToAny(commands.NewCommand[project.UpdateProjectPayload, any](project.UpdateProject, project.UpdateProjectPayload{
+				Name: "Updated Project Name",
+			}, project.EntityName, "project-123", nil)),
+			ExpectErr: "",
+			ExpectEvent: commands.ToAny(commands.NewDomainEvent[project.UpdatedProjectPayload, any](project.UpdatedProject, project.UpdatedProjectPayload{
+				Name: "Updated Project Name",
+			}, project.EntityName, "project-123", nil)),
+		},
+		{
+			Name:      "UpdateProject with missing Name",
+			Input:     commands.ToAny(commands.NewCommand[project.UpdateProjectPayload, any](project.UpdateProject, project.UpdateProjectPayload{}, project.EntityName, "project-123", nil)),
+			ExpectErr: "validation failed: Name is required",
+		},
+		{
+			Name:        "DeleteProject with valid aggregate ID",
+			Input:       commands.ToAny(commands.NewCommand[project.DeleteProjectPayload, any](project.DeleteProject, project.DeleteProjectPayload{}, project.EntityName, "project-123", nil)),
+			ExpectErr:   "",
+			ExpectEvent: commands.ToAny(commands.NewDomainEvent[any, any](project.DeletedProject, nil, project.EntityName, "project-123", nil)),
+		},
+		{
 			Name: "Wrong entity type returns nil",
 			Input: commands.ToAny(commands.NewCommand[project.CreateProjectPayload, any](project.CreateProject, project.CreateProjectPayload{
 				Name: "Test Project",

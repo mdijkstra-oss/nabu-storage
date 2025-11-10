@@ -13,7 +13,9 @@ func NewRouter(_ *registry.ProjectViewRegistry) dispatch.CommandRouter {
 	return dispatch.CombineRouters(
 		dispatch.LimitOnEntity(project.EntityName,
 			dispatch.ToCreateEntityEvent[project.CreateProjectPayload, project.CreatedProjectPayload](project.CreateProject, project.CreatedProject),
+			dispatch.ToUpdateEntityEvent[project.UpdateProjectPayload, project.UpdatedProjectPayload](project.UpdateProject, project.UpdatedProject),
 		),
+		dispatch.ToEmptyDomainEvent(project.DeleteProject, project.DeletedProject),
 		ExternalEventHandlers,
 	)
 }

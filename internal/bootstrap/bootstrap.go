@@ -41,6 +41,10 @@ func SetupProjectViewRegistry(publisher *dispatch.InMemoryPublisher) *domainproj
 			registry.UpdateEntityLookups(message, projectID)
 		}
 
+		if message.Action == "DeletedProject" && message.AggregateType == "Project" {
+			registry.RemoveProject(projectID)
+		}
+
 		return nil
 	})))
 

@@ -95,6 +95,12 @@ func (pvr *ProjectViewRegistry) GetProject(projectID string) *ProjectView {
 	return pvr.projects[projectID]
 }
 
+func (pvr *ProjectViewRegistry) RemoveProject(projectID string) {
+	pvr.mu.Lock()
+	defer pvr.mu.Unlock()
+	delete(pvr.projects, projectID)
+}
+
 func (pvr *ProjectViewRegistry) GetProjectIDForEntity(aggregateType commands.AggregateType, aggregateID string) string {
 	pvr.mu.RLock()
 	defer pvr.mu.RUnlock()

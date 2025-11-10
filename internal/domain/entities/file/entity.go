@@ -12,6 +12,10 @@ func (f File) GetID() string {
 	return f.ID
 }
 
+func (f File) GetProjectID() string {
+	return f.ProjectID
+}
+
 type FileType string
 
 const (

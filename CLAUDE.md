@@ -43,3 +43,7 @@ Bad: `// fetch user from db` above `fetchUser(id)`
 Bad: `// loop through items` above `for _, item := range items`
 Good: Comments that explain WHY, not WHAT. Only when the intent isn't obvious from the code itself.
 If the code is self-explanatory, no comment needed.
+
+
+IMPORTANT:
+you gotta stay on top of the wetness of the codebase man, its gotta be a desert, not a biblical flood 

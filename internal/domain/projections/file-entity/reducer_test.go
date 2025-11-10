@@ -9,6 +9,20 @@ import (
 	"time"
 )
 
+func createTestFile(projectID string) *File {
+	testTime := time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC)
+	return &File{
+		BaseFile: file.BaseFile{
+			ID:         "file-1",
+			ProjectID:  projectID,
+			Name:       "test.txt",
+			Attributes: file.Attributes{Time: testTime},
+		},
+		Content: "Test content",
+		Chunks:  []file.Chunk{{ID: "1", Content: "Test content\n", Codes: []file.CodedSection{}}},
+	}
+}
+
 func TestFileReducer(t *testing.T) {
 	testTime := time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC)
 
@@ -366,6 +380,8 @@ func TestFileReducer(t *testing.T) {
 			},
 		},
 	}
+
+	tests = append(tests, reducer_helpers.DeletedProjectCascadeTests(createTestFile)...)
 
 	// Normalize Time field to testTime for comparison
 	normalizeTime := func(f *File) *File {

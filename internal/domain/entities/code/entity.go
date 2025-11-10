@@ -18,3 +18,7 @@ type Code struct {
 func (c Code) GetID() string {
 	return c.ID
 }
+
+func (c Code) GetProjectID() string {
+	return c.ProjectID
+}
