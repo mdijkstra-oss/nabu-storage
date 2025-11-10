@@ -3,6 +3,7 @@ package dispatch
 import (
 	"hermes-relay/internal/cqrs/commands"
 	th "hermes-relay/internal/lib/test-helpers"
+	"hermes-relay/internal/lib/test-helpers/domain-helpers"
 	"testing"
 )
 
@@ -34,14 +35,14 @@ func RunPublisherTests(t *testing.T, tests []PublisherTestCase) {
 
 			th.AssertError(t, err, tt.ExpectErr, "error")
 			if tt.ExpectErr == "" {
-				th.AssertMessage(t, result, tt.ExpectEvent, "event")
+				domain_helpers.AssertMessage(t, result, tt.ExpectEvent, "event")
 
 				if tt.ExpectPublished != nil {
 					if len(published) != len(tt.ExpectPublished) {
 						t.Fatalf("published events count: expected %d, got %d", len(tt.ExpectPublished), len(published))
 					}
 					for i, expected := range tt.ExpectPublished {
-						th.AssertMessage(t, published[i], expected, "published["+string(rune(i))+"]")
+						domain_helpers.AssertMessage(t, published[i], expected, "published["+string(rune(i))+"]")
 					}
 				} else if len(published) > 0 {
 					t.Fatalf("expected no published events, but got %d", len(published))

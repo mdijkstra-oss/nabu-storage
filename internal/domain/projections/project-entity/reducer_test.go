@@ -3,12 +3,12 @@ package projectview
 import (
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/domain/entities/project"
-	th "hermes-relay/internal/lib/test-helpers"
+	"hermes-relay/internal/lib/test-helpers/reducer-helpers"
 	"testing"
 )
 
 func TestProjectReducer(t *testing.T) {
-	tests := []th.ReducerTestCase[*Project]{
+	tests := []reducer_helpers.ReducerTestCase[*Project]{
 		{
 			Name:    "CreatedProject initializes empty arrays",
 			Initial: nil,
@@ -155,7 +155,7 @@ func TestProjectReducer(t *testing.T) {
 		},
 	}
 
-	th.RunReducerTests(t, tests, Reducer)
+	reducer_helpers.RunReducerTests(t, tests, Reducer)
 }
 
 func newProjectEvent(aggregateID string, action commands.Action, payload any) *commands.AnyMessage {

@@ -5,7 +5,7 @@ import (
 	"hermes-relay/internal/domain/entities/code"
 	"hermes-relay/internal/domain/entities/file"
 	"hermes-relay/internal/domain/entities/project"
-	rh "hermes-relay/internal/lib/test-helpers/registry-helpers"
+	rh "hermes-relay/internal/lib/test-helpers/router-helpers"
 	"testing"
 )
 

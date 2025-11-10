@@ -80,6 +80,13 @@ func EnsureValidPayload[T any](m *Message[T], p any) *utils.ValidationError {
 		return utils.ToValidationError(err)
 	}
 
+	var payload any = m.Payload
+	if sourceMap, ok := payload.(map[string]any); ok {
+		if err := utils.ApplyDefaultsFromMap(p, sourceMap); err != nil {
+			return &utils.ValidationError{Message: err.Error()}
+		}
+	}
+
 	return utils.ToValidationError(utils.Validate.Struct(p))
 }
 

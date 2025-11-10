@@ -4,8 +4,8 @@ import (
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/domain/entities/file"
 	"hermes-relay/internal/domain/entities/project"
-	registry_helpers "hermes-relay/internal/lib/test-helpers/registry-helpers"
 	test_helpers "hermes-relay/internal/lib/test-helpers"
+	registry_helpers "hermes-relay/internal/lib/test-helpers/router-helpers"
 	"testing"
 	"time"
 )
@@ -46,7 +46,7 @@ func TestProjectHealthTracking(t *testing.T) {
 			AggregateID:   "file-1",
 			Payload: map[string]any{
 				"project_id": "project-1",
-				"name":       123, // Wrong type - should be string
+				"name":       123,            // Wrong type - should be string
 				"content":    []int{1, 2, 3}, // Wrong type - should be string
 			},
 			Timestamp: time.Now(),

@@ -3,7 +3,7 @@ package handlers
 import (
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/domain/entities/code"
-	rh "hermes-relay/internal/lib/test-helpers/registry-helpers"
+	rh "hermes-relay/internal/lib/test-helpers/router-helpers"
 	"testing"
 )
 

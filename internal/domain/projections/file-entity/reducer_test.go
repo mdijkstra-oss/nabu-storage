@@ -3,7 +3,8 @@ package fileview
 import (
 	"hermes-relay/internal/domain/entities/code"
 	"hermes-relay/internal/domain/entities/file"
-	th "hermes-relay/internal/lib/test-helpers"
+	"hermes-relay/internal/lib/test-helpers/domain-helpers"
+	"hermes-relay/internal/lib/test-helpers/reducer-helpers"
 	"testing"
 	"time"
 )
@@ -11,11 +12,11 @@ import (
 func TestFileReducer(t *testing.T) {
 	testTime := time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC)
 
-	tests := []th.ReducerTestCase[*File]{
+	tests := []reducer_helpers.ReducerTestCase[*File]{
 		{
 			Name:    "CreatedFile initializes file with chunks",
 			Initial: nil,
-			Event: th.NewDomainEvent(file.EntityName, "file-1", file.CreatedFile, &file.CreatedFilePayload{
+			Event: domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.CreatedFile, &file.CreatedFilePayload{
 				CreateFilePayload: file.CreateFilePayload{
 					ProjectID: "project-1",
 					Name:      "test.txt",
@@ -65,7 +66,7 @@ func TestFileReducer(t *testing.T) {
 					},
 				},
 			},
-			Event: th.NewDomainEvent(file.EntityName, "file-1", file.CodedFile, &file.CodedFilePayload{
+			Event: domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.CodedFile, &file.CodedFilePayload{
 				Actions: []file.CodingAction{
 					{
 						CodeID:   "code-1",
@@ -118,7 +119,7 @@ func TestFileReducer(t *testing.T) {
 					},
 				},
 			},
-			Event: th.NewDomainEvent(file.EntityName, "file-1", file.CodedFile, &file.CodedFilePayload{
+			Event: domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.CodedFile, &file.CodedFilePayload{
 				Actions: []file.CodingAction{
 					{
 						CodeID:   "code-1",
@@ -171,7 +172,7 @@ func TestFileReducer(t *testing.T) {
 					},
 				},
 			},
-			Event: th.NewDomainEvent(file.EntityName, "file-1", file.CodedFile, &file.CodedFilePayload{
+			Event: domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.CodedFile, &file.CodedFilePayload{
 				Actions: []file.CodingAction{
 					{
 						CodeID:   "code-1",
@@ -221,7 +222,7 @@ func TestFileReducer(t *testing.T) {
 					},
 				},
 			},
-			Event: th.NewDomainEvent(file.EntityName, "file-1", file.ClearedCoding, nil),
+			Event: domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.ClearedCoding, nil),
 			Expected: &File{
 				BaseFile: file.BaseFile{
 					ID:         "file-1",
@@ -260,7 +261,7 @@ func TestFileReducer(t *testing.T) {
 					},
 				},
 			},
-			Event: th.NewDomainEvent(code.EntityName, "code-1", code.DeletedCode, &code.DeletedCodePayload{ProjectID: "project-1"}),
+			Event: domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.DeletedCode, &code.DeletedCodePayload{ProjectID: "project-1"}),
 			Expected: &File{
 				BaseFile: file.BaseFile{
 					ID:         "file-1",
@@ -301,7 +302,7 @@ func TestFileReducer(t *testing.T) {
 					},
 				},
 			},
-			Event: th.NewDomainEvent(code.EntityName, "code-1", code.UpdatedCode, &code.UpdatedCodePayload{Slug: "topic:climate-new"}),
+			Event: domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.UpdatedCode, &code.UpdatedCodePayload{Slug: "topic:climate-new"}),
 			Expected: &File{
 				BaseFile: file.BaseFile{
 					ID:         "file-1",
@@ -343,7 +344,7 @@ func TestFileReducer(t *testing.T) {
 					},
 				},
 			},
-			Event: th.NewDomainEvent(code.EntityName, "code-1", code.MergedCodes, &code.MergedCodesPayload{SourceID: "code-1", TargetID: "code-2"}),
+			Event: domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.MergedCodes, &code.MergedCodesPayload{SourceID: "code-1", TargetID: "code-2"}),
 			Expected: &File{
 				BaseFile: file.BaseFile{
 					ID:         "file-1",
@@ -374,5 +375,5 @@ func TestFileReducer(t *testing.T) {
 		return f
 	}
 
-	th.RunReducerTests(t, tests, Reducer, normalizeTime)
+	reducer_helpers.RunReducerTests(t, tests, Reducer, normalizeTime)
 }

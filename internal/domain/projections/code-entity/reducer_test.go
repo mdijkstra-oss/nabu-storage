@@ -3,12 +3,12 @@ package codeview
 import (
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/domain/entities/code"
-	th "hermes-relay/internal/lib/test-helpers"
+	"hermes-relay/internal/lib/test-helpers/reducer-helpers"
 	"testing"
 )
 
 func TestCodeReducer(t *testing.T) {
-	tests := []th.ReducerTestCase[*Code]{
+	tests := []reducer_helpers.ReducerTestCase[*Code]{
 		{
 			Name:    "CreatedCode initializes code",
 			Initial: nil,
@@ -158,7 +158,7 @@ func TestCodeReducer(t *testing.T) {
 		},
 	}
 
-	th.RunReducerTests(t, tests, Reducer)
+	reducer_helpers.RunReducerTests(t, tests, Reducer)
 }
 
 func newCodeEvent(aggregateID string, action commands.Action, payload any) *commands.AnyMessage {

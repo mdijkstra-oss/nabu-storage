@@ -63,3 +63,42 @@ func ApplyDefaults(dst any) error {
 	}
 	return nil
 }
+
+func ApplyDefaultsFromMap(dst any, sourceMap map[string]any) error {
+	v := reflect.ValueOf(dst)
+	if v.Kind() != reflect.Ptr || v.IsNil() {
+		return errors.New("dst must be non-nil pointer")
+	}
+
+	v = v.Elem()
+	if v.Kind() != reflect.Struct {
+		return errors.New("dst must be pointer to struct")
+	}
+
+	t := v.Type()
+	for i := 0; i < v.NumField(); i++ {
+		field := v.Field(i)
+		if !field.CanSet() {
+			continue
+		}
+
+		jsonTag := t.Field(i).Tag.Get("json")
+		if jsonTag == "" || jsonTag == "-" {
+			continue
+		}
+
+		if _, exists := sourceMap[jsonTag]; exists {
+			continue
+		}
+
+		defaultVal := t.Field(i).Tag.Get("default")
+		if defaultVal == "" {
+			continue
+		}
+
+		if err := SetFieldFromString(field, defaultVal, t.Field(i).Name); err != nil {
+			return err
+		}
+	}
+	return nil
+}

@@ -10,6 +10,7 @@ import (
 	fileview "hermes-relay/internal/domain/projections/file-entity"
 	projectview "hermes-relay/internal/domain/projections/project-entity"
 	th "hermes-relay/internal/lib/test-helpers"
+	"hermes-relay/internal/lib/test-helpers/domain-helpers"
 	"testing"
 )
 
@@ -33,8 +34,8 @@ func TestEntityLookups(t *testing.T) {
 			Name: "Created event adds entity to lookup",
 			Input: entityLookupInput{
 				events: []*commands.AnyMessage{
-					th.NewDomainEvent(project.EntityName, "project-1", project.CreatedProject, project.CreatedProjectPayload{Name: "Test"}),
-					th.NewDomainEvent(file.EntityName, "file-1", file.CreatedFile, file.CreatedFilePayload{
+					domain_helpers.NewDomainEvent(project.EntityName, "project-1", project.CreatedProject, project.CreatedProjectPayload{Name: "Test"}),
+					domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.CreatedFile, file.CreatedFilePayload{
 						CreateFilePayload: file.CreateFilePayload{ProjectID: "project-1", Name: "test.md", Content: "content"},
 						Type:              file.FileTypeSource,
 						Locked:            true,
@@ -50,14 +51,14 @@ func TestEntityLookups(t *testing.T) {
 			Name: "Deleted event removes entity from lookup",
 			Input: entityLookupInput{
 				events: []*commands.AnyMessage{
-					th.NewDomainEvent(project.EntityName, "project-1", project.CreatedProject, project.CreatedProjectPayload{Name: "Test"}),
-					th.NewDomainEvent(code.EntityName, "code-1", code.CreatedCode, code.CreatedCodePayload{
+					domain_helpers.NewDomainEvent(project.EntityName, "project-1", project.CreatedProject, project.CreatedProjectPayload{Name: "Test"}),
+					domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.CreatedCode, code.CreatedCodePayload{
 						ProjectID: "project-1",
 						Slug:      "topic:test",
 						Color:     "blue",
 						Reasoning: "test",
 					}),
-					th.NewDomainEvent(code.EntityName, "code-1", code.DeletedCode, nil),
+					domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.DeletedCode, nil),
 				},
 				lookups: []entityLookup{
 					{code.EntityName, "code-1"},
@@ -69,7 +70,7 @@ func TestEntityLookups(t *testing.T) {
 			Name: "Non-existent entity returns empty string",
 			Input: entityLookupInput{
 				events: []*commands.AnyMessage{
-					th.NewDomainEvent(project.EntityName, "project-1", project.CreatedProject, project.CreatedProjectPayload{Name: "Test"}),
+					domain_helpers.NewDomainEvent(project.EntityName, "project-1", project.CreatedProject, project.CreatedProjectPayload{Name: "Test"}),
 				},
 				lookups: []entityLookup{
 					{file.EntityName, "nonexistent"},
@@ -81,14 +82,14 @@ func TestEntityLookups(t *testing.T) {
 			Name: "Updated events do not affect lookup",
 			Input: entityLookupInput{
 				events: []*commands.AnyMessage{
-					th.NewDomainEvent(project.EntityName, "project-1", project.CreatedProject, project.CreatedProjectPayload{Name: "Test"}),
-					th.NewDomainEvent(code.EntityName, "code-1", code.CreatedCode, code.CreatedCodePayload{
+					domain_helpers.NewDomainEvent(project.EntityName, "project-1", project.CreatedProject, project.CreatedProjectPayload{Name: "Test"}),
+					domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.CreatedCode, code.CreatedCodePayload{
 						ProjectID: "project-1",
 						Slug:      "topic:test",
 						Color:     "blue",
 						Reasoning: "test",
 					}),
-					th.NewDomainEvent(code.EntityName, "code-1", code.UpdatedCode, code.UpdatedCodePayload{
+					domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.UpdatedCode, code.UpdatedCodePayload{
 						Color:     "red",
 						Reasoning: "updated",
 					}),
@@ -103,19 +104,19 @@ func TestEntityLookups(t *testing.T) {
 			Name: "Multiple entities tracked independently",
 			Input: entityLookupInput{
 				events: []*commands.AnyMessage{
-					th.NewDomainEvent(project.EntityName, "project-1", project.CreatedProject, project.CreatedProjectPayload{Name: "Test 1"}),
-					th.NewDomainEvent(project.EntityName, "project-2", project.CreatedProject, project.CreatedProjectPayload{Name: "Test 2"}),
-					th.NewDomainEvent(file.EntityName, "file-1", file.CreatedFile, file.CreatedFilePayload{
+					domain_helpers.NewDomainEvent(project.EntityName, "project-1", project.CreatedProject, project.CreatedProjectPayload{Name: "Test 1"}),
+					domain_helpers.NewDomainEvent(project.EntityName, "project-2", project.CreatedProject, project.CreatedProjectPayload{Name: "Test 2"}),
+					domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.CreatedFile, file.CreatedFilePayload{
 						CreateFilePayload: file.CreateFilePayload{ProjectID: "project-1", Name: "test1.md", Content: "content"},
 						Type:              file.FileTypeSource,
 						Locked:            true,
 					}),
-					th.NewDomainEvent(file.EntityName, "file-2", file.CreatedFile, file.CreatedFilePayload{
+					domain_helpers.NewDomainEvent(file.EntityName, "file-2", file.CreatedFile, file.CreatedFilePayload{
 						CreateFilePayload: file.CreateFilePayload{ProjectID: "project-2", Name: "test2.md", Content: "content"},
 						Type:              file.FileTypeSource,
 						Locked:            true,
 					}),
-					th.NewDomainEvent(code.EntityName, "code-1", code.CreatedCode, code.CreatedCodePayload{
+					domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.CreatedCode, code.CreatedCodePayload{
 						ProjectID: "project-1",
 						Slug:      "topic:test",
 						Color:     "blue",
@@ -171,7 +172,7 @@ func TestEnsureProjectExists(t *testing.T) {
 			Name: "CreatedProject event creates project",
 			Input: ensureProjectInput{
 				existingProjectID: "",
-				event:             th.NewDomainEvent(project.EntityName, "project-1", project.CreatedProject, project.CreatedProjectPayload{Name: "Test"}),
+				event:             domain_helpers.NewDomainEvent(project.EntityName, "project-1", project.CreatedProject, project.CreatedProjectPayload{Name: "Test"}),
 			},
 			Expected: true,
 		},
@@ -179,7 +180,7 @@ func TestEnsureProjectExists(t *testing.T) {
 			Name: "Non-CreatedProject event returns nil when project does not exist",
 			Input: ensureProjectInput{
 				existingProjectID: "",
-				event:             th.NewDomainEvent(file.EntityName, "file-1", file.CreatedFile, file.CreatedFilePayload{CreateFilePayload: file.CreateFilePayload{ProjectID: "project-1", Name: "test.md", Content: "content"}, Type: file.FileTypeSource, Locked: true}),
+				event:             domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.CreatedFile, file.CreatedFilePayload{CreateFilePayload: file.CreateFilePayload{ProjectID: "project-1", Name: "test.md", Content: "content"}, Type: file.FileTypeSource, Locked: true}),
 			},
 			Expected: false,
 		},
@@ -187,7 +188,7 @@ func TestEnsureProjectExists(t *testing.T) {
 			Name: "Returns existing project if already exists",
 			Input: ensureProjectInput{
 				existingProjectID: "project-1",
-				event:             th.NewDomainEvent(file.EntityName, "file-1", file.CreatedFile, file.CreatedFilePayload{CreateFilePayload: file.CreateFilePayload{ProjectID: "project-1", Name: "test.md", Content: "content"}, Type: file.FileTypeSource, Locked: true}),
+				event:             domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.CreatedFile, file.CreatedFilePayload{CreateFilePayload: file.CreateFilePayload{ProjectID: "project-1", Name: "test.md", Content: "content"}, Type: file.FileTypeSource, Locked: true}),
 			},
 			Expected: true,
 		},
@@ -195,7 +196,7 @@ func TestEnsureProjectExists(t *testing.T) {
 			Name: "Wrong entity type returns nil",
 			Input: ensureProjectInput{
 				existingProjectID: "",
-				event:             th.NewDomainEvent(code.EntityName, "code-1", code.CreatedCode, code.CreatedCodePayload{ProjectID: "project-1", Slug: "topic:test", Color: "blue", Reasoning: "test"}),
+				event:             domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.CreatedCode, code.CreatedCodePayload{ProjectID: "project-1", Slug: "topic:test", Color: "blue", Reasoning: "test"}),
 			},
 			Expected: false,
 		},
@@ -203,7 +204,7 @@ func TestEnsureProjectExists(t *testing.T) {
 			Name: "Wrong action returns nil",
 			Input: ensureProjectInput{
 				existingProjectID: "",
-				event:             th.NewDomainEvent(project.EntityName, "project-1", "UpdatedProject", nil),
+				event:             domain_helpers.NewDomainEvent(project.EntityName, "project-1", "UpdatedProject", nil),
 			},
 			Expected: false,
 		},
@@ -213,7 +214,7 @@ func TestEnsureProjectExists(t *testing.T) {
 		reg := registry.NewProjectViewRegistry(projectview.Reducer, codeview.Reducer, fileview.Reducer)
 
 		if input.existingProjectID != "" {
-			createdEvent := th.NewDomainEvent(project.EntityName, input.existingProjectID, project.CreatedProject, project.CreatedProjectPayload{Name: "Existing"})
+			createdEvent := domain_helpers.NewDomainEvent(project.EntityName, input.existingProjectID, project.CreatedProject, project.CreatedProjectPayload{Name: "Existing"})
 			reg.EnsureProjectExists(createdEvent, input.existingProjectID)
 		}
 
@@ -237,16 +238,16 @@ func TestGetAllProjectEntities(t *testing.T) {
 		{
 			Name: "Single project returns one entity",
 			Input: []*commands.AnyMessage{
-				th.NewDomainEvent(project.EntityName, "project-1", project.CreatedProject, project.CreatedProjectPayload{Name: "Test 1"}),
+				domain_helpers.NewDomainEvent(project.EntityName, "project-1", project.CreatedProject, project.CreatedProjectPayload{Name: "Test 1"}),
 			},
 			Expected: 1,
 		},
 		{
 			Name: "Multiple projects returns all entities",
 			Input: []*commands.AnyMessage{
-				th.NewDomainEvent(project.EntityName, "project-1", project.CreatedProject, project.CreatedProjectPayload{Name: "Test 1"}),
-				th.NewDomainEvent(project.EntityName, "project-2", project.CreatedProject, project.CreatedProjectPayload{Name: "Test 2"}),
-				th.NewDomainEvent(project.EntityName, "project-3", project.CreatedProject, project.CreatedProjectPayload{Name: "Test 3"}),
+				domain_helpers.NewDomainEvent(project.EntityName, "project-1", project.CreatedProject, project.CreatedProjectPayload{Name: "Test 1"}),
+				domain_helpers.NewDomainEvent(project.EntityName, "project-2", project.CreatedProject, project.CreatedProjectPayload{Name: "Test 2"}),
+				domain_helpers.NewDomainEvent(project.EntityName, "project-3", project.CreatedProject, project.CreatedProjectPayload{Name: "Test 3"}),
 			},
 			Expected: 3,
 		},
