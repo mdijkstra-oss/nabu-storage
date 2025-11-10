@@ -3,9 +3,12 @@ package handlers
 import (
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/domain/entities/project"
+	"hermes-relay/internal/lib/utils"
 	rh "hermes-relay/internal/lib/test-helpers/router-helpers"
 	"testing"
 )
+
+var testProjectID = utils.NewID()
 
 var cmds = []*commands.AnyMessage{}
 
@@ -33,23 +36,23 @@ func TestProjectRouter(t *testing.T) {
 			Input: commands.ToAny(commands.NewCommand[project.UpdateProjectPayload, any](project.UpdateProject, project.UpdateProjectPayload{
 				Name:        "Updated Project Name",
 				Description: "Updated description",
-			}, project.EntityName, "project-123", nil)),
+			}, project.EntityName, testProjectID, nil)),
 			ExpectErr: "",
 			ExpectEvent: commands.ToAny(commands.NewDomainEvent[project.UpdatedProjectPayload, any](project.UpdatedProject, project.UpdatedProjectPayload{
 				Name:        "Updated Project Name",
 				Description: "Updated description",
-			}, project.EntityName, "project-123", nil)),
+			}, project.EntityName, testProjectID, nil)),
 		},
 		{
 			Name:      "UpdateProject with missing Name",
-			Input:     commands.ToAny(commands.NewCommand[project.UpdateProjectPayload, any](project.UpdateProject, project.UpdateProjectPayload{}, project.EntityName, "project-123", nil)),
+			Input:     commands.ToAny(commands.NewCommand[project.UpdateProjectPayload, any](project.UpdateProject, project.UpdateProjectPayload{}, project.EntityName, testProjectID, nil)),
 			ExpectErr: "validation failed: Name is required",
 		},
 		{
 			Name:        "DeleteProject with valid aggregate ID",
-			Input:       commands.ToAny(commands.NewCommand[project.DeleteProjectPayload, any](project.DeleteProject, project.DeleteProjectPayload{}, project.EntityName, "project-123", nil)),
+			Input:       commands.ToAny(commands.NewCommand[project.DeleteProjectPayload, any](project.DeleteProject, project.DeleteProjectPayload{}, project.EntityName, testProjectID, nil)),
 			ExpectErr:   "",
-			ExpectEvent: commands.ToAny(commands.NewDomainEvent[any, any](project.DeletedProject, nil, project.EntityName, "project-123", nil)),
+			ExpectEvent: commands.ToAny(commands.NewDomainEvent[any, any](project.DeletedProject, nil, project.EntityName, testProjectID, nil)),
 		},
 		{
 			Name: "Wrong entity type returns nil",

@@ -35,14 +35,22 @@ func RunPublisherTests(t *testing.T, tests []PublisherTestCase) {
 
 			th.AssertError(t, err, tt.ExpectErr, "error")
 			if tt.ExpectErr == "" {
-				domain_helpers.AssertMessage(t, result, tt.ExpectEvent, "event")
+				if result != nil && result.Type == commands.DomainEvent {
+					domain_helpers.AssertDomainEventMessage(t, result, tt.ExpectEvent, "event")
+				} else {
+					domain_helpers.AssertMessage(t, result, tt.ExpectEvent, "event")
+				}
 
 				if tt.ExpectPublished != nil {
 					if len(published) != len(tt.ExpectPublished) {
 						t.Fatalf("published events count: expected %d, got %d", len(tt.ExpectPublished), len(published))
 					}
 					for i, expected := range tt.ExpectPublished {
-						domain_helpers.AssertMessage(t, published[i], expected, "published["+string(rune(i))+"]")
+						if published[i] != nil && published[i].Type == commands.DomainEvent {
+							domain_helpers.AssertDomainEventMessage(t, published[i], expected, "published["+string(rune(i))+"]")
+						} else {
+							domain_helpers.AssertMessage(t, published[i], expected, "published["+string(rune(i))+"]")
+						}
 					}
 				} else if len(published) > 0 {
 					t.Fatalf("expected no published events, but got %d", len(published))

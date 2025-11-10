@@ -1,7 +1,6 @@
 package dispatch
 
 import (
-	"github.com/google/uuid"
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/lib/utils"
 	"time"
@@ -13,11 +12,11 @@ func ToCreateEntityEvent[P, PE any](commandAction, eventAction commands.Action, 
 
 		// Copies struct, so all good
 		withID := *message
-		withID.AggregateID = uuid.New().String()
+		withID.AggregateID = utils.NewID()
 		withID.Timestamp = time.Now()
 
 		// What is a create but an update with more fields
-		return ToUpdateEntityEvent[P](commandAction, eventAction, transform...)(message, publisher)
+		return ToUpdateEntityEvent[P](commandAction, eventAction, transform...)(&withID, publisher)
 	}
 }
 

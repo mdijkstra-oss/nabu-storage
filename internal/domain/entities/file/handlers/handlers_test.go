@@ -3,8 +3,21 @@ package handlers
 import (
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/domain/entities/file"
+	"hermes-relay/internal/lib/utils"
 	rh "hermes-relay/internal/lib/test-helpers/router-helpers"
 	"testing"
+)
+
+var (
+	testProjectID    = utils.NewID()
+	testCodeID1      = utils.NewID()
+	testCodeID2      = utils.NewID()
+	testFileID1      = utils.NewID()
+	testFileID2      = utils.NewID()
+	testFileID3      = utils.NewID()
+	testFileAppendID = utils.NewID()
+	testFileClearID  = utils.NewID()
+	testFileRemoveID = utils.NewID()
 )
 
 var cmds = []*commands.AnyMessage{}
@@ -14,14 +27,14 @@ func TestFileRouter(t *testing.T) {
 		{
 			Name: "CreateFile with valid payload",
 			Input: commands.ToAny(commands.NewCommand[file.CreateFilePayload, any](file.CreateFile, file.CreateFilePayload{
-				ProjectID: "project-1",
+				ProjectID: testProjectID,
 				Name:      "test-file.txt",
 				Content:   "Test content",
 			}, file.EntityName, "", nil)),
 			ExpectErr: "",
 			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.CreatedFilePayload, any](file.CreatedFile, file.CreatedFilePayload{
 				CreateFilePayload: file.CreateFilePayload{
-					ProjectID: "project-1",
+					ProjectID: testProjectID,
 					Name:      "test-file.txt",
 					Content:   "Test content",
 				},
@@ -32,14 +45,14 @@ func TestFileRouter(t *testing.T) {
 		{
 			Name: "CreateFile with minimal required fields",
 			Input: commands.ToAny(commands.NewCommand[file.CreateFilePayload, any](file.CreateFile, file.CreateFilePayload{
-				ProjectID: "project-1",
+				ProjectID: testProjectID,
 				Name:      "minimal.txt",
 				Content:   "Content",
 			}, file.EntityName, "", nil)),
 			ExpectErr: "",
 			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.CreatedFilePayload, any](file.CreatedFile, file.CreatedFilePayload{
 				CreateFilePayload: file.CreateFilePayload{
-					ProjectID: "project-1",
+					ProjectID: testProjectID,
 					Name:      "minimal.txt",
 					Content:   "Content",
 				},
@@ -52,7 +65,7 @@ func TestFileRouter(t *testing.T) {
 			Input: commands.ToAny(commands.NewCommand[file.CodeFilePayload, any](file.CodeFile, file.CodeFilePayload{
 				Actions: []file.CodingAction{
 					{
-						CodeID:   "code-1",
+						CodeID:   testCodeID1,
 						CodeSlug: "topic:test",
 						Action:   file.SetCoding,
 						Sections: []file.CodedSectionAttributes{
@@ -65,12 +78,12 @@ func TestFileRouter(t *testing.T) {
 						ChunkID: "chunk-1",
 					},
 				},
-			}, file.EntityName, "file-123", nil)),
+			}, file.EntityName, testFileID1, nil)),
 			ExpectErr: "",
 			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.CodedFilePayload, any](file.CodedFile, file.CodedFilePayload{
 				Actions: []file.CodingAction{
 					{
-						CodeID:   "code-1",
+						CodeID:   testCodeID1,
 						CodeSlug: "topic:test",
 						Action:   file.SetCoding,
 						Sections: []file.CodedSectionAttributes{
@@ -83,14 +96,14 @@ func TestFileRouter(t *testing.T) {
 						ChunkID: "chunk-1",
 					},
 				},
-			}, file.EntityName, "file-123", nil)),
+			}, file.EntityName, testFileID1, nil)),
 		},
 		{
 			Name: "CodeFile with multiple actions",
 			Input: commands.ToAny(commands.NewCommand[file.CodeFilePayload, any](file.CodeFile, file.CodeFilePayload{
 				Actions: []file.CodingAction{
 					{
-						CodeID:   "code-1",
+						CodeID:   testCodeID1,
 						CodeSlug: "topic:first",
 						Action:   file.SetCoding,
 						Sections: []file.CodedSectionAttributes{
@@ -99,7 +112,7 @@ func TestFileRouter(t *testing.T) {
 						ChunkID: "chunk-1",
 					},
 					{
-						CodeID:   "code-2",
+						CodeID:   testCodeID2,
 						CodeSlug: "topic:second",
 						Action:   file.AppendCoding,
 						Sections: []file.CodedSectionAttributes{
@@ -108,12 +121,12 @@ func TestFileRouter(t *testing.T) {
 						ChunkID: "chunk-2",
 					},
 				},
-			}, file.EntityName, "file-456", nil)),
+			}, file.EntityName, testFileID2, nil)),
 			ExpectErr: "",
 			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.CodedFilePayload, any](file.CodedFile, file.CodedFilePayload{
 				Actions: []file.CodingAction{
 					{
-						CodeID:   "code-1",
+						CodeID:   testCodeID1,
 						CodeSlug: "topic:first",
 						Action:   file.SetCoding,
 						Sections: []file.CodedSectionAttributes{
@@ -122,7 +135,7 @@ func TestFileRouter(t *testing.T) {
 						ChunkID: "chunk-1",
 					},
 					{
-						CodeID:   "code-2",
+						CodeID:   testCodeID2,
 						CodeSlug: "topic:second",
 						Action:   file.AppendCoding,
 						Sections: []file.CodedSectionAttributes{
@@ -131,14 +144,14 @@ func TestFileRouter(t *testing.T) {
 						ChunkID: "chunk-2",
 					},
 				},
-			}, file.EntityName, "file-456", nil)),
+			}, file.EntityName, testFileID2, nil)),
 		},
 		{
 			Name: "CodeFile with AppendCoding action",
 			Input: commands.ToAny(commands.NewCommand[file.CodeFilePayload, any](file.CodeFile, file.CodeFilePayload{
 				Actions: []file.CodingAction{
 					{
-						CodeID:   "code-1",
+						CodeID:   testCodeID1,
 						CodeSlug: "topic:append",
 						Action:   file.AppendCoding,
 						Sections: []file.CodedSectionAttributes{
@@ -147,12 +160,12 @@ func TestFileRouter(t *testing.T) {
 						ChunkID: "chunk-1",
 					},
 				},
-			}, file.EntityName, "file-append", nil)),
+			}, file.EntityName, testFileAppendID, nil)),
 			ExpectErr: "",
 			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.CodedFilePayload, any](file.CodedFile, file.CodedFilePayload{
 				Actions: []file.CodingAction{
 					{
-						CodeID:   "code-1",
+						CodeID:   testCodeID1,
 						CodeSlug: "topic:append",
 						Action:   file.AppendCoding,
 						Sections: []file.CodedSectionAttributes{
@@ -161,14 +174,14 @@ func TestFileRouter(t *testing.T) {
 						ChunkID: "chunk-1",
 					},
 				},
-			}, file.EntityName, "file-append", nil)),
+			}, file.EntityName, testFileAppendID, nil)),
 		},
 		{
 			Name: "CodeFile with RemoveCoding action",
 			Input: commands.ToAny(commands.NewCommand[file.CodeFilePayload, any](file.CodeFile, file.CodeFilePayload{
 				Actions: []file.CodingAction{
 					{
-						CodeID:   "code-1",
+						CodeID:   testCodeID1,
 						CodeSlug: "topic:remove",
 						Action:   file.RemoveCoding,
 						Sections: []file.CodedSectionAttributes{
@@ -177,12 +190,12 @@ func TestFileRouter(t *testing.T) {
 						ChunkID: "chunk-1",
 					},
 				},
-			}, file.EntityName, "file-remove", nil)),
+			}, file.EntityName, testFileRemoveID, nil)),
 			ExpectErr: "",
 			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.CodedFilePayload, any](file.CodedFile, file.CodedFilePayload{
 				Actions: []file.CodingAction{
 					{
-						CodeID:   "code-1",
+						CodeID:   testCodeID1,
 						CodeSlug: "topic:remove",
 						Action:   file.RemoveCoding,
 						Sections: []file.CodedSectionAttributes{
@@ -191,55 +204,55 @@ func TestFileRouter(t *testing.T) {
 						ChunkID: "chunk-1",
 					},
 				},
-			}, file.EntityName, "file-remove", nil)),
+			}, file.EntityName, testFileRemoveID, nil)),
 		},
 		{
 			Name:        "ClearCoding",
-			Input:       commands.ToAny(commands.NewCommand[any, any](file.ClearCoding, nil, file.EntityName, "file-clear", nil)),
+			Input:       commands.ToAny(commands.NewCommand[any, any](file.ClearCoding, nil, file.EntityName, testFileClearID, nil)),
 			ExpectErr:   "",
-			ExpectEvent: commands.ToAny(commands.NewDomainEvent[any, any](file.ClearedCoding, nil, file.EntityName, "file-clear", nil)),
+			ExpectEvent: commands.ToAny(commands.NewDomainEvent[any, any](file.ClearedCoding, nil, file.EntityName, testFileClearID, nil)),
 		},
 		{
 			Name: "UpdateFile with valid payload",
 			Input: commands.ToAny(commands.NewCommand[file.UpdateFilePayload, any](file.UpdateFile, file.UpdateFilePayload{
 				Name:        "updated-file.txt",
 				Description: "Updated description",
-			}, file.EntityName, "file-123", nil)),
+			}, file.EntityName, testFileID1, nil)),
 			ExpectErr: "",
 			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.UpdatedFilePayload, any](file.UpdatedFile, file.UpdatedFilePayload{
 				Name:        "updated-file.txt",
 				Description: "Updated description",
-			}, file.EntityName, "file-123", nil)),
+			}, file.EntityName, testFileID1, nil)),
 		},
 		{
 			Name: "UpdateFile with empty description",
 			Input: commands.ToAny(commands.NewCommand[file.UpdateFilePayload, any](file.UpdateFile, file.UpdateFilePayload{
 				Name:        "minimal.txt",
 				Description: "",
-			}, file.EntityName, "file-456", nil)),
+			}, file.EntityName, testFileID2, nil)),
 			ExpectErr: "",
 			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.UpdatedFilePayload, any](file.UpdatedFile, file.UpdatedFilePayload{
 				Name:        "minimal.txt",
 				Description: "",
-			}, file.EntityName, "file-456", nil)),
+			}, file.EntityName, testFileID2, nil)),
 		},
 		{
 			Name: "UpdateFile with missing Name",
 			Input: commands.ToAny(commands.NewCommand[file.UpdateFilePayload, any](file.UpdateFile, file.UpdateFilePayload{
 				Description: "Some description",
-			}, file.EntityName, "file-789", nil)),
+			}, file.EntityName, testFileID3, nil)),
 			ExpectErr: "validation failed: Name is required",
 		},
 		{
 			Name:        "DeleteFile with valid aggregate ID",
-			Input:       commands.ToAny(commands.NewCommand[file.DeleteFilePayload, any](file.DeleteFile, file.DeleteFilePayload{}, file.EntityName, "file-123", nil)),
+			Input:       commands.ToAny(commands.NewCommand[file.DeleteFilePayload, any](file.DeleteFile, file.DeleteFilePayload{}, file.EntityName, testFileID1, nil)),
 			ExpectErr:   "",
-			ExpectEvent: commands.ToAny(commands.NewDomainEvent[any, any](file.DeletedFile, nil, file.EntityName, "file-123", nil)),
+			ExpectEvent: commands.ToAny(commands.NewDomainEvent[any, any](file.DeletedFile, nil, file.EntityName, testFileID1, nil)),
 		},
 		{
 			Name: "CreateFile with missing Name",
 			Input: commands.ToAny(commands.NewCommand[file.CreateFilePayload, any](file.CreateFile, file.CreateFilePayload{
-				ProjectID: "project-1",
+				ProjectID: testProjectID,
 				Content:   "Content",
 			}, file.EntityName, "", nil)),
 			ExpectErr: "validation failed: Name is required",
@@ -256,7 +269,7 @@ func TestFileRouter(t *testing.T) {
 			Name: "CodeFile with empty actions array",
 			Input: commands.ToAny(commands.NewCommand[file.CodeFilePayload, any](file.CodeFile, file.CodeFilePayload{
 				Actions: []file.CodingAction{},
-			}, file.EntityName, "file-123", nil)),
+			}, file.EntityName, testFileID1, nil)),
 			ExpectErr: "validation failed: Actions must be at least 1 characters",
 		},
 		{
@@ -269,7 +282,7 @@ func TestFileRouter(t *testing.T) {
 						ChunkID:  "chunk-1",
 					},
 				},
-			}, file.EntityName, "file-123", nil)),
+			}, file.EntityName, testFileID1, nil)),
 			ExpectErr: "validation failed: CodeSlug is required, CodeID is required",
 		},
 		{
@@ -282,7 +295,7 @@ func TestFileRouter(t *testing.T) {
 						Sections: []file.CodedSectionAttributes{{Text: "Some text"}},
 					},
 				},
-			}, file.EntityName, "file-123", nil)),
+			}, file.EntityName, testFileID1, nil)),
 			ExpectErr: "validation failed: CodeID is required, ChunkID is required",
 		},
 		{
@@ -296,7 +309,7 @@ func TestFileRouter(t *testing.T) {
 						ChunkID:  "chunk-1",
 					},
 				},
-			}, file.EntityName, "file-123", nil)),
+			}, file.EntityName, testFileID1, nil)),
 			ExpectErr: "validation failed: CodeID is required, Sections must be at least 1 characters",
 		},
 		{
@@ -310,7 +323,7 @@ func TestFileRouter(t *testing.T) {
 						ChunkID:  "chunk-1",
 					},
 				},
-			}, file.EntityName, "file-123", nil)),
+			}, file.EntityName, testFileID1, nil)),
 			ExpectErr: "validation failed: CodeSlug must match code slug format (lowercase with colon and optional dashes), CodeID is required",
 		},
 		{
@@ -324,13 +337,13 @@ func TestFileRouter(t *testing.T) {
 						ChunkID:  "chunk-1",
 					},
 				},
-			}, file.EntityName, "file-123", nil)),
+			}, file.EntityName, testFileID1, nil)),
 			ExpectErr: "validation failed: CodeSlug must match code slug format (lowercase with colon and optional dashes), CodeID is required",
 		},
 		{
 			Name: "Wrong entity type returns nil",
 			Input: commands.ToAny(commands.NewCommand[file.CreateFilePayload, any](file.CreateFile, file.CreateFilePayload{
-				ProjectID: "project-1",
+				ProjectID: testProjectID,
 				Name:      "test.txt",
 				Content:   "Test",
 			}, "DifferentEntity", "", nil)),
@@ -340,7 +353,7 @@ func TestFileRouter(t *testing.T) {
 		{
 			Name: "Wrong action returns nil",
 			Input: commands.ToAny(commands.NewCommand[file.CreateFilePayload, any]("DifferentAction", file.CreateFilePayload{
-				ProjectID: "project-1",
+				ProjectID: testProjectID,
 				Name:      "test.txt",
 				Content:   "Test",
 			}, file.EntityName, "test-aggregate-id", nil)),

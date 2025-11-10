@@ -5,8 +5,6 @@ import (
 	"hermes-relay/internal/lib/utils"
 	"log/slog"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 type Action string
@@ -109,7 +107,7 @@ func NewMessage[T, C any](mType MessageType, action Action, payload T, aggregate
 	}
 
 	return &Message[T]{
-		ID:            uuid.NewString(),
+		ID:            utils.NewID(),
 		Action:        action,
 		Type:          mType,
 		AggregateID:   aggregateID,

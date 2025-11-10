@@ -5,8 +5,15 @@ import (
 	"hermes-relay/internal/domain/entities/code"
 	"hermes-relay/internal/domain/entities/file"
 	"hermes-relay/internal/domain/entities/project"
+	"hermes-relay/internal/lib/utils"
 	rh "hermes-relay/internal/lib/test-helpers/router-helpers"
 	"testing"
+)
+
+var (
+	extTestProjectID = utils.NewID()
+	extTestFileID    = utils.NewID()
+	extTestCodeID    = utils.NewID()
 )
 
 func TestExternalEventHandlers(t *testing.T) {
@@ -15,7 +22,7 @@ func TestExternalEventHandlers(t *testing.T) {
 			project.CreatedProject,
 			project.CreatedProjectPayload{Name: "Test Project"},
 			project.EntityName,
-			"project-1",
+			extTestProjectID,
 			nil,
 		)),
 	}
@@ -27,7 +34,7 @@ func TestExternalEventHandlers(t *testing.T) {
 				file.CreatedFile,
 				file.CreatedFilePayload{
 					CreateFilePayload: file.CreateFilePayload{
-						ProjectID: "project-1",
+						ProjectID: extTestProjectID,
 						Name:      "test.md",
 						Content:   "content",
 					},
@@ -35,7 +42,7 @@ func TestExternalEventHandlers(t *testing.T) {
 					Locked: true,
 				},
 				file.EntityName,
-				"file-1",
+				extTestFileID,
 				nil,
 			)),
 			ExpectErr:   "",
@@ -44,11 +51,11 @@ func TestExternalEventHandlers(t *testing.T) {
 				commands.ToAny(commands.NewDomainEvent[project.AddedFileToProjectPayload, any](
 					project.AddedFileToProject,
 					project.AddedFileToProjectPayload{
-						FileID:    "file-1",
-						ProjectID: "project-1",
+						FileID:    extTestFileID,
+						ProjectID: extTestProjectID,
 					},
 					project.EntityName,
-					"project-1",
+					extTestProjectID,
 					nil,
 				)),
 			},
@@ -58,13 +65,13 @@ func TestExternalEventHandlers(t *testing.T) {
 			Input: commands.ToAny(commands.NewDomainEvent[code.CreatedCodePayload, any](
 				code.CreatedCode,
 				code.CreatedCodePayload{
-					ProjectID: "project-1",
+					ProjectID: extTestProjectID,
 					Slug:      "theme:nature",
 					Color:     "#00FF00",
 					Reasoning: "Nature themed",
 				},
 				code.EntityName,
-				"code-1",
+				extTestCodeID,
 				nil,
 			)),
 			ExpectErr:   "",
@@ -73,11 +80,11 @@ func TestExternalEventHandlers(t *testing.T) {
 				commands.ToAny(commands.NewDomainEvent[project.AddedCodeToProjectPayload, any](
 					project.AddedCodeToProject,
 					project.AddedCodeToProjectPayload{
-						CodeID:    "code-1",
-						ProjectID: "project-1",
+						CodeID:    extTestCodeID,
+						ProjectID: extTestProjectID,
 					},
 					project.EntityName,
-					"project-1",
+					extTestProjectID,
 					nil,
 				)),
 			},
@@ -87,10 +94,10 @@ func TestExternalEventHandlers(t *testing.T) {
 			Input: commands.ToAny(commands.NewDomainEvent[code.DeletedCodePayload, any](
 				code.DeletedCode,
 				code.DeletedCodePayload{
-					ProjectID: "project-1",
+					ProjectID: extTestProjectID,
 				},
 				code.EntityName,
-				"code-1",
+				extTestCodeID,
 				nil,
 			)),
 			ExpectErr:   "",
@@ -99,11 +106,11 @@ func TestExternalEventHandlers(t *testing.T) {
 				commands.ToAny(commands.NewDomainEvent[project.RemovedCodeFromProjectPayload, any](
 					project.RemovedCodeFromProject,
 					project.RemovedCodeFromProjectPayload{
-						CodeID:    "code-1",
-						ProjectID: "project-1",
+						CodeID:    extTestCodeID,
+						ProjectID: extTestProjectID,
 					},
 					project.EntityName,
-					"project-1",
+					extTestProjectID,
 					nil,
 				)),
 			},
@@ -116,7 +123,7 @@ func TestExternalEventHandlers(t *testing.T) {
 					Actions: []file.CodingAction{
 						{
 							CodeSlug: "theme:nature",
-							CodeID:   "code-1",
+							CodeID:   extTestCodeID,
 							Action:   file.SetCoding,
 							Sections: []file.CodedSectionAttributes{{Text: "sample text"}},
 							ChunkID:  "chunk-1",
@@ -124,7 +131,7 @@ func TestExternalEventHandlers(t *testing.T) {
 					},
 				},
 				file.EntityName,
-				"file-1",
+				extTestFileID,
 				nil,
 			)),
 			ExpectErr:       "",
@@ -139,7 +146,7 @@ func TestExternalEventHandlers(t *testing.T) {
 					Color: "#FF0000",
 				},
 				code.EntityName,
-				"code-1",
+				extTestCodeID,
 				nil,
 			)),
 			ExpectErr:       "",

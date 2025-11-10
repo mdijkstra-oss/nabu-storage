@@ -1,7 +1,6 @@
 package dispatch
 
 import (
-	"github.com/google/uuid"
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/lib/utils"
 	"sync"
@@ -26,7 +25,7 @@ func NewInMemoryPublisher() *InMemoryPublisher {
 }
 
 func (p *InMemoryPublisher) Subscribe(router CommandRouter) func() {
-	id := uuid.New().String()
+	id := utils.NewID()
 
 	p.mu.Lock()
 	p.subscribers = append(p.subscribers, subscription{id, router})

@@ -8,6 +8,7 @@ import (
 	"hermes-relay/internal/domain/entities/project"
 	th "hermes-relay/internal/lib/test-helpers"
 	"hermes-relay/internal/lib/test-helpers/domain-helpers"
+	"hermes-relay/internal/lib/utils"
 	"os"
 	"path/filepath"
 	"sort"
@@ -20,6 +21,8 @@ type FileContent struct {
 }
 
 func TestPersistence(t *testing.T) {
+	testID := utils.NewID()
+
 	tests := []struct {
 		Name      string
 		Input     []*commands.AnyMessage
@@ -29,7 +32,7 @@ func TestPersistence(t *testing.T) {
 		{
 			Name: "Missing aggregate type returns error",
 			Input: []*commands.AnyMessage{
-				{Type: commands.DomainEvent, Action: "TestAction", AggregateID: "test-1"},
+				{Type: commands.DomainEvent, Action: "TestAction", AggregateID: testID},
 			},
 			Expected:  nil,
 			ExpectErr: "cannot persist event without aggregate type",

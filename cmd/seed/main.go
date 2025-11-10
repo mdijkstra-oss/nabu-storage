@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"github.com/google/uuid"
 	"hermes-relay/internal/bootstrap"
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/cqrs/dispatch"
@@ -97,7 +96,7 @@ func seedFiles(publisher *dispatch.InMemoryPublisher, sourceDir string, reset bo
 				Content:   string(content),
 			},
 			Timestamp:   time.Now(),
-			AggregateID: uuid.New().String(),
+			AggregateID: utils.NewID(),
 		}
 
 		utils.Must(publisher.Publish(msg))
@@ -140,7 +139,7 @@ func getOrCreateProjectID(publish dispatch.PublishFunc) string {
 		project.CreateProject,
 		project.CreateProjectPayload{Name: "Default Project"},
 		project.EntityName,
-		uuid.New().String(),
+		utils.NewID(),
 		nil,
 	))
 

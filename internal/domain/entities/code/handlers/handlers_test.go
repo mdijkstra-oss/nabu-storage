@@ -3,8 +3,16 @@ package handlers
 import (
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/domain/entities/code"
+	"hermes-relay/internal/lib/utils"
 	rh "hermes-relay/internal/lib/test-helpers/router-helpers"
 	"testing"
+)
+
+var (
+	testProjectID    = utils.NewID()
+	testCodeID1      = utils.NewID()
+	testCodeID2      = utils.NewID()
+	testDeleteCodeID = utils.NewID()
 )
 
 var cmds = []*commands.AnyMessage{
@@ -13,32 +21,32 @@ var cmds = []*commands.AnyMessage{
 		"CreatedProject",
 		map[string]any{"name": "Test Project"},
 		"Project",
-		"project-1",
+		testProjectID,
 		nil,
 	)),
 	// Create existing codes
 	commands.ToAny(commands.NewDomainEvent[code.CreatedCodePayload, any](
 		code.CreatedCode,
 		code.CreatedCodePayload{
-			ProjectID: "project-1",
+			ProjectID: testProjectID,
 			Slug:      "topic:climate",
 			Color:     "blue-500",
 			Reasoning: "Climate topics",
 		},
 		code.EntityName,
-		"code-existing-1",
+		testCodeID1,
 		nil,
 	)),
 	commands.ToAny(commands.NewDomainEvent[code.CreatedCodePayload, any](
 		code.CreatedCode,
 		code.CreatedCodePayload{
-			ProjectID: "project-1",
+			ProjectID: testProjectID,
 			Slug:      "topic:health",
 			Color:     "green-500",
 			Reasoning: "Health topics",
 		},
 		code.EntityName,
-		"code-existing-2",
+		testCodeID2,
 		nil,
 	)),
 }
@@ -48,14 +56,14 @@ func TestCodeRouter(t *testing.T) {
 		{
 			Name: "CreateCode with valid payload",
 			Input: commands.ToAny(commands.NewCommand[code.CreateCodePayload, any](code.CreateCode, code.CreateCodePayload{
-				ProjectID: "project-1",
+				ProjectID: testProjectID,
 				Slug:      "topic:economy",
 				Color:     "green-500",
 				Reasoning: "Economic topics",
 			}, code.EntityName, "", nil)),
 			ExpectErr: "",
 			ExpectEvent: commands.ToAny(commands.NewDomainEvent[code.CreatedCodePayload, any](code.CreatedCode, code.CreatedCodePayload{
-				ProjectID: "project-1",
+				ProjectID: testProjectID,
 				Slug:      "topic:economy",
 				Color:     "green-500",
 				Reasoning: "Economic topics",
@@ -66,12 +74,12 @@ func TestCodeRouter(t *testing.T) {
 			Input: commands.ToAny(commands.NewCommand[code.UpdateCodePayload, any](code.UpdateCode, code.UpdateCodePayload{
 				Color:     "emerald-600",
 				Reasoning: "Updated climate coverage",
-			}, code.EntityName, "code-existing-1", nil)),
+			}, code.EntityName, testCodeID1, nil)),
 			ExpectErr: "",
 			ExpectEvent: commands.ToAny(commands.NewDomainEvent[code.UpdatedCodePayload, any](code.UpdatedCode, code.UpdatedCodePayload{
 				Color:     "emerald-600",
 				Reasoning: "Updated climate coverage",
-			}, code.EntityName, "code-existing-1", nil)),
+			}, code.EntityName, testCodeID1, nil)),
 		},
 		{
 			Name: "UpdateCode for non-existent code fails",
@@ -83,15 +91,15 @@ func TestCodeRouter(t *testing.T) {
 		{
 			Name: "DeleteCode",
 			Input: commands.ToAny(commands.NewCommand[code.DeleteCodeData, any](code.DeleteCode, code.DeleteCodeData{
-				ProjectID: "project-1",
-			}, code.EntityName, "code-999", nil)),
+				ProjectID: testProjectID,
+			}, code.EntityName, testDeleteCodeID, nil)),
 			ExpectErr:   "",
-			ExpectEvent: commands.ToAny(commands.NewDomainEvent[any, any](code.DeletedCode, nil, code.EntityName, "code-999", nil)),
+			ExpectEvent: commands.ToAny(commands.NewDomainEvent[any, any](code.DeletedCode, nil, code.EntityName, testDeleteCodeID, nil)),
 		},
 		{
 			Name: "CreateCode with missing Color and Reasoning",
 			Input: commands.ToAny(commands.NewCommand[code.CreateCodePayload, any](code.CreateCode, code.CreateCodePayload{
-				ProjectID: "project-1",
+				ProjectID: testProjectID,
 				Slug:      "topic:incomplete",
 			}, code.EntityName, "", nil)),
 			ExpectErr: "validation failed: Color is required, Reasoning is required",
@@ -99,7 +107,7 @@ func TestCodeRouter(t *testing.T) {
 		{
 			Name: "CreateCode with invalid slug (no colon)",
 			Input: commands.ToAny(commands.NewCommand[code.CreateCodePayload, any](code.CreateCode, code.CreateCodePayload{
-				ProjectID: "project-1",
+				ProjectID: testProjectID,
 				Slug:      "topicclimate",
 				Color:     "blue-500",
 				Reasoning: "Invalid format",
@@ -109,7 +117,7 @@ func TestCodeRouter(t *testing.T) {
 		{
 			Name: "CreateCode with invalid slug (uppercase)",
 			Input: commands.ToAny(commands.NewCommand[code.CreateCodePayload, any](code.CreateCode, code.CreateCodePayload{
-				ProjectID: "project-1",
+				ProjectID: testProjectID,
 				Slug:      "Topic:climate",
 				Color:     "blue-500",
 				Reasoning: "Invalid format",
@@ -119,7 +127,7 @@ func TestCodeRouter(t *testing.T) {
 		{
 			Name: "CreateCode with invalid slug (empty after colon)",
 			Input: commands.ToAny(commands.NewCommand[code.CreateCodePayload, any](code.CreateCode, code.CreateCodePayload{
-				ProjectID: "project-1",
+				ProjectID: testProjectID,
 				Slug:      "topic:",
 				Color:     "blue-500",
 				Reasoning: "Invalid format",
@@ -129,7 +137,7 @@ func TestCodeRouter(t *testing.T) {
 		{
 			Name: "CreateCode with invalid slug (starts with hyphen)",
 			Input: commands.ToAny(commands.NewCommand[code.CreateCodePayload, any](code.CreateCode, code.CreateCodePayload{
-				ProjectID: "project-1",
+				ProjectID: testProjectID,
 				Slug:      "topic:-climate",
 				Color:     "blue-500",
 				Reasoning: "Invalid format",
@@ -139,7 +147,7 @@ func TestCodeRouter(t *testing.T) {
 		{
 			Name: "Wrong entity type returns nil",
 			Input: commands.ToAny(commands.NewCommand[code.CreateCodePayload, any](code.CreateCode, code.CreateCodePayload{
-				ProjectID: "project-1",
+				ProjectID: testProjectID,
 				Slug:      "topic:test",
 				Color:     "blue-500",
 				Reasoning: "Test",
@@ -150,7 +158,7 @@ func TestCodeRouter(t *testing.T) {
 		{
 			Name: "Wrong action returns nil",
 			Input: commands.ToAny(commands.NewCommand[code.CreateCodePayload, any]("DifferentAction", code.CreateCodePayload{
-				ProjectID: "project-1",
+				ProjectID: testProjectID,
 				Slug:      "topic:test",
 				Color:     "blue-500",
 				Reasoning: "Test",
@@ -161,7 +169,7 @@ func TestCodeRouter(t *testing.T) {
 		{
 			Name: "CreateCode with duplicate slug fails",
 			Input: commands.ToAny(commands.NewCommand[code.CreateCodePayload, any](code.CreateCode, code.CreateCodePayload{
-				ProjectID: "project-1",
+				ProjectID: testProjectID,
 				Slug:      "topic:climate",
 				Color:     "blue-500",
 				Reasoning: "Duplicate slug",
@@ -171,37 +179,37 @@ func TestCodeRouter(t *testing.T) {
 		{
 			Name: "MergeCodes with valid source and target",
 			Input: commands.ToAny(commands.NewCommand[code.MergeCodesPayload, any](code.MergeCodes, code.MergeCodesPayload{
-				SourceID: "code-existing-1",
-				TargetID: "code-existing-2",
-			}, code.EntityName, "code-existing-1", nil)),
+				SourceID: testCodeID1,
+				TargetID: testCodeID2,
+			}, code.EntityName, testCodeID1, nil)),
 			ExpectErr: "",
 			ExpectEvent: commands.ToAny(commands.NewDomainEvent[code.MergedCodesPayload, any](code.MergedCodes, code.MergedCodesPayload{
-				SourceID: "code-existing-1",
-				TargetID: "code-existing-2",
-			}, code.EntityName, "code-existing-1", nil)),
+				SourceID: testCodeID1,
+				TargetID: testCodeID2,
+			}, code.EntityName, testCodeID1, nil)),
 		},
 		{
 			Name: "MergeCodes with non-existent source fails",
 			Input: commands.ToAny(commands.NewCommand[code.MergeCodesPayload, any](code.MergeCodes, code.MergeCodesPayload{
 				SourceID: "code-nonexistent",
-				TargetID: "code-existing-2",
-			}, code.EntityName, "code-existing-2", nil)),
+				TargetID: testCodeID2,
+			}, code.EntityName, testCodeID2, nil)),
 			ExpectErr: "validation failed: source_id not found",
 		},
 		{
 			Name: "MergeCodes with non-existent target fails",
 			Input: commands.ToAny(commands.NewCommand[code.MergeCodesPayload, any](code.MergeCodes, code.MergeCodesPayload{
-				SourceID: "code-existing-1",
+				SourceID: testCodeID1,
 				TargetID: "code-nonexistent",
-			}, code.EntityName, "code-existing-1", nil)),
+			}, code.EntityName, testCodeID1, nil)),
 			ExpectErr: "validation failed: target_id not found",
 		},
 		{
 			Name: "MergeCodes with same source and target fails",
 			Input: commands.ToAny(commands.NewCommand[code.MergeCodesPayload, any](code.MergeCodes, code.MergeCodesPayload{
-				SourceID: "code-existing-1",
-				TargetID: "code-existing-1",
-			}, code.EntityName, "code-existing-1", nil)),
+				SourceID: testCodeID1,
+				TargetID: testCodeID1,
+			}, code.EntityName, testCodeID1, nil)),
 			ExpectErr: "validation failed: source_id cannot merge with itself",
 		},
 	}
