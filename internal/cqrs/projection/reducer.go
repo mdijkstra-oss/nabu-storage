@@ -18,6 +18,16 @@ func CombineReducers[T any](reducers ...Reducer[T]) Reducer[T] {
 	}
 }
 
+func IfExists[T any](reducers ...Reducer[T]) Reducer[T] {
+	combined := CombineReducers(reducers...)
+	return func(current *T, event *commands.AnyMessage) *T {
+		if current == nil {
+			return nil
+		}
+		return combined(current, event)
+	}
+}
+
 func For[T any, P any](action commands.Action, reducer func(*T, *commands.AnyMessage, P) *T) Reducer[T] {
 	return func(current *T, event *commands.AnyMessage) *T {
 		if event.Action != action {

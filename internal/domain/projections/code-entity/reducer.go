@@ -8,9 +8,11 @@ import (
 
 var Reducer = projection.CombineReducers(
 	projection.For(code.CreatedCode, CreatedCodeReducer),
-	projection.For(code.UpdatedCode, UpdatedCodeReducer),
-	projection.For(code.DeletedCode, DeletedCodeReducer),
-	projection.For(code.MergedCodes, MergedCodesReducer),
+	projection.IfExists(
+		projection.For(code.UpdatedCode, UpdatedCodeReducer),
+		projection.For(code.DeletedCode, DeletedCodeReducer),
+		projection.For(code.MergedCodes, MergedCodesReducer),
+	),
 	projection.DeletedProjectReducer[code.Code],
 )
 

@@ -15,12 +15,14 @@ import (
 
 var Reducer = projection.CombineReducers(
 	projection.For(file.CreatedFile, CreatedFileReducer),
-	projection.For(file.UpdatedFile, UpdatedFileReducer),
-	projection.For(file.CodedFile, CodedFileReducer),
-	projection.For(file.ClearedCoding, ClearedCodingReducer),
-	projection.For(code.DeletedCode, DeletedCodeReducer),
-	projection.For(code.UpdatedCode, UpdatedCodeReducer),
-	projection.For(code.MergedCodes, MergedCodesReducer),
+	projection.IfExists(
+		projection.For(file.UpdatedFile, UpdatedFileReducer),
+		projection.For(file.CodedFile, CodedFileReducer),
+		projection.For(file.ClearedCoding, ClearedCodingReducer),
+		projection.For(code.DeletedCode, DeletedCodeReducer),
+		projection.For(code.UpdatedCode, UpdatedCodeReducer),
+		projection.For(code.MergedCodes, MergedCodesReducer),
+	),
 	projection.DeletedProjectReducer[file.File],
 )
 
@@ -56,10 +58,6 @@ func CreatedFileReducer(_ *File, message *commands.AnyMessage, payload *file.Cre
 }
 
 func UpdatedFileReducer(current *File, _ *commands.AnyMessage, payload *file.UpdatedFilePayload) *File {
-	if current == nil {
-		return nil
-	}
-
 	current.Name = payload.Name
 	current.Description = payload.Description
 	return current
