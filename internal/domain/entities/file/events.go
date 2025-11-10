@@ -14,9 +14,9 @@ const (
 type CreatedFilePayload struct {
 	CreateFilePayload
 	// Todo will move to create once we can create different types etc
-	Type FileType `json:"type" validate:"omitempty,oneof=codebook source memo context"`
-	// Locked is done @ command to event time
-	Locked bool `json:"locked"` // whether file is read-only
+	Type   FileType `json:"type" validate:"omitempty,oneof=codebook source memo context"`
+	Locked bool     `json:"locked"` // whether file is read-only
+	Chunks []Chunk  `json:"chunks"` // pre-chunked content
 }
 
 type UpdatedFilePayload = UpdateFilePayload

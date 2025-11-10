@@ -1,10 +1,13 @@
 package handlers
 
 import (
+	"fmt"
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/domain/entities/file"
+	th "hermes-relay/internal/lib/test-helpers"
 	rh "hermes-relay/internal/lib/test-helpers/router-helpers"
 	"hermes-relay/internal/lib/utils"
+	"strings"
 	"testing"
 )
 
@@ -25,7 +28,7 @@ var cmds = []*commands.AnyMessage{}
 func TestFileRouter(t *testing.T) {
 	tests := []rh.RouterTestCase{
 		{
-			Name: "CreateFile with valid payload",
+			Name: "CreateFile with valid payload and single chunk",
 			Input: commands.ToAny(commands.NewCommand[file.CreateFilePayload, any](file.CreateFile, file.CreateFilePayload{
 				ProjectID: testProjectID,
 				Name:      "test-file.txt",
@@ -40,6 +43,9 @@ func TestFileRouter(t *testing.T) {
 				},
 				Type:   file.FileTypeSource,
 				Locked: true,
+				Chunks: []file.Chunk{
+					{ID: "1", Content: "Test content\n", Codes: []file.CodedSection{}},
+				},
 			}, file.EntityName, "", nil)),
 		},
 		{
@@ -58,6 +64,9 @@ func TestFileRouter(t *testing.T) {
 				},
 				Type:   file.FileTypeSource,
 				Locked: true,
+				Chunks: []file.Chunk{
+					{ID: "1", Content: "Content\n", Codes: []file.CodedSection{}},
+				},
 			}, file.EntityName, "", nil)),
 		},
 		{
@@ -363,4 +372,88 @@ func TestFileRouter(t *testing.T) {
 	}
 
 	rh.RunRouterTests(t, cmds, tests, NewRouter)
+}
+
+// Todo: can be just one entry in table once I can define chunk length shorter (else entry is so long)
+
+type chunkingTestResult struct {
+	ChunkCount    int
+	ChunkIDsValid bool
+}
+
+func TestFileCreationChunking(t *testing.T) {
+	router := NewRouter(nil)
+
+	createAndTestChunks := func(content string) chunkingTestResult {
+		input := commands.NewCommand[file.CreateFilePayload, any](
+			file.CreateFile,
+			file.CreateFilePayload{
+				ProjectID: testProjectID,
+				Name:      "test.txt",
+				Content:   content,
+			},
+			file.EntityName,
+			"",
+			nil,
+		)
+
+		result, _ := router(commands.ToAny(input), nil)
+		if result == nil {
+			return chunkingTestResult{}
+		}
+
+		payload, ok := result.Payload.(file.CreatedFilePayload)
+		if !ok {
+			return chunkingTestResult{}
+		}
+
+		chunkIDsValid := true
+		for i, chunk := range payload.Chunks {
+			if chunk.ID != fmt.Sprintf("%d", i+1) {
+				chunkIDsValid = false
+			}
+			if chunk.Content == "" || chunk.Codes == nil {
+				chunkIDsValid = false
+			}
+		}
+
+		return chunkingTestResult{
+			ChunkCount:    len(payload.Chunks),
+			ChunkIDsValid: chunkIDsValid,
+		}
+	}
+
+	tests := []struct {
+		Name     string
+		Input    string
+		Expected chunkingTestResult
+	}{
+		{
+			Name:  "Short content creates single chunk",
+			Input: "Short content",
+			Expected: chunkingTestResult{
+				ChunkCount:    1,
+				ChunkIDsValid: true,
+			},
+		},
+		{
+			Name:  "Medium content creates single chunk",
+			Input: strings.Repeat("a", 3500),
+			Expected: chunkingTestResult{
+				ChunkCount:    1,
+				ChunkIDsValid: true,
+			},
+		},
+		{
+			Name: "Long content with paragraphs creates multiple chunks",
+			Input: strings.Repeat("This is a paragraph.\n\n", 200) +
+				strings.Repeat("Another paragraph.\n\n", 200),
+			Expected: chunkingTestResult{
+				ChunkCount:    3,
+				ChunkIDsValid: true,
+			},
+		},
+	}
+
+	th.RunFunctionTests(t, tests, createAndTestChunks)
 }

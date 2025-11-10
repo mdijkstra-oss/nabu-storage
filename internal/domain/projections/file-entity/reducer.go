@@ -1,12 +1,10 @@
 package fileview
 
 import (
-	"fmt"
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/cqrs/projection"
 	"hermes-relay/internal/domain/entities/code"
 	"hermes-relay/internal/domain/entities/file"
-	"hermes-relay/internal/lib/text-search/chunker"
 	"hermes-relay/internal/lib/text-search/find"
 	"hermes-relay/internal/lib/utils"
 	"log/slog"
@@ -28,17 +26,6 @@ var Reducer = projection.CombineReducers(
 )
 
 func CreatedFileReducer(_ *File, message *commands.AnyMessage, payload *file.CreatedFilePayload) *File {
-	// Todo: What's faster, what's better?
-	blocks := chunker.ChunkBlocks(payload.Content, chunker.FullPage, chunker.FullPage+chunker.HalfPage)
-
-	chunks := utils.MapWithIndex(blocks, func(i int, block string) file.Chunk {
-		return file.Chunk{
-			ID:      fmt.Sprintf("%d", i+1),
-			Content: block,
-			Codes:   []file.CodedSection{},
-		}
-	})
-
 	return &File{
 		BaseFile: file.BaseFile{
 			ID:          message.AggregateID,
@@ -53,7 +40,7 @@ func CreatedFileReducer(_ *File, message *commands.AnyMessage, payload *file.Cre
 				Locked:  payload.Locked,
 			},
 		},
-		Chunks: chunks,
+		Chunks: payload.Chunks,
 	}
 }
 

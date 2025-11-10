@@ -27,7 +27,7 @@ func TestFileReducer(t *testing.T) {
 
 	tests := []reducer_helpers.ReducerTestCase[*File]{
 		{
-			Name:    "CreatedFile initializes file with chunks",
+			Name:    "CreatedFile initializes file with chunks from payload",
 			Initial: nil,
 			Event: domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.CreatedFile, &file.CreatedFilePayload{
 				CreateFilePayload: file.CreateFilePayload{
@@ -37,6 +37,13 @@ func TestFileReducer(t *testing.T) {
 				},
 				Type:   file.FileTypeSource,
 				Locked: true,
+				Chunks: []file.Chunk{
+					{
+						ID:      "1",
+						Content: "Short test content",
+						Codes:   []file.CodedSection{},
+					},
+				},
 			}),
 			Expected: &File{
 				BaseFile: file.BaseFile{
@@ -54,7 +61,7 @@ func TestFileReducer(t *testing.T) {
 				Chunks: []file.Chunk{
 					{
 						ID:      "1",
-						Content: "Short test content\n",
+						Content: "Short test content",
 						Codes:   []file.CodedSection{},
 					},
 				},

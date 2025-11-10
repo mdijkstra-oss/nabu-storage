@@ -13,3 +13,6 @@ makefile setup
 ```shell
 make tests
 ```
+
+## TODO
+- Add unit tests for struct param/query binding and struct default value setting (specifically around embedded structs)
