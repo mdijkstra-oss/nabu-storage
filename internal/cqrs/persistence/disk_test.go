@@ -50,7 +50,7 @@ func TestPersistence(t *testing.T) {
 			Expected: []FileContent{
 				{
 					Path:     "Project/project-1.jsonl",
-					Contains: []string{`"action":"CreatedProject"`, `"aggregateId":"project-1"`, `"payload":{"name":"Test"}`, `"version":1`},
+					Contains: []string{`"action":"CreatedProject"`, `"aggregateId":"project-1"`, `"payload":{"name":"Test","description":""}`, `"version":1`},
 				},
 			},
 			ExpectErr: "",

@@ -2,6 +2,7 @@ package file
 
 const (
 	CreatedFile   = "CreatedFile"
+	UpdatedFile   = "UpdatedFile"
 	CodedFile     = "CodedFile"
 	ClearedCoding = "ClearedCoding"
 )
@@ -14,4 +15,7 @@ type CreatedFilePayload struct {
 	// Locked is done @ command to event time
 	Locked bool `json:"locked"` // whether file is read-only
 }
+
+type UpdatedFilePayload = UpdateFilePayload
+
 type CodedFilePayload = CodeFileData

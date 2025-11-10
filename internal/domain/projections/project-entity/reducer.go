@@ -18,10 +18,11 @@ var Reducer = projection.CombineReducers(
 
 func CreatedProjectReducer(_ *Project, message *commands.AnyMessage, payload *project.CreatedProjectPayload) *Project {
 	return &Project{
-		ID:      message.AggregateID,
-		Name:    payload.Name,
-		CodeIDs: []string{},
-		FileIDs: []string{},
+		ID:          message.AggregateID,
+		Name:        payload.Name,
+		Description: payload.Description,
+		CodeIDs:     []string{},
+		FileIDs:     []string{},
 	}
 }
 
@@ -49,6 +50,7 @@ func UpdatedProjectReducer(current *Project, message *commands.AnyMessage, paylo
 	}
 
 	current.Name = payload.Name
+	current.Description = payload.Description
 	return current
 }
 

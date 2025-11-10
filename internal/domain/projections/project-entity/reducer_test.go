@@ -12,12 +12,13 @@ func TestProjectReducer(t *testing.T) {
 		{
 			Name:    "CreatedProject initializes empty arrays",
 			Initial: nil,
-			Event:   newProjectEvent("project-1", project.CreatedProject, &project.CreatedProjectPayload{Name: "Research"}),
+			Event:   newProjectEvent("project-1", project.CreatedProject, &project.CreatedProjectPayload{Name: "Research", Description: "Research project"}),
 			Expected: &Project{
-				ID:      "project-1",
-				Name:    "Research",
-				CodeIDs: []string{},
-				FileIDs: []string{},
+				ID:          "project-1",
+				Name:        "Research",
+				Description: "Research project",
+				CodeIDs:     []string{},
+				FileIDs:     []string{},
 			},
 		},
 		{
@@ -154,21 +155,24 @@ func TestProjectReducer(t *testing.T) {
 			},
 		},
 		{
-			Name: "UpdatedProject changes name",
+			Name: "UpdatedProject changes name and description",
 			Initial: &Project{
-				ID:      "project-1",
-				Name:    "Old Name",
-				CodeIDs: []string{"code-1"},
-				FileIDs: []string{"file-1"},
+				ID:          "project-1",
+				Name:        "Old Name",
+				Description: "Old description",
+				CodeIDs:     []string{"code-1"},
+				FileIDs:     []string{"file-1"},
 			},
 			Event: newProjectEvent("project-1", project.UpdatedProject, &project.UpdatedProjectPayload{
-				Name: "New Name",
+				Name:        "New Name",
+				Description: "New description",
 			}),
 			Expected: &Project{
-				ID:      "project-1",
-				Name:    "New Name",
-				CodeIDs: []string{"code-1"},
-				FileIDs: []string{"file-1"},
+				ID:          "project-1",
+				Name:        "New Name",
+				Description: "New description",
+				CodeIDs:     []string{"code-1"},
+				FileIDs:     []string{"file-1"},
 			},
 		},
 		{

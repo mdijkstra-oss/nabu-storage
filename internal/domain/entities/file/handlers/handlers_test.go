@@ -200,6 +200,37 @@ func TestFileRouter(t *testing.T) {
 			ExpectEvent: commands.ToAny(commands.NewDomainEvent[any, any](file.ClearedCoding, nil, file.EntityName, "file-clear", nil)),
 		},
 		{
+			Name: "UpdateFile with valid payload",
+			Input: commands.ToAny(commands.NewCommand[file.UpdateFilePayload, any](file.UpdateFile, file.UpdateFilePayload{
+				Name:        "updated-file.txt",
+				Description: "Updated description",
+			}, file.EntityName, "file-123", nil)),
+			ExpectErr: "",
+			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.UpdatedFilePayload, any](file.UpdatedFile, file.UpdatedFilePayload{
+				Name:        "updated-file.txt",
+				Description: "Updated description",
+			}, file.EntityName, "file-123", nil)),
+		},
+		{
+			Name: "UpdateFile with empty description",
+			Input: commands.ToAny(commands.NewCommand[file.UpdateFilePayload, any](file.UpdateFile, file.UpdateFilePayload{
+				Name:        "minimal.txt",
+				Description: "",
+			}, file.EntityName, "file-456", nil)),
+			ExpectErr: "",
+			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.UpdatedFilePayload, any](file.UpdatedFile, file.UpdatedFilePayload{
+				Name:        "minimal.txt",
+				Description: "",
+			}, file.EntityName, "file-456", nil)),
+		},
+		{
+			Name: "UpdateFile with missing Name",
+			Input: commands.ToAny(commands.NewCommand[file.UpdateFilePayload, any](file.UpdateFile, file.UpdateFilePayload{
+				Description: "Some description",
+			}, file.EntityName, "file-789", nil)),
+			ExpectErr: "validation failed: Name is required",
+		},
+		{
 			Name: "CreateFile with missing Name",
 			Input: commands.ToAny(commands.NewCommand[file.CreateFilePayload, any](file.CreateFile, file.CreateFilePayload{
 				ProjectID: "project-1",

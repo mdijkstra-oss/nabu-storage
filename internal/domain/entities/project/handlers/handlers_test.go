@@ -14,11 +14,13 @@ func TestProjectRouter(t *testing.T) {
 		{
 			Name: "CreateProject with valid payload",
 			Input: commands.ToAny(commands.NewCommand[project.CreateProjectPayload, any](project.CreateProject, project.CreateProjectPayload{
-				Name: "My Research Project",
+				Name:        "My Research Project",
+				Description: "A project for research purposes",
 			}, project.EntityName, "", nil)),
 			ExpectErr: "",
 			ExpectEvent: commands.ToAny(commands.NewDomainEvent[project.CreatedProjectPayload, any](project.CreatedProject, project.CreatedProjectPayload{
-				Name: "My Research Project",
+				Name:        "My Research Project",
+				Description: "A project for research purposes",
 			}, project.EntityName, "", nil)),
 		},
 		{
@@ -29,11 +31,13 @@ func TestProjectRouter(t *testing.T) {
 		{
 			Name: "UpdateProject with valid payload",
 			Input: commands.ToAny(commands.NewCommand[project.UpdateProjectPayload, any](project.UpdateProject, project.UpdateProjectPayload{
-				Name: "Updated Project Name",
+				Name:        "Updated Project Name",
+				Description: "Updated description",
 			}, project.EntityName, "project-123", nil)),
 			ExpectErr: "",
 			ExpectEvent: commands.ToAny(commands.NewDomainEvent[project.UpdatedProjectPayload, any](project.UpdatedProject, project.UpdatedProjectPayload{
-				Name: "Updated Project Name",
+				Name:        "Updated Project Name",
+				Description: "Updated description",
 			}, project.EntityName, "project-123", nil)),
 		},
 		{

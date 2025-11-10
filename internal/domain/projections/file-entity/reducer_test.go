@@ -63,6 +63,41 @@ func TestFileReducer(t *testing.T) {
 			},
 		},
 		{
+			Name: "UpdatedFile updates name and description",
+			Initial: &File{
+				BaseFile: file.BaseFile{
+					ID:          "file-1",
+					ProjectID:   "project-1",
+					Name:        "old-name.txt",
+					Description: "Old description",
+					Attributes:  file.Attributes{Time: testTime},
+				},
+				Content: "Test content",
+				Chunks:  []file.Chunk{{ID: "1", Content: "Test content\n", Codes: []file.CodedSection{}}},
+			},
+			Event: domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.UpdatedFile, &file.UpdatedFilePayload{
+				Name:        "new-name.txt",
+				Description: "New description",
+			}),
+			Expected: &File{
+				BaseFile: file.BaseFile{
+					ID:          "file-1",
+					ProjectID:   "project-1",
+					Name:        "new-name.txt",
+					Description: "New description",
+					Attributes:  file.Attributes{Time: testTime},
+				},
+				Content: "Test content",
+				Chunks:  []file.Chunk{{ID: "1", Content: "Test content\n", Codes: []file.CodedSection{}}},
+			},
+		},
+		{
+			Name:     "UpdatedFile on nil state returns nil",
+			Initial:  nil,
+			Event:    domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.UpdatedFile, &file.UpdatedFilePayload{Name: "test.txt"}),
+			Expected: nil,
+		},
+		{
 			Name: "AppendCoding adds codes to chunk",
 			Initial: &File{
 				BaseFile: file.BaseFile{
