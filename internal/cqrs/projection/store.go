@@ -45,15 +45,16 @@ func (s *Store[T]) ApplyEvent(message *commands.AnyMessage) {
 
 	current, exists := s.data[message.AggregateID]
 
+	// Important that events that listen to creation are called first for references
 	if exists {
 		s.applyToEntity(current, message)
 	} else if commands.IsCreatedEvent(message.Action) {
 		if newState := s.reducer(nil, message); newState != nil {
 			s.createEntity(newState)
 		}
-	} else {
-		s.applyAcrossEntities(message)
 	}
+
+	s.applyAcrossEntities(message)
 }
 
 func (s *Store[T]) applyToEntity(current T, message *commands.AnyMessage) {
@@ -74,17 +75,12 @@ func (s *Store[T]) createEntity(newState *T) {
 }
 
 func (s *Store[T]) applyAcrossEntities(message *commands.AnyMessage) {
-	for id, entity := range s.data {
+	for _, entity := range s.data {
 		currentPtr := &entity
 		newState := s.reducer(currentPtr, message)
-
-		if newState == nil {
-			delete(s.data, id)
-		} else {
+		// Across events never delete!
+		if newState != nil {
 			entityID := (*newState).GetID()
-			if entityID != id {
-				delete(s.data, id)
-			}
 			s.data[entityID] = *newState
 		}
 	}

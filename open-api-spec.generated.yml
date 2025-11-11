@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: hermes-relay-api
-  version: 1.0.0
+  version: 1.1.0
   description: |
     CQRS-based qualitative data analysis API for coding and analyzing research data.
 
@@ -64,9 +64,19 @@ paths:
                     project_id: "550e8400-e29b-41d4-a716-446655440000"
                     slug: "emotion:anxiety"
                     color: "red-500"
-                    reasoning: "Identifies expressions of patient anxiety about procedures, outcomes, or waiting times. Look for words like worried, nervous, scared, uncertain. Include both explicit statements and implicit indicators like questions about risks."
+                    definition: "Patient expressions of worry, nervousness, or fear about medical procedures, outcomes, or waiting times"
+                    inclusion_criteria: "Look for explicit anxiety words (worried, nervous, scared, anxious) or implicit indicators like excessive questioning about risks, repeated concerns about outcomes, or physical manifestations mentioned"
+                    exclusion_criteria: "Do not code general discomfort or mild concern. Exclude post-procedure relief statements that mention past anxiety"
+                    examples:
+                      - "I was really worried about the surgery and couldn't sleep the night before"
+                      - "What if something goes wrong during the procedure?"
+                      - "I felt so anxious waiting for the test results"
+                    counter_examples:
+                      - "I was a bit uncomfortable during the examination"
+                      - "I'm glad that anxious period is over now"
+                    notes: "Consider creating sub-codes for pre-procedure vs post-procedure anxiety"
               updateCode:
-                summary: Update code properties
+                summary: Update code definition
                 value:
                   type: Command
                   action: UpdateCode
@@ -74,7 +84,7 @@ paths:
                   aggregateId: "660e8400-e29b-41d4-a716-446655440001"
                   payload:
                     color: "orange-600"
-                    reasoning: "Updated to focus specifically on pre-procedure anxiety, excluding post-treatment concerns."
+                    definition: "Updated to focus specifically on pre-procedure anxiety, excluding post-treatment concerns"
               createFile:
                 summary: Create a source file
                 value:
@@ -115,7 +125,11 @@ paths:
                       project_id: "550e8400-e29b-41d4-a716-446655440000"
                       slug: "usability:friction-point"
                       color: "amber-500"
-                      reasoning: "Areas where users struggle with the interface, experience confusion, or express frustration"
+                      definition: "Points where users struggle with the interface, experience confusion, or express frustration with system interactions"
+                      inclusion_criteria: "Include moments where users pause, express confusion verbally, ask for help, or make errors repeatedly. Look for phrases like 'I don't understand', 'where do I...', or observable struggle"
+                      examples:
+                        - "I don't know where to click to submit this form"
+                        - "This button doesn't do what I expected it to do"
                   - type: Command
                     action: CreateCode
                     aggregateType: Code
@@ -124,7 +138,7 @@ paths:
                       project_id: "550e8400-e29b-41d4-a716-446655440000"
                       slug: "theme:accessibility"
                       color: "blue-400"
-                      reasoning: "Comments about ease of access for users with disabilities or special needs"
+                      definition: "Comments and observations about ease of access for users with disabilities or special needs"
       responses:
         '200':
           description: Command(s) executed successfully
@@ -171,7 +185,7 @@ paths:
                             project_id: "550e8400-e29b-41d4-a716-446655440000"
                             slug: "usability:friction-point"
                             color: "amber-500"
-                            reasoning: "Areas where users struggle with the interface"
+                            definition: "Points where users struggle with the interface"
                       - index: 1
                         success: true
                         result:
@@ -187,7 +201,7 @@ paths:
                             project_id: "550e8400-e29b-41d4-a716-446655440000"
                             slug: "theme:accessibility"
                             color: "blue-400"
-                            reasoning: "Comments about ease of access for users with disabilities"
+                            definition: "Comments about ease of access for users with disabilities"
         '202':
           description: Command(s) accepted for async processing
         '207':
@@ -242,10 +256,10 @@ paths:
                 validationMultiple:
                   summary: Multiple field validation errors
                   value:
-                    message: "validation failed: Color is required, Reasoning is required"
+                    message: "validation failed: Color is required, Definition is required"
                     fields:
                       Color: "required"
-                      Reasoning: "required"
+                      Definition: "required"
                 validationPattern:
                   summary: Pattern validation error
                   value:
@@ -463,8 +477,7 @@ paths:
           in: query
           description: Specific chunk to retrieve (1-based index)
           schema:
-            type: integer
-            minimum: 1
+            type: string
         - name: searchText
           in: query
           description: Filter chunks containing this text
@@ -493,6 +506,7 @@ paths:
             type: array
             items:
               type: string
+              pattern: '^[a-z]+(-[a-z]+)*:[a-z]+(-[a-z]+)*$'
           style: form
           explode: false
       responses:
@@ -569,12 +583,14 @@ paths:
                     project_id: "550e8400-e29b-41d4-a716-446655440000"
                     slug: "emotion:anxiety"
                     color: "red-500"
-                    reasoning: "Patient expressions of worry, nervousness, or fear about medical procedures"
+                    definition: "Patient expressions of worry, nervousness, or fear about medical procedures"
+                    inclusion_criteria: "Look for explicit anxiety words or implicit indicators"
+                    examples: ["I was really worried about the surgery"]
                   - id: "770e8400-e29b-41d4-a716-446655440002"
                     project_id: "550e8400-e29b-41d4-a716-446655440000"
                     slug: "theme:communication"
                     color: "blue-400"
-                    reasoning: "Interactions between patients and healthcare providers"
+                    definition: "Interactions between patients and healthcare providers"
                 total: 8
                 page: 1
                 page_size: 20
@@ -607,7 +623,15 @@ paths:
                 project_id: "550e8400-e29b-41d4-a716-446655440000"
                 slug: "topic:energy-transition"
                 color: "green-600"
-                reasoning: "References to renewable energy, fossil fuel phase-out, or sustainability initiatives in policy documents"
+                definition: "References to renewable energy, fossil fuel phase-out, or sustainability initiatives in policy documents"
+                inclusion_criteria: "Include mentions of solar, wind, carbon reduction targets, climate goals"
+                exclusion_criteria: "Exclude general environmental topics not related to energy policy"
+                examples:
+                  - "The government aims to reduce carbon emissions by 50% by 2030"
+                  - "Investment in offshore wind farms will create 10,000 jobs"
+                counter_examples:
+                  - "We need to protect our forests and wildlife"
+                notes: "Consider splitting into sub-codes for different energy types"
         '404':
           description: Code not found
 
@@ -640,7 +664,9 @@ paths:
                 project_id: "550e8400-e29b-41d4-a716-446655440000"
                 slug: "usability:friction-point"
                 color: "amber-500"
-                reasoning: "Moments where users express confusion, frustration, or struggle with interface elements"
+                definition: "Moments where users express confusion, frustration, or struggle with interface elements"
+                inclusion_criteria: "Look for verbal confusion, repeated errors, requests for help"
+                examples: ["I don't know where to click", "This doesn't work like I expected"]
         '400':
           description: Invalid slug format
           content:
@@ -812,7 +838,7 @@ components:
         - project_id
         - slug
         - color
-        - reasoning
+        - definition
       properties:
         id:
           type: string
@@ -837,15 +863,50 @@ components:
             Supports standard colors with shades 50-950.
             Can be multi-word colors like light-blue-400.
           example: "red-500"
-        reasoning:
+        definition:
           type: string
           description: |
-            Detailed rationale for applying this code. Should include:
-            - What to look for
-            - Examples of when to apply
-            - Optional exclusions
-            Limited to 1-3 paragraphs.
-          example: "Identifies expressions of patient anxiety about procedures, outcomes, or waiting times. Look for words like worried, nervous, scared, uncertain. Include both explicit statements and implicit indicators like questions about risks."
+            Core definition of the code. What does this code mean?
+            What concept, theme, or pattern does it capture?
+            Be specific and explicit. 1-2 paragraphs max.
+          example: "Patient expressions of worry, nervousness, or fear about medical procedures, outcomes, or waiting times"
+        inclusion_criteria:
+          type: string
+          description: |
+            When to apply this code. Clear criteria including decision rules,
+            context clues, and boundary conditions. 1-2 paragraphs max.
+          example: "Look for explicit anxiety words (worried, nervous, scared) or implicit indicators like excessive questioning about risks"
+        exclusion_criteria:
+          type: string
+          description: |
+            When NOT to apply this code. What might look similar but shouldn't
+            be coded this way? Helps distinguish from related codes. 1 paragraph max.
+          example: "Do not code general discomfort or mild concern. Exclude post-procedure relief statements"
+        examples:
+          type: array
+          items:
+            type: string
+          description: |
+            3-5 representative text snippets that exemplify this code.
+            Include both typical and boundary cases.
+          example:
+            - "I was really worried about the surgery"
+            - "What if something goes wrong?"
+        counter_examples:
+          type: array
+          items:
+            type: string
+          description: |
+            2-3 snippets that might seem like they fit but don't.
+            Helps clarify boundaries.
+          example:
+            - "I was a bit uncomfortable during the exam"
+        notes:
+          type: string
+          description: |
+            Analyst notes: evolving thoughts, connections to theory,
+            frequency observations, ideas for refinement
+          example: "Consider creating sub-codes for pre-procedure vs post-procedure anxiety. Appears frequently in older patients."
 
     CodePaginationResult:
       type: object
@@ -954,7 +1015,6 @@ components:
         - code_id
         - text
       properties:
-
         code_slug:
           type: string
           pattern: '^[a-z]+(-[a-z]+)*:[a-z]+(-[a-z]+)*$'
@@ -1038,7 +1098,7 @@ components:
         - project_id
         - slug
         - color
-        - reasoning
+        - definition
       properties:
         project_id:
           type: string
@@ -1052,9 +1112,29 @@ components:
         color:
           type: string
           description: Tailwind color format (automatically lowercased and trimmed)
-        reasoning:
+        definition:
           type: string
           minLength: 1
+          description: Core definition of what this code means
+        inclusion_criteria:
+          type: string
+          description: When to apply this code (optional)
+        exclusion_criteria:
+          type: string
+          description: When NOT to apply this code (optional)
+        examples:
+          type: array
+          items:
+            type: string
+          description: Representative text snippets (optional)
+        counter_examples:
+          type: array
+          items:
+            type: string
+          description: Counter-example snippets (optional)
+        notes:
+          type: string
+          description: Analyst notes (optional)
 
     UpdateCodePayload:
       type: object
@@ -1067,7 +1147,21 @@ components:
           maxLength: 100
         color:
           type: string
-        reasoning:
+        definition:
+          type: string
+        inclusion_criteria:
+          type: string
+        exclusion_criteria:
+          type: string
+        examples:
+          type: array
+          items:
+            type: string
+        counter_examples:
+          type: array
+          items:
+            type: string
+        notes:
           type: string
 
     DeleteCodePayload:
@@ -1253,13 +1347,14 @@ x-command-reference:
 
   Code:
     CreateCode:
-      description: Create a new analytical code
+      description: Create a new analytical code with structured definition
       payload: CreateCodePayload
       aggregateId: empty string for create
       event: CreatedCode
       validation:
         - Slug must be unique within project
         - Project must exist
+        - Definition is required
       example: |
         {
           "type": "Command",
@@ -1270,12 +1365,23 @@ x-command-reference:
             "project_id": "550e8400-e29b-41d4-a716-446655440000",
             "slug": "speaker:mark-rutte",
             "color": "purple-500",
-            "reasoning": "Quotes and statements by Mark Rutte in parliamentary debates"
+            "definition": "Quotes and statements by Mark Rutte in parliamentary debates, including both direct quotes and paraphrased positions attributed to him",
+            "inclusion_criteria": "Include statements where Rutte is explicitly named as speaker or where the context clearly identifies him. Include both verbatim quotes and reported speech",
+            "exclusion_criteria": "Do not code statements about Rutte made by others, or general references without specific statements",
+            "examples": [
+              "Minister Rutte stated: 'We must prioritize economic recovery'",
+              "According to Rutte, the policy will be implemented next quarter"
+            ],
+            "counter_examples": [
+              "The opposition criticized Rutte's economic policy",
+              "Rutte was mentioned in the debate"
+            ],
+            "notes": "Consider splitting into sub-codes for different policy areas if volume is high"
           }
         }
 
     UpdateCode:
-      description: Update code properties (slug, color, or reasoning)
+      description: Update code properties (any combination of fields)
       payload: UpdateCodePayload
       aggregateId: code UUID
       event: UpdatedCode
@@ -1289,7 +1395,10 @@ x-command-reference:
           "aggregateType": "Code",
           "aggregateId": "660e8400-e29b-41d4-a716-446655440001",
           "payload": {
-            "reasoning": "Updated to focus on economic policy statements only"
+            "definition": "Updated to focus on economic policy statements only",
+            "examples": [
+              "New example reflecting narrower focus"
+            ]
           }
         }
 
@@ -1332,11 +1441,13 @@ x-command-reference:
 
   File:
     CreateFile:
-      description: Create a new file (defaults to type=source, locked=true)
+      description: Create a new file (automatically chunked, defaults to type=source, locked=true)
       payload: CreateFilePayload
       aggregateId: empty string for create
       event: CreatedFile
-      note: File type and locked status are set automatically to "source" and true
+      note: |
+        File type and locked status are set automatically to "source" and true.
+        Content is automatically chunked into manageable segments.
       example: |
         {
           "type": "Command",

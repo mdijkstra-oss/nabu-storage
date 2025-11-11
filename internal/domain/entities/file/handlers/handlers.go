@@ -13,7 +13,7 @@ func NewRouter(_ *registry.ProjectViewRegistry) dispatch.CommandRouter {
 	return dispatch.CombineRouters(
 		dispatch.LimitOnEntity(file.EntityName,
 			dispatch.ToCreateEntityEvent[file.CreateFilePayload, file.CreatedFilePayload](file.CreateFile, file.CreatedFile, func(payload *file.CreateFilePayload) file.CreatedFilePayload {
-				blocks := chunker.ChunkBlocks(payload.Content, chunker.FullPage, chunker.FullPage+chunker.HalfPage)
+				blocks := chunker.ChunkBlocks(payload.Content, chunker.FullPage*5, (chunker.FullPage*5)+chunker.HalfPage)
 
 				chunks := utils.MapWithIndex(blocks, func(i int, block string) file.Chunk {
 					return file.Chunk{

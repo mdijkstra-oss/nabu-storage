@@ -438,7 +438,7 @@ func TestFileCreationChunking(t *testing.T) {
 		},
 		{
 			Name:  "Medium content creates single chunk",
-			Input: strings.Repeat("a", 3500),
+			Input: strings.Repeat("a", 14000),
 			Expected: chunkingTestResult{
 				ChunkCount:    1,
 				ChunkIDsValid: true,
@@ -446,8 +446,8 @@ func TestFileCreationChunking(t *testing.T) {
 		},
 		{
 			Name: "Long content with paragraphs creates multiple chunks",
-			Input: strings.Repeat("This is a paragraph.\n\n", 200) +
-				strings.Repeat("Another paragraph.\n\n", 200),
+			Input: strings.Repeat("This is a paragraph.\n\n", 750) +
+				strings.Repeat("Another paragraph.\n\n", 750),
 			Expected: chunkingTestResult{
 				ChunkCount:    3,
 				ChunkIDsValid: true,

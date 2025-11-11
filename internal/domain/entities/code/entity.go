@@ -2,6 +2,7 @@ package code
 
 // Todo: Make some back and forth (perhaps stage?) to get this to be great before you actually start coding
 // Eg min number of entries etc.
+// Probably require some fields etc
 type Code struct {
 	ID        string `json:"id" validate:"required"`
 	ProjectID string `json:"project_id" validate:"required"`
