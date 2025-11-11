@@ -56,7 +56,7 @@ func TestEntityLookups(t *testing.T) {
 						ProjectID: "project-1",
 						Slug:      "topic:test",
 						Color:     "blue",
-						Reasoning: "test",
+						Definition: "test",
 					}),
 					domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.DeletedCode, nil),
 				},
@@ -87,11 +87,11 @@ func TestEntityLookups(t *testing.T) {
 						ProjectID: "project-1",
 						Slug:      "topic:test",
 						Color:     "blue",
-						Reasoning: "test",
+						Definition: "test",
 					}),
 					domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.UpdatedCode, code.UpdatedCodePayload{
 						Color:     "red",
-						Reasoning: "updated",
+						Definition: "updated",
 					}),
 				},
 				lookups: []entityLookup{
@@ -120,7 +120,7 @@ func TestEntityLookups(t *testing.T) {
 						ProjectID: "project-1",
 						Slug:      "topic:test",
 						Color:     "blue",
-						Reasoning: "test",
+						Definition: "test",
 					}),
 				},
 				lookups: []entityLookup{
@@ -196,7 +196,7 @@ func TestEnsureProjectExists(t *testing.T) {
 			Name: "Wrong entity type returns nil",
 			Input: ensureProjectInput{
 				existingProjectID: "",
-				event:             domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.CreatedCode, code.CreatedCodePayload{ProjectID: "project-1", Slug: "topic:test", Color: "blue", Reasoning: "test"}),
+				event:             domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.CreatedCode, code.CreatedCodePayload{ProjectID: "project-1", Slug: "topic:test", Color: "blue", Definition: "test"}),
 			},
 			Expected: false,
 		},

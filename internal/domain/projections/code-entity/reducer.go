@@ -18,11 +18,16 @@ var Reducer = projection.CombineReducers(
 
 func CreatedCodeReducer(_ *Code, message *commands.AnyMessage, payload *code.CreatedCodePayload) *Code {
 	return &code.Code{
-		ID:        message.AggregateID,
-		ProjectID: payload.ProjectID,
-		Slug:      payload.Slug,
-		Color:     payload.Color,
-		Reasoning: payload.Reasoning,
+		ID:                message.AggregateID,
+		ProjectID:         payload.ProjectID,
+		Slug:              payload.Slug,
+		Color:             payload.Color,
+		Definition:        payload.Definition,
+		InclusionCriteria: payload.InclusionCriteria,
+		ExclusionCriteria: payload.ExclusionCriteria,
+		Examples:          payload.Examples,
+		CounterExamples:   payload.CounterExamples,
+		Notes:             payload.Notes,
 	}
 }
 
@@ -33,8 +38,23 @@ func UpdatedCodeReducer(current *Code, _ *commands.AnyMessage, payload *code.Upd
 	if payload.Color != "" {
 		current.Color = payload.Color
 	}
-	if payload.Reasoning != "" {
-		current.Reasoning = payload.Reasoning
+	if payload.Definition != "" {
+		current.Definition = payload.Definition
+	}
+	if payload.InclusionCriteria != "" {
+		current.InclusionCriteria = payload.InclusionCriteria
+	}
+	if payload.ExclusionCriteria != "" {
+		current.ExclusionCriteria = payload.ExclusionCriteria
+	}
+	if payload.Examples != nil {
+		current.Examples = payload.Examples
+	}
+	if payload.CounterExamples != nil {
+		current.CounterExamples = payload.CounterExamples
+	}
+	if payload.Notes != "" {
+		current.Notes = payload.Notes
 	}
 	return current
 }

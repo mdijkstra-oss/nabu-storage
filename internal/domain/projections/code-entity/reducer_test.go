@@ -13,7 +13,7 @@ func createTestCode(projectID string) *Code {
 		ProjectID: projectID,
 		Slug:      "topic:climate",
 		Color:     "green-500",
-		Reasoning: "Climate topics",
+		Definition: "Climate topics",
 	}
 }
 
@@ -26,14 +26,14 @@ func TestCodeReducer(t *testing.T) {
 				ProjectID: "project-1",
 				Slug:      "topic:climate",
 				Color:     "green-500",
-				Reasoning: "Climate topics",
+				Definition: "Climate topics",
 			}),
 			Expected: &Code{
 				ID:        "code-1",
 				ProjectID: "project-1",
 				Slug:      "topic:climate",
 				Color:     "green-500",
-				Reasoning: "Climate topics",
+				Definition: "Climate topics",
 			},
 		},
 		{
@@ -43,7 +43,7 @@ func TestCodeReducer(t *testing.T) {
 				ProjectID: "project-1",
 				Slug:      "topic:climate",
 				Color:     "green-500",
-				Reasoning: "Climate topics",
+				Definition: "Climate topics",
 			},
 			Event: newCodeEvent("code-1", code.UpdatedCode, &code.UpdatedCodePayload{
 				Color: "emerald-600",
@@ -53,27 +53,27 @@ func TestCodeReducer(t *testing.T) {
 				ProjectID: "project-1",
 				Slug:      "topic:climate",
 				Color:     "emerald-600",
-				Reasoning: "Climate topics",
+				Definition: "Climate topics",
 			},
 		},
 		{
-			Name: "UpdatedCode changes reasoning only",
+			Name: "UpdatedCode changes definition only",
 			Initial: &Code{
 				ID:        "code-1",
 				ProjectID: "project-1",
 				Slug:      "topic:climate",
 				Color:     "green-500",
-				Reasoning: "Climate topics",
+				Definition: "Climate topics",
 			},
 			Event: newCodeEvent("code-1", code.UpdatedCode, &code.UpdatedCodePayload{
-				Reasoning: "Renewable energy and sustainability",
+				Definition: "Renewable energy and sustainability",
 			}),
 			Expected: &Code{
 				ID:        "code-1",
 				ProjectID: "project-1",
 				Slug:      "topic:climate",
 				Color:     "green-500",
-				Reasoning: "Renewable energy and sustainability",
+				Definition: "Renewable energy and sustainability",
 			},
 		},
 		{
@@ -83,18 +83,18 @@ func TestCodeReducer(t *testing.T) {
 				ProjectID: "project-1",
 				Slug:      "topic:climate",
 				Color:     "green-500",
-				Reasoning: "Climate topics",
+				Definition: "Climate topics",
 			},
 			Event: newCodeEvent("code-1", code.UpdatedCode, &code.UpdatedCodePayload{
 				Color:     "teal-500",
-				Reasoning: "Environmental coverage",
+				Definition: "Environmental coverage",
 			}),
 			Expected: &Code{
 				ID:        "code-1",
 				ProjectID: "project-1",
 				Slug:      "topic:climate",
 				Color:     "teal-500",
-				Reasoning: "Environmental coverage",
+				Definition: "Environmental coverage",
 			},
 		},
 		{
@@ -104,18 +104,18 @@ func TestCodeReducer(t *testing.T) {
 				ProjectID: "project-1",
 				Slug:      "topic:climate",
 				Color:     "teal-500",
-				Reasoning: "Environmental coverage",
+				Definition: "Environmental coverage",
 			},
 			Event: newCodeEvent("code-1", code.UpdatedCode, &code.UpdatedCodePayload{
 				Color:     "",
-				Reasoning: "",
+				Definition: "",
 			}),
 			Expected: &Code{
 				ID:        "code-1",
 				ProjectID: "project-1",
 				Slug:      "topic:climate",
 				Color:     "teal-500",
-				Reasoning: "Environmental coverage",
+				Definition: "Environmental coverage",
 			},
 		},
 		{
@@ -125,7 +125,7 @@ func TestCodeReducer(t *testing.T) {
 				ProjectID: "project-1",
 				Slug:      "topic:climate",
 				Color:     "green-500",
-				Reasoning: "Climate topics",
+				Definition: "Climate topics",
 			},
 			Event: newCodeEvent("code-1", code.MergedCodes, &code.MergedCodesPayload{
 				SourceID: "code-1",
@@ -140,7 +140,7 @@ func TestCodeReducer(t *testing.T) {
 				ProjectID: "project-1",
 				Slug:      "topic:temperature",
 				Color:     "red-500",
-				Reasoning: "Temperature topics",
+				Definition: "Temperature topics",
 			},
 			Event: newCodeEvent("code-2", code.MergedCodes, &code.MergedCodesPayload{
 				SourceID: "code-1",
@@ -151,7 +151,7 @@ func TestCodeReducer(t *testing.T) {
 				ProjectID: "project-1",
 				Slug:      "topic:temperature",
 				Color:     "red-500",
-				Reasoning: "Temperature topics",
+				Definition: "Temperature topics",
 			},
 		},
 	}

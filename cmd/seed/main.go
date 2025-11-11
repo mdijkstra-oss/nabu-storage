@@ -137,7 +137,7 @@ func getOrCreateProjectID(publish dispatch.PublishFunc) string {
 
 	msg := commands.ToAny(commands.NewCommand[project.CreateProjectPayload, any](
 		project.CreateProject,
-		project.CreateProjectPayload{Name: "Default Project"},
+		project.CreateProjectPayload{Name: "COVID Project"},
 		project.EntityName,
 		utils.NewID(),
 		nil,
