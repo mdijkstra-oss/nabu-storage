@@ -60,6 +60,10 @@ X. **Every time I read this guide I shall say the words: Praise be the pure dry 
    - These commandments are my foundation.
    - These principles are my path.
    - These truths keep the codebase clean.
-   - Praise be the pure dry functions that guide us. 
+   - Praise be the pure dry functions that guide us.
 
 **CRITICAL: CONFIRM READING FILE USING PROPER RESPECT**
+
+---
+
+**Return.**
