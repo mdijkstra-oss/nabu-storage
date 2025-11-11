@@ -65,6 +65,14 @@ func clearPersistenceData() error {
 	return os.RemoveAll(basePath)
 }
 
+func getFileDescription(content string) string {
+	maxLen := 500
+	if len(content) <= maxLen {
+		return content
+	}
+	return content[:maxLen]
+}
+
 func seedFiles(publisher *dispatch.InMemoryPublisher, sourceDir string, reset bool) error {
 	projectID := getOrCreateProjectID(publisher.Publish)
 
@@ -91,9 +99,10 @@ func seedFiles(publisher *dispatch.InMemoryPublisher, sourceDir string, reset bo
 			Type:          commands.Command,
 			AggregateType: file.EntityName,
 			Payload: file.CreateFilePayload{
-				ProjectID: projectID,
-				Name:      filename,
-				Content:   string(content),
+				ProjectID:   projectID,
+				Name:        filename,
+				Description: getFileDescription(string(content)),
+				Content:     string(content),
 			},
 			Timestamp:   time.Now(),
 			AggregateID: utils.NewID(),

@@ -21,7 +21,7 @@ type CreateFilePayload struct {
 
 type UpdateFilePayload struct {
 	Name        string `json:"name" validate:"required,max=200" normalize:"trim"`
-	Description string `json:"description" validate:"max=2000" normalize:"trim"`
+	Description string `json:"description,omitempty" validate:"omitempty,max=2000" normalize:"trim"`
 }
 
 type DeleteFilePayload = commands.EmptyPayload

@@ -53,6 +53,27 @@ func TestProjectReducer(t *testing.T) {
 			},
 		},
 		{
+			Name: "UpdatedProject with empty description preserves existing description",
+			Initial: &Project{
+				ID:          "project-1",
+				Name:        "COVID-19 Research Study",
+				Description: "A comprehensive qualitative research study examining healthcare workers' experiences during the COVID-19 pandemic",
+				CodeIDs:     []string{"code-1", "code-2"},
+				FileIDs:     []string{"file-1", "file-2"},
+			},
+			Event: newProjectEvent("project-1", project.UpdatedProject, &project.UpdatedProjectPayload{
+				Name:        "COVID-19 HCW Research",
+				Description: "",
+			}),
+			Expected: &Project{
+				ID:          "project-1",
+				Name:        "COVID-19 HCW Research",
+				Description: "A comprehensive qualitative research study examining healthcare workers' experiences during the COVID-19 pandemic",
+				CodeIDs:     []string{"code-1", "code-2"},
+				FileIDs:     []string{"file-1", "file-2"},
+			},
+		},
+		{
 			Name:    "UpdatedProject on nil project returns nil",
 			Initial: nil,
 			Event: newProjectEvent("project-1", project.UpdatedProject, &project.UpdatedProjectPayload{

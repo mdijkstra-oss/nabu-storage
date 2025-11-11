@@ -95,6 +95,33 @@ func TestFileReducer(t *testing.T) {
 			},
 		},
 		{
+			Name: "UpdatedFile with empty description preserves existing description",
+			Initial: &File{
+				BaseFile: file.BaseFile{
+					ID:          "file-1",
+					ProjectID:   "project-1",
+					Name:        "interview-transcript.txt",
+					Description: "Interview with participant 023 discussing their experience with the pandemic response",
+					Attributes:  file.Attributes{Time: testTime},
+				},
+				Chunks: []file.Chunk{{ID: "1", Content: "Full interview content here\n", Codes: []file.CodedSection{}}},
+			},
+			Event: domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.UpdatedFile, &file.UpdatedFilePayload{
+				Name:        "interview-023.txt",
+				Description: "",
+			}),
+			Expected: &File{
+				BaseFile: file.BaseFile{
+					ID:          "file-1",
+					ProjectID:   "project-1",
+					Name:        "interview-023.txt",
+					Description: "Interview with participant 023 discussing their experience with the pandemic response",
+					Attributes:  file.Attributes{Time: testTime},
+				},
+				Chunks: []file.Chunk{{ID: "1", Content: "Full interview content here\n", Codes: []file.CodedSection{}}},
+			},
+		},
+		{
 			Name:     "UpdatedFile on nil state returns nil",
 			Initial:  nil,
 			Event:    domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.UpdatedFile, &file.UpdatedFilePayload{Name: "test.txt"}),

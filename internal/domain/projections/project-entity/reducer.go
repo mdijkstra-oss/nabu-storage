@@ -34,7 +34,9 @@ func CreatedProjectReducer(_ *Project, message *commands.AnyMessage, payload *pr
 
 func UpdatedProjectReducer(current *Project, message *commands.AnyMessage, payload *project.UpdatedProjectPayload) *Project {
 	current.Name = payload.Name
-	current.Description = payload.Description
+	if payload.Description != "" {
+		current.Description = payload.Description
+	}
 	return current
 }
 

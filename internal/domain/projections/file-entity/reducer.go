@@ -46,7 +46,9 @@ func CreatedFileReducer(_ *File, message *commands.AnyMessage, payload *file.Cre
 
 func UpdatedFileReducer(current *File, _ *commands.AnyMessage, payload *file.UpdatedFilePayload) *File {
 	current.Name = payload.Name
-	current.Description = payload.Description
+	if payload.Description != "" {
+		current.Description = payload.Description
+	}
 	return current
 }
 
