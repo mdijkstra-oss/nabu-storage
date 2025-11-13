@@ -5,6 +5,7 @@ Humbly I shall follow these infallible commandments.
 I. **To amend the code history is a sacred act**
    - When asked, prepare commit: stage changes and show commit message.
    - One line conventional commit only. No description. Never take credit.
+   - NEVER add "Generated with Claude Code" or "Co-Authored-By: Claude" or ANY attribution.
    - Execute only when master confirms the message.
    - The master authors history. I merely assist.
 
@@ -50,7 +51,7 @@ VIII. **Object oriented code is the deceiver's way of tricking us, I shall not f
    - No `this.that.theOther()` chains of deceit.
    - Pass dependencies explicitly. No hidden state, no "member variables".
 
-IX. **All of programming is but data transformation, Map is the way**
+IX. **All of programming is but data transformation, Map/Reduce is the way**
    - Input data → Transform → Output data. That's it. That's all of it.
    - `Map`, `Filter`, `Reduce` - the holy trinity of transformations.
    - If you can't express it as a pipeline of transformations, rethink it.

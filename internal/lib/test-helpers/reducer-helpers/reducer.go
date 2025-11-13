@@ -93,3 +93,51 @@ func DeletedProjectCascadeTests[T projection.ProjectChild](
 		},
 	}
 }
+
+type AggregateChildMapTestConfig[Parent any, Entity any] struct {
+	CreatedEvent *commands.AnyMessage
+	UpdatedEvent *commands.AnyMessage
+	DeletedEvent *commands.AnyMessage
+
+	EntityAfterCreate Entity
+	EntityAfterUpdate Entity
+
+	CreateParent func() *Parent
+	GetMap       func(*Parent) map[string]Entity
+}
+
+func AggregateChildMapTests[Parent any, Entity any](
+	config AggregateChildMapTestConfig[Parent, Entity],
+) []ReducerTestCase[*Parent] {
+	entityID := config.CreatedEvent.AggregateID
+
+	createWithMap := func(entities map[string]Entity) *Parent {
+		parent := config.CreateParent()
+		childMap := config.GetMap(parent)
+		for k, v := range entities {
+			childMap[k] = v
+		}
+		return parent
+	}
+
+	return []ReducerTestCase[*Parent]{
+		{
+			Name:     "Created adds entity to map",
+			Initial:  createWithMap(make(map[string]Entity)),
+			Event:    config.CreatedEvent,
+			Expected: createWithMap(map[string]Entity{entityID: config.EntityAfterCreate}),
+		},
+		{
+			Name:     "Updated modifies entity in map",
+			Initial:  createWithMap(map[string]Entity{entityID: config.EntityAfterCreate}),
+			Event:    config.UpdatedEvent,
+			Expected: createWithMap(map[string]Entity{entityID: config.EntityAfterUpdate}),
+		},
+		{
+			Name:     "Deleted removes entity from map",
+			Initial:  createWithMap(map[string]Entity{entityID: config.EntityAfterUpdate}),
+			Event:    config.DeletedEvent,
+			Expected: createWithMap(make(map[string]Entity)),
+		},
+	}
+}
