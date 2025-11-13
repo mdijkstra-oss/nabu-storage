@@ -17,6 +17,7 @@ func createTestFile(projectID string) *File {
 			ProjectID:  projectID,
 			Name:       "test.txt",
 			Attributes: file.Attributes{Time: testTime},
+			Healthy:    true,
 		},
 		Chunks: []file.Chunk{{ID: "1", Content: "Test content\n", Codes: []file.CodedSection{}}},
 	}
@@ -57,6 +58,7 @@ func TestFileReducer(t *testing.T) {
 						Type:    file.FileTypeSource,
 						Locked:  true,
 					},
+					Healthy: true,
 				},
 				Chunks: []file.Chunk{
 					{
@@ -76,6 +78,7 @@ func TestFileReducer(t *testing.T) {
 					Name:        "old-name.txt",
 					Description: "Old description",
 					Attributes:  file.Attributes{Time: testTime},
+					Healthy:     true,
 				},
 				Chunks: []file.Chunk{{ID: "1", Content: "Test content\n", Codes: []file.CodedSection{}}},
 			},
@@ -90,6 +93,7 @@ func TestFileReducer(t *testing.T) {
 					Name:        "new-name.txt",
 					Description: "New description",
 					Attributes:  file.Attributes{Time: testTime},
+					Healthy:     true,
 				},
 				Chunks: []file.Chunk{{ID: "1", Content: "Test content\n", Codes: []file.CodedSection{}}},
 			},
@@ -103,6 +107,7 @@ func TestFileReducer(t *testing.T) {
 					Name:        "interview-transcript.txt",
 					Description: "Interview with participant 023 discussing their experience with the pandemic response",
 					Attributes:  file.Attributes{Time: testTime},
+					Healthy:     true,
 				},
 				Chunks: []file.Chunk{{ID: "1", Content: "Full interview content here\n", Codes: []file.CodedSection{}}},
 			},
@@ -117,6 +122,7 @@ func TestFileReducer(t *testing.T) {
 					Name:        "interview-023.txt",
 					Description: "Interview with participant 023 discussing their experience with the pandemic response",
 					Attributes:  file.Attributes{Time: testTime},
+					Healthy:     true,
 				},
 				Chunks: []file.Chunk{{ID: "1", Content: "Full interview content here\n", Codes: []file.CodedSection{}}},
 			},
@@ -135,6 +141,7 @@ func TestFileReducer(t *testing.T) {
 					ProjectID:  "project-1",
 					Name:       "test.txt",
 					Attributes: file.Attributes{Time: testTime},
+					Healthy:    true,
 				},
 				Chunks: []file.Chunk{
 					{
@@ -163,6 +170,7 @@ func TestFileReducer(t *testing.T) {
 					ProjectID:  "project-1",
 					Name:       "test.txt",
 					Attributes: file.Attributes{Time: testTime},
+					Healthy:    true,
 				},
 				Chunks: []file.Chunk{
 					{
@@ -183,6 +191,7 @@ func TestFileReducer(t *testing.T) {
 					ProjectID:  "project-1",
 					Name:       "test.txt",
 					Attributes: file.Attributes{Time: testTime},
+					Healthy:    true,
 				},
 				Chunks: []file.Chunk{
 					{
@@ -214,6 +223,7 @@ func TestFileReducer(t *testing.T) {
 					ProjectID:  "project-1",
 					Name:       "test.txt",
 					Attributes: file.Attributes{Time: testTime},
+					Healthy:    true,
 				},
 				Chunks: []file.Chunk{
 					{
@@ -234,6 +244,7 @@ func TestFileReducer(t *testing.T) {
 					ProjectID:  "project-1",
 					Name:       "test.txt",
 					Attributes: file.Attributes{Time: testTime},
+					Healthy:    true,
 				},
 				Chunks: []file.Chunk{
 					{
@@ -263,6 +274,7 @@ func TestFileReducer(t *testing.T) {
 					ProjectID:  "project-1",
 					Name:       "test.txt",
 					Attributes: file.Attributes{Time: testTime},
+					Healthy:    true,
 				},
 				Chunks: []file.Chunk{
 					{
@@ -283,6 +295,7 @@ func TestFileReducer(t *testing.T) {
 					ProjectID:  "project-1",
 					Name:       "test.txt",
 					Attributes: file.Attributes{Time: testTime},
+					Healthy:    true,
 				},
 				Chunks: []file.Chunk{
 					{
@@ -301,6 +314,7 @@ func TestFileReducer(t *testing.T) {
 					ProjectID:  "project-1",
 					Name:       "test.txt",
 					Attributes: file.Attributes{Time: testTime},
+					Healthy:    true,
 				},
 				Chunks: []file.Chunk{
 					{
@@ -319,6 +333,7 @@ func TestFileReducer(t *testing.T) {
 					ProjectID:  "project-1",
 					Name:       "test.txt",
 					Attributes: file.Attributes{Time: testTime},
+					Healthy:    true,
 				},
 				Chunks: []file.Chunk{
 					{
@@ -338,6 +353,7 @@ func TestFileReducer(t *testing.T) {
 					ProjectID:  "project-1",
 					Name:       "test.txt",
 					Attributes: file.Attributes{Time: testTime},
+					Healthy:    true,
 				},
 				Chunks: []file.Chunk{
 					{
@@ -358,6 +374,7 @@ func TestFileReducer(t *testing.T) {
 					ProjectID:  "project-1",
 					Name:       "test.txt",
 					Attributes: file.Attributes{Time: testTime},
+					Healthy:    true,
 				},
 				Chunks: []file.Chunk{
 					{
@@ -377,6 +394,7 @@ func TestFileReducer(t *testing.T) {
 					ProjectID:  "project-1",
 					Name:       "test.txt",
 					Attributes: file.Attributes{Time: testTime},
+					Healthy:    true,
 				},
 				Chunks: []file.Chunk{
 					{
@@ -398,6 +416,7 @@ func TestFileReducer(t *testing.T) {
 					ProjectID:  "project-1",
 					Name:       "test.txt",
 					Attributes: file.Attributes{Time: testTime},
+					Healthy:    true,
 				},
 				Chunks: []file.Chunk{
 					{
@@ -417,6 +436,7 @@ func TestFileReducer(t *testing.T) {
 					ProjectID:  "project-1",
 					Name:       "test.txt",
 					Attributes: file.Attributes{Time: testTime},
+					Healthy:    true,
 				},
 				Chunks: []file.Chunk{
 					{

@@ -16,6 +16,7 @@ func createTestProject(id, name, description string) *Project {
 		Description: description,
 		Codes:       make(map[string]code.Code),
 		Files:       make(map[string]file.File),
+		Healthy:     true,
 	}
 }
 
@@ -75,6 +76,7 @@ func TestProjectReducer(t *testing.T) {
 			Slug:       "test-code",
 			Color:      "red-500",
 			Definition: "A test code",
+			Healthy:    true,
 		},
 		EntityAfterUpdate: code.Code{
 			ID:         "code-1",
@@ -82,6 +84,7 @@ func TestProjectReducer(t *testing.T) {
 			Slug:       "new-slug",
 			Color:      "red-500",
 			Definition: "A test code",
+			Healthy:    true,
 		},
 		CreateParent: createEmptyProject,
 		GetMap:       func(p *Project) map[string]code.Code { return p.Codes },
@@ -102,6 +105,7 @@ func TestProjectReducer(t *testing.T) {
 				ProjectID:   "project-1",
 				Name:        "test-file.txt",
 				Description: "A test file",
+				Healthy:     true,
 				Attributes:  file.Attributes{Type: file.FileTypeSource, Locked: false},
 			},
 			Chunks: []file.Chunk{},
@@ -112,6 +116,7 @@ func TestProjectReducer(t *testing.T) {
 				ProjectID:   "project-1",
 				Name:        "new-name.txt",
 				Description: "Updated",
+				Healthy:     true,
 				Attributes:  file.Attributes{Type: file.FileTypeSource, Locked: false},
 			},
 			Chunks: []file.Chunk{},

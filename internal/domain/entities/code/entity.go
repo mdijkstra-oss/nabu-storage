@@ -34,7 +34,8 @@ type Code struct {
 	CounterExamples []string `json:"counter_examples"`
 
 	// Analyst notes: Your evolving thoughts, connections to theory, frequency observations
-	Notes string `json:"notes"`
+	Notes   string `json:"notes"`
+	Healthy bool   `json:"healthy"`
 }
 
 func (c Code) GetID() string {
@@ -43,4 +44,12 @@ func (c Code) GetID() string {
 
 func (c Code) GetProjectID() string {
 	return c.ProjectID
+}
+
+func (c *Code) MarkUnhealthy() {
+	c.Healthy = false
+}
+
+func (c Code) IsHealthy() bool {
+	return c.Healthy
 }

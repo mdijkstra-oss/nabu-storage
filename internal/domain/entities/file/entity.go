@@ -15,6 +15,14 @@ func (f File) GetProjectID() string {
 	return f.ProjectID
 }
 
+func (f *File) MarkUnhealthy() {
+	f.Healthy = false
+}
+
+func (f File) IsHealthy() bool {
+	return f.Healthy
+}
+
 type FileType string
 
 const (
@@ -29,6 +37,7 @@ type BaseFile struct {
 	ProjectID   string `json:"project_id" validate:"required"`
 	Name        string `json:"name" validate:"required,max=200" normalize:"trim"`
 	Description string `json:"description" validate:"max=2000" normalize:"trim"`
+	Healthy     bool   `json:"healthy"`
 	Attributes
 }
 

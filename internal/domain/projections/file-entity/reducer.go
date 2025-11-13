@@ -11,18 +11,20 @@ import (
 	"time"
 )
 
-var Reducer = projection.CombineReducers(
-	projection.For(file.CreatedFile, CreatedFileReducer),
-	projection.IfExists(
-		projection.For(file.UpdatedFile, UpdatedFileReducer),
-		projection.For(file.DeletedFile, projection.DeletedEntity[File]),
-		projection.For(file.CodedFile, CodedFileReducer),
-		projection.For(file.ClearedCoding, ClearedCodingReducer),
-		projection.For(code.DeletedCode, DeletedCodeReducer),
-		projection.For(code.UpdatedCode, UpdatedCodeReducer),
-		projection.For(code.MergedCodes, MergedCodesReducer),
+var Reducer = projection.WithHealthCheck(
+	projection.CombineReducers(
+		projection.For(file.CreatedFile, CreatedFileReducer),
+		projection.IfExists(
+			projection.For(file.UpdatedFile, UpdatedFileReducer),
+			projection.For(file.DeletedFile, projection.DeletedEntity[File]),
+			projection.For(file.CodedFile, CodedFileReducer),
+			projection.For(file.ClearedCoding, ClearedCodingReducer),
+			projection.For(code.DeletedCode, DeletedCodeReducer),
+			projection.For(code.UpdatedCode, UpdatedCodeReducer),
+			projection.For(code.MergedCodes, MergedCodesReducer),
+		),
+		projection.DeletedProjectReducer[file.File],
 	),
-	projection.DeletedProjectReducer[file.File],
 )
 
 func CreatedFileReducer(_ *File, message *commands.AnyMessage, payload *file.CreatedFilePayload) *File {
@@ -32,6 +34,7 @@ func CreatedFileReducer(_ *File, message *commands.AnyMessage, payload *file.Cre
 			ProjectID:   payload.ProjectID,
 			Name:        payload.Name,
 			Description: payload.Description,
+			Healthy:     true,
 			Attributes: file.Attributes{
 				Title:   "",
 				Summary: "",

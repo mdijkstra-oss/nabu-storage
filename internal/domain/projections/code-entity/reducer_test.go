@@ -9,11 +9,12 @@ import (
 
 func createTestCode(projectID string) *Code {
 	return &Code{
-		ID:        "code-1",
-		ProjectID: projectID,
-		Slug:      "topic:climate",
-		Color:     "green-500",
+		ID:         "code-1",
+		ProjectID:  projectID,
+		Slug:       "topic:climate",
+		Color:      "green-500",
 		Definition: "Climate topics",
+		Healthy:    true,
 	}
 }
 
@@ -34,6 +35,7 @@ func TestCodeReducer(t *testing.T) {
 				Slug:      "topic:climate",
 				Color:     "green-500",
 				Definition: "Climate topics",
+				Healthy:    true,
 			},
 		},
 		{
@@ -44,6 +46,7 @@ func TestCodeReducer(t *testing.T) {
 				Slug:      "topic:climate",
 				Color:     "green-500",
 				Definition: "Climate topics",
+				Healthy:    true,
 			},
 			Event: newCodeEvent("code-1", code.UpdatedCode, &code.UpdatedCodePayload{
 				Color: "emerald-600",
@@ -54,6 +57,7 @@ func TestCodeReducer(t *testing.T) {
 				Slug:      "topic:climate",
 				Color:     "emerald-600",
 				Definition: "Climate topics",
+				Healthy:    true,
 			},
 		},
 		{
@@ -64,6 +68,7 @@ func TestCodeReducer(t *testing.T) {
 				Slug:      "topic:climate",
 				Color:     "green-500",
 				Definition: "Climate topics",
+				Healthy:    true,
 			},
 			Event: newCodeEvent("code-1", code.UpdatedCode, &code.UpdatedCodePayload{
 				Definition: "Renewable energy and sustainability",
@@ -74,6 +79,7 @@ func TestCodeReducer(t *testing.T) {
 				Slug:      "topic:climate",
 				Color:     "green-500",
 				Definition: "Renewable energy and sustainability",
+				Healthy:    true,
 			},
 		},
 		{
@@ -84,6 +90,7 @@ func TestCodeReducer(t *testing.T) {
 				Slug:      "topic:climate",
 				Color:     "green-500",
 				Definition: "Climate topics",
+				Healthy:    true,
 			},
 			Event: newCodeEvent("code-1", code.UpdatedCode, &code.UpdatedCodePayload{
 				Color:     "teal-500",
@@ -95,6 +102,7 @@ func TestCodeReducer(t *testing.T) {
 				Slug:      "topic:climate",
 				Color:     "teal-500",
 				Definition: "Environmental coverage",
+				Healthy:    true,
 			},
 		},
 		{
@@ -105,6 +113,7 @@ func TestCodeReducer(t *testing.T) {
 				Slug:      "topic:climate",
 				Color:     "teal-500",
 				Definition: "Environmental coverage",
+				Healthy:    true,
 			},
 			Event: newCodeEvent("code-1", code.UpdatedCode, &code.UpdatedCodePayload{
 				Color:     "",
@@ -116,6 +125,7 @@ func TestCodeReducer(t *testing.T) {
 				Slug:      "topic:climate",
 				Color:     "teal-500",
 				Definition: "Environmental coverage",
+				Healthy:    true,
 			},
 		},
 		{
@@ -131,6 +141,7 @@ func TestCodeReducer(t *testing.T) {
 				Examples:          []string{"I'm worried about...", "What if something goes wrong?"},
 				CounterExamples:   []string{"I'm stressed but managing"},
 				Notes:             "Often co-occurs with uncertainty codes",
+				Healthy:           true,
 			},
 			Event: newCodeEvent("code-1", code.UpdatedCode, &code.UpdatedCodePayload{
 				Slug:              "",
@@ -153,6 +164,7 @@ func TestCodeReducer(t *testing.T) {
 				Examples:          []string{"I'm worried about...", "What if something goes wrong?"},
 				CounterExamples:   []string{"I'm stressed but managing"},
 				Notes:             "Often co-occurs with uncertainty codes",
+				Healthy:           true,
 			},
 		},
 		{
@@ -163,6 +175,7 @@ func TestCodeReducer(t *testing.T) {
 				Slug:      "topic:climate",
 				Color:     "green-500",
 				Definition: "Climate topics",
+				Healthy:    true,
 			},
 			Event: newCodeEvent("code-1", code.MergedCodes, &code.MergedCodesPayload{
 				SourceID: "code-1",
@@ -178,6 +191,7 @@ func TestCodeReducer(t *testing.T) {
 				Slug:      "topic:temperature",
 				Color:     "red-500",
 				Definition: "Temperature topics",
+				Healthy:    true,
 			},
 			Event: newCodeEvent("code-2", code.MergedCodes, &code.MergedCodesPayload{
 				SourceID: "code-1",
@@ -189,6 +203,7 @@ func TestCodeReducer(t *testing.T) {
 				Slug:      "topic:temperature",
 				Color:     "red-500",
 				Definition: "Temperature topics",
+				Healthy:    true,
 			},
 		},
 	}

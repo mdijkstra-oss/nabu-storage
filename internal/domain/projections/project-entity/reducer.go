@@ -10,18 +10,20 @@ import (
 	fileview "hermes-relay/internal/domain/projections/file-entity"
 )
 
-var Reducer = projection.CombineReducers(
-	projection.For(project.CreatedProject, CreatedProjectReducer),
-	projection.IfExists(
-		projection.For(project.UpdatedProject, UpdatedProjectReducer),
-		projection.For(project.DeletedProject, projection.DeletedEntity[Project]),
-		projection.ApplyChildReducerToMap(
-			func(p *Project) map[string]code.Code { return p.Codes },
-			codeview.Reducer,
-		),
-		projection.ApplyChildReducerToMap(
-			func(p *Project) map[string]file.File { return p.Files },
-			fileview.Reducer,
+var Reducer = projection.WithHealthCheck(
+	projection.CombineReducers(
+		projection.For(project.CreatedProject, CreatedProjectReducer),
+		projection.IfExists(
+			projection.For(project.UpdatedProject, UpdatedProjectReducer),
+			projection.For(project.DeletedProject, projection.DeletedEntity[Project]),
+			projection.ApplyChildReducerToMap(
+				func(p *Project) map[string]code.Code { return p.Codes },
+				codeview.Reducer,
+			),
+			projection.ApplyChildReducerToMap(
+				func(p *Project) map[string]file.File { return p.Files },
+				fileview.Reducer,
+			),
 		),
 	),
 )
@@ -33,6 +35,7 @@ func CreatedProjectReducer(_ *Project, message *commands.AnyMessage, payload *pr
 		Description: payload.Description,
 		Codes:       make(map[string]code.Code),
 		Files:       make(map[string]file.File),
+		Healthy:     true,
 	}
 }
 
