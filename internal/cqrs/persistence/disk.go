@@ -135,12 +135,10 @@ func (d *DiskPersistence) loadEventsForType(aggregateType string) ([]commands.An
 	return events, nil
 }
 
-// getEventFilePath constructs the file path for an aggregate's events
 func (d *DiskPersistence) getEventFilePath(aggregateType commands.AggregateType, aggregateID string) string {
 	return filepath.Join(d.basePath, string(aggregateType), aggregateID+".jsonl")
 }
 
-// readEventsFromFile reads events from a JSONL file (one JSON object per line)
 func readEventsFromFile(filePath string) ([]commands.AnyMessage, error) {
 	file, err := os.Open(filePath)
 	if err != nil {

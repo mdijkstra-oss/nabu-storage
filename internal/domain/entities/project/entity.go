@@ -18,10 +18,11 @@ func (p Project) GetID() string {
 	return p.ID
 }
 
-func (p *Project) MarkUnhealthy() {
-	p.Healthy = false
-}
-
 func (p Project) IsHealthy() bool {
 	return p.Healthy
+}
+
+func (p Project) WithUnhealthy() any {
+	p.Healthy = false
+	return &p
 }

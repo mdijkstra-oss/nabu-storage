@@ -46,10 +46,11 @@ func (c Code) GetProjectID() string {
 	return c.ProjectID
 }
 
-func (c *Code) MarkUnhealthy() {
-	c.Healthy = false
-}
-
 func (c Code) IsHealthy() bool {
 	return c.Healthy
+}
+
+func (c Code) WithUnhealthy() any {
+	c.Healthy = false
+	return &c
 }

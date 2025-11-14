@@ -15,12 +15,13 @@ func (f File) GetProjectID() string {
 	return f.ProjectID
 }
 
-func (f *File) MarkUnhealthy() {
-	f.Healthy = false
-}
-
 func (f File) IsHealthy() bool {
 	return f.Healthy
+}
+
+func (f File) WithUnhealthy() any {
+	f.Healthy = false
+	return &f
 }
 
 type FileType string

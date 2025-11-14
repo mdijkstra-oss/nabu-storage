@@ -14,9 +14,12 @@ type HealthTestEntity struct {
 	Value   string
 }
 
-func (e *HealthTestEntity) MarkUnhealthy() { e.Healthy = false }
 func (e HealthTestEntity) IsHealthy() bool { return e.Healthy }
 func (e HealthTestEntity) GetID() string   { return e.ID }
+func (e HealthTestEntity) WithUnhealthy() any {
+	e.Healthy = false
+	return &e
+}
 
 var testReducer = projection.CombineReducers(
 	projection.For("Create", createReducer),

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/cqrs/dispatch"
+	"hermes-relay/internal/lib/utils"
 	"net/http"
 	"slices"
 	"time"
@@ -57,33 +58,46 @@ func processBatch(request Request, publish dispatch.PublishFunc, acceptedOnly bo
 		return errorOutput(http.StatusBadRequest, errors.New("empty batch"))
 	}
 
-	results := make([]batchResult, len(messages))
-	successCount := 0
 	now := time.Now()
 
-	for i, msg := range messages {
-		results[i].Index = i
-
+	results := utils.MapWithIndex(messages, func(i int, msg commands.AnyMessage) batchResult {
 		if !slices.Contains(allowedTypes, msg.Type) {
-			results[i].Success = false
-			results[i].Error = "message type not allowed"
-			continue
+			return batchResult{
+				Index:   i,
+				Success: false,
+				Error:   "message type not allowed",
+			}
 		}
 
 		msg.Timestamp = now
 		result, err := publish(&msg)
 
 		if err != nil {
-			results[i].Success = false
-			results[i].Error = err.Error()
-		} else {
-			results[i].Success = true
-			successCount++
-			if !acceptedOnly && result != nil {
-				results[i].Result = result
+			return batchResult{
+				Index:   i,
+				Success: false,
+				Error:   err.Error(),
 			}
 		}
-	}
+
+		var resultData *commands.AnyMessage
+		if !acceptedOnly && result != nil {
+			resultData = result
+		}
+
+		return batchResult{
+			Index:   i,
+			Success: true,
+			Result:  resultData,
+		}
+	})
+
+	successCount := utils.Reduce(results, 0, func(count int, r batchResult) int {
+		if r.Success {
+			return count + 1
+		}
+		return count
+	})
 
 	response := batchResponse{
 		Results:      results,

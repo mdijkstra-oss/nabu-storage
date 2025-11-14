@@ -172,7 +172,6 @@ func mergeSmallBlocks(blocks []string, minSize int) []string {
 
 		if len(accumulated) < minSize && !isBiggerHeading {
 			accumulated += "\n" + blocks[i]
-			// Update to track the smallest (most important) heading level
 			if nextHeadingLevel > 0 && (accumulatedHeadingLevel == 0 || nextHeadingLevel < accumulatedHeadingLevel) {
 				accumulatedHeadingLevel = nextHeadingLevel
 			}

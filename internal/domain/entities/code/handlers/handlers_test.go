@@ -16,7 +16,6 @@ var (
 )
 
 var cmds = []*commands.AnyMessage{
-	// Create project
 	commands.ToAny(commands.NewDomainEvent[any, any](
 		"CreatedProject",
 		map[string]any{"name": "Test Project"},
@@ -24,7 +23,6 @@ var cmds = []*commands.AnyMessage{
 		testProjectID,
 		nil,
 	)),
-	// Create existing codes
 	commands.ToAny(commands.NewDomainEvent[code.CreatedCodePayload, any](
 		code.CreatedCode,
 		code.CreatedCodePayload{

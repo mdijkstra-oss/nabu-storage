@@ -3,8 +3,8 @@ package projection
 import "hermes-relay/internal/cqrs/commands"
 
 type Healthable interface {
-	MarkUnhealthy()
 	IsHealthy() bool
+	WithUnhealthy() any
 }
 
 type healthablePtr[T any] interface {
@@ -17,8 +17,8 @@ func WithHealthCheck[T any, PT healthablePtr[T]](reducer Reducer[T]) Reducer[T] 
 		defer func() {
 			if r := recover(); r != nil {
 				if current != nil {
-					PT(current).MarkUnhealthy()
-					result = current
+					marked := PT(current).WithUnhealthy()
+					result = marked.(*T)
 				}
 			}
 		}()
