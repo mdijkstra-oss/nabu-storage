@@ -2,41 +2,21 @@ package router_helpers
 
 import (
 	"hermes-relay/internal/cqrs/commands"
-	"hermes-relay/internal/cqrs/registry"
-	codeview "hermes-relay/internal/domain/projections/code-entity"
-	fileview "hermes-relay/internal/domain/projections/file-entity"
-	projectview "hermes-relay/internal/domain/projections/project-entity"
+	"hermes-relay/internal/domain/projections/registry"
 )
 
-func NewTestRegistry(commands []*commands.AnyMessage) *registry.ProjectViewRegistry {
-	reg := registry.NewProjectViewRegistry(
-		projectview.Reducer,
-		codeview.Reducer,
-		fileview.Reducer,
-	)
-
-	ApplyTestEvents(reg, commands)
-
+func NewTestRegistry(events []*commands.AnyMessage) *registry.RegistryState {
+	reg := registry.NewRegistryState()
+	ApplyTestEvents(reg, events)
 	return reg
 }
 
-// ApplyTestEvents applies multiple events to the registry, simulating event processing
-func ApplyTestEvents(reg *registry.ProjectViewRegistry, events []*commands.AnyMessage) {
+func ApplyTestEvents(reg *registry.RegistryState, events []*commands.AnyMessage) {
 	for _, event := range events {
 		ApplyTestEvent(reg, event)
 	}
 }
 
-// ApplyTestEvent applies an event to the registry, simulating event processing
-func ApplyTestEvent(reg *registry.ProjectViewRegistry, event *commands.AnyMessage) {
-	projectID := commands.ExtractProjectID(event)
-	if projectID == "" {
-		return
-	}
-
-	projectView := reg.EnsureProjectExists(event, projectID)
-	if projectView != nil {
-		projectView.ApplyEventToAllStores(event)
-		reg.UpdateEntityLookups(event, projectID)
-	}
+func ApplyTestEvent(reg *registry.RegistryState, event *commands.AnyMessage) {
+	reg.ApplyEvent(event)
 }

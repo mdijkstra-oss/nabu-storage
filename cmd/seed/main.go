@@ -42,7 +42,7 @@ func main() {
 
 func setupPublisher(reset bool) *dispatch.InMemoryPublisher {
 	publisher := dispatch.NewInMemoryPublisher()
-	registry := bootstrap.SetupProjectViewRegistry(publisher)
+	registry := bootstrap.SetupRegistry(publisher)
 
 	disk := persistence.New()
 

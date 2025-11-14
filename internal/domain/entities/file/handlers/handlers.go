@@ -3,13 +3,13 @@ package handlers
 import (
 	"fmt"
 	"hermes-relay/internal/cqrs/dispatch"
-	"hermes-relay/internal/cqrs/registry"
 	"hermes-relay/internal/domain/entities/file"
+	"hermes-relay/internal/domain/projections/registry"
 	"hermes-relay/internal/lib/text-search/chunker"
 	"hermes-relay/internal/lib/utils"
 )
 
-func NewRouter(_ *registry.ProjectViewRegistry) dispatch.CommandRouter {
+func NewRouter(_ *registry.RegistryState) dispatch.CommandRouter {
 	return dispatch.CombineRouters(
 		dispatch.LimitOnEntity(file.EntityName,
 			dispatch.ToCreateEntityEvent[file.CreateFilePayload, file.CreatedFilePayload](file.CreateFile, file.CreatedFile, func(payload *file.CreateFilePayload) file.CreatedFilePayload {

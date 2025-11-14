@@ -2,11 +2,11 @@ package handlers
 
 import (
 	"hermes-relay/internal/cqrs/dispatch"
-	"hermes-relay/internal/cqrs/registry"
 	"hermes-relay/internal/domain/entities/project"
+	"hermes-relay/internal/domain/projections/registry"
 )
 
-func NewRouter(_ *registry.ProjectViewRegistry) dispatch.CommandRouter {
+func NewRouter(_ *registry.RegistryState) dispatch.CommandRouter {
 	return dispatch.CombineRouters(
 		dispatch.LimitOnEntity(project.EntityName,
 			dispatch.ToCreateEntityEvent[project.CreateProjectPayload, project.CreatedProjectPayload](project.CreateProject, project.CreatedProject),

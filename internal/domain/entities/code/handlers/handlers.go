@@ -3,13 +3,14 @@ package handlers
 import (
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/cqrs/dispatch"
-	"hermes-relay/internal/cqrs/projection"
-	"hermes-relay/internal/cqrs/registry"
 	"hermes-relay/internal/domain/entities/code"
+	"hermes-relay/internal/domain/entities/project"
+	projectview "hermes-relay/internal/domain/projections/project-entity"
+	"hermes-relay/internal/domain/projections/registry"
 	"hermes-relay/internal/lib/utils"
 )
 
-func NewRouter(reg *registry.ProjectViewRegistry) dispatch.CommandRouter {
+func NewRouter(reg *registry.RegistryState) dispatch.CommandRouter {
 	return dispatch.LimitOnEntity(code.EntityName,
 
 		dispatch.LimitOnAction(code.CreateCode,
@@ -34,24 +35,17 @@ func NewRouter(reg *registry.ProjectViewRegistry) dispatch.CommandRouter {
 	)
 }
 
-func validateCreateCode(registry *registry.ProjectView, payload code.CreateCodePayload, msg *commands.AnyMessage) error {
-	codes := registry.CodeStore.GetAll()
-	if !IsSlugAvailable(codes, payload.Slug, msg.AggregateID) {
+func validateCreateCode(proj project.Project, payload code.CreateCodePayload, msg *commands.AnyMessage) error {
+	if !projectview.IsSlugAvailable(proj, payload.Slug, msg.AggregateID) {
 		return utils.FieldInUse("slug")
-	}
-
-	projects := registry.ProjectStore.GetAll()
-	if !projection.EntityExists(projects, payload.ProjectID) {
-		return utils.FieldNotFound("project_id")
 	}
 
 	return nil
 }
 
-func validateUpdateCode(registry *registry.ProjectView, payload code.UpdateCodePayload, msg *commands.AnyMessage) error {
+func validateUpdateCode(proj project.Project, payload code.UpdateCodePayload, msg *commands.AnyMessage) error {
 	if payload.Slug != "" {
-		codes := registry.CodeStore.GetAll()
-		if !IsSlugAvailable(codes, payload.Slug, msg.AggregateID) {
+		if !projectview.IsSlugAvailable(proj, payload.Slug, msg.AggregateID) {
 			return utils.FieldInUse("slug")
 		}
 	}
@@ -59,14 +53,12 @@ func validateUpdateCode(registry *registry.ProjectView, payload code.UpdateCodeP
 	return nil
 }
 
-func validateMergeCodes(registry *registry.ProjectView, payload code.MergeCodesPayload, msg *commands.AnyMessage) error {
-	codes := registry.CodeStore.GetAll()
-
-	if !projection.EntityExists(codes, payload.SourceID) {
+func validateMergeCodes(proj project.Project, payload code.MergeCodesPayload, msg *commands.AnyMessage) error {
+	if !projectview.CodeExists(proj, payload.SourceID) {
 		return utils.FieldNotFound("source_id")
 	}
 
-	if !projection.EntityExists(codes, payload.TargetID) {
+	if !projectview.CodeExists(proj, payload.TargetID) {
 		return utils.FieldNotFound("target_id")
 	}
 

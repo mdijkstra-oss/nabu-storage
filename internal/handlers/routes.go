@@ -5,19 +5,19 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"hermes-relay/internal/cqrs/dispatch"
 	"hermes-relay/internal/cqrs/projection"
-	domainprojection "hermes-relay/internal/cqrs/registry"
+	"hermes-relay/internal/domain/entities/code"
 	"hermes-relay/internal/domain/entities/project"
-	codeview "hermes-relay/internal/domain/projections/code-entity"
 	fileview "hermes-relay/internal/domain/projections/file-entity"
 	"hermes-relay/internal/domain/projections/file-entity/chunk"
+	projectview "hermes-relay/internal/domain/projections/project-entity"
+	"hermes-relay/internal/domain/projections/registry"
 	"hermes-relay/internal/handlers/http"
-	tq "hermes-relay/internal/handlers/http/typed-query"
 	"hermes-relay/internal/lib/utils"
 	"log/slog"
 	net "net/http"
 )
 
-func SetupHTTPHandlers(r chi.Router, publisher *dispatch.InMemoryPublisher, registry *domainprojection.ProjectViewRegistry) {
+func SetupHTTPHandlers(r chi.Router, publisher *dispatch.InMemoryPublisher, registryState *registry.RegistryState) {
 	r.Use(middleware.Logger) // Todo: log level
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.RequestID)
@@ -34,27 +34,60 @@ func SetupHTTPHandlers(r chi.Router, publisher *dispatch.InMemoryPublisher, regi
 	r.Route("/queries/projects", func(r chi.Router) {
 		// Todo: r.Use(middleware.RequireAuth)
 
-		r.Get("/", tq.ToRoute(tq.Query(func(query projection.PaginationQuery) []projection.PaginationResult[project.Project] {
-			allProjects := registry.GetAllProjectEntities()
-			return projection.Paginate(allProjects, query)
-		})))
+		r.Get("/", http.ToJSON(func(req *net.Request) ([]projection.PaginationResult[project.Project], error) {
+			allProjects := registryState.GetAllProjects()
+			return projection.Paginate(allProjects, projection.PaginationQuery{}), nil
+		}))
 
 		r.Route("/{projectId}", func(r chi.Router) {
 			// Todo: r.Use(middleware.RequireProjectAccess)
-			r.Use(http.WithProjectView(registry))
+			r.Use(http.WithProject(registryState))
 
-			r.Get("/", tq.QueryOneRoute(http.ProjectStoreFromRequest, projection.ByID))
+			r.Get("/", http.ToJSON(func(r *net.Request) (*project.Project, error) {
+				return http.ProjectFromRequest(r), nil
+			}))
 
 			r.Route("/files", func(r chi.Router) {
-				r.Get("/", tq.QueryRoute(http.FileStoreFromRequest, projection.ThenMap(projection.ByAll, fileview.ToSummary)))
-				r.Get("/{id}", tq.QueryOneRoute(http.FileStoreFromRequest, projection.ThenMap(projection.ByID, fileview.ToSummary)))
-				r.Get("/{id}/chunks", tq.QueryOneRoute(http.FileStoreFromRequest, chunk.ByChunk))
+				r.Get("/", http.ToJSON(func(r *net.Request) ([]fileview.FileSummary, error) {
+					files := http.FilesFromRequest(r)
+					return utils.Map(files, fileview.ToSummary), nil
+				}))
+				r.Get("/{id}", http.ToJSON(func(req *net.Request) (*fileview.FileSummary, error) {
+					fileID := chi.URLParam(req, "id")
+					f := http.FileFromContext(req.Context(), fileID)
+					if f == nil {
+						return nil, nil
+					}
+					summary := fileview.ToSummary(*f)
+					return &summary, nil
+				}))
+				r.Get("/{id}/chunks", http.ToJSON(func(req *net.Request) ([]chunk.ChunkResult, error) {
+					f := http.FileFromContext(req.Context(), chi.URLParam(req, "id"))
+					if f == nil {
+						return nil, nil
+					}
+					files := []fileview.File{*f}
+				return chunk.ByChunk(files, chunk.ChunkQuery{}), nil
+				}))
 			})
 
 			r.Route("/codes", func(r chi.Router) {
-				r.Get("/", tq.QueryRoute(http.CodeStoreFromRequest, projection.Paginate))
-				r.Get("/{id}", tq.QueryOneRoute(http.CodeStoreFromRequest, projection.ByID))
-				r.Get("/slug/{slug}", tq.QueryOneRoute(http.CodeStoreFromRequest, codeview.BySlug))
+				r.Get("/", http.ToJSON(func(req *net.Request) ([]projection.PaginationResult[code.Code], error) {
+					codes := http.CodesFromRequest(req)
+					return projection.Paginate(codes, projection.PaginationQuery{}), nil
+				}))
+				r.Get("/{id}", http.ToJSON(func(req *net.Request) (*code.Code, error) {
+					codeID := chi.URLParam(req, "id")
+					return http.CodeFromContext(req.Context(), codeID), nil
+				}))
+				r.Get("/slug/{slug}", http.ToJSON(func(req *net.Request) (*code.Code, error) {
+					slug := chi.URLParam(req, "slug")
+					proj := http.ProjectFromRequest(req)
+					if proj == nil {
+					return nil, nil
+				}
+				return projectview.GetCodeBySlug(*proj, slug), nil
+				}))
 			})
 		})
 	})

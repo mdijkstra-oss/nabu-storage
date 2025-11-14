@@ -1,6 +1,7 @@
 package http
 
 import (
+	"encoding/json"
 	"hermes-relay/internal/cqrs/dispatch"
 	"hermes-relay/internal/lib/utils"
 	"io"
@@ -28,5 +29,20 @@ func httpHandler(processor func(Request, dispatch.PublishFunc) Response, publish
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(response.StatusCode)
 		utils.Should(w.Write(response.Body))
+	}
+}
+
+func ToJSON[T any](handler func(*http.Request) (T, error)) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		result, err := handler(r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(result); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 	}
 }

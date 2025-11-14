@@ -19,7 +19,7 @@ func main() {
 
 	var publisher = dispatch.NewInMemoryPublisher()
 
-	registry := bootstrap.SetupProjectViewRegistry(publisher)
+	registry := bootstrap.SetupRegistry(publisher)
 
 	// All except views / projections must be after replay ⚠️
 	disk := persistence.New()

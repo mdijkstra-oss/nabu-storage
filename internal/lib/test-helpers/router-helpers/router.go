@@ -3,7 +3,7 @@ package router_helpers
 import (
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/cqrs/dispatch"
-	"hermes-relay/internal/cqrs/registry"
+	"hermes-relay/internal/domain/projections/registry"
 	"testing"
 )
 
@@ -19,7 +19,7 @@ func RunRouterTests(
 	t *testing.T,
 	setupCommands []*commands.AnyMessage,
 	tests []RouterTestCase,
-	newRouter func(*registry.ProjectViewRegistry) dispatch.CommandRouter,
+	newRouter func(*registry.RegistryState) dispatch.CommandRouter,
 ) {
 	reg := NewTestRegistry(setupCommands)
 	router := newRouter(reg)
