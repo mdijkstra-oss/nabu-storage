@@ -7,6 +7,7 @@ import (
 	"hermes-relay/internal/cqrs/dispatch"
 	"hermes-relay/internal/cqrs/persistence"
 	"hermes-relay/internal/handlers"
+	"hermes-relay/internal/handlers/http/websocket"
 	"hermes-relay/internal/lib/utils"
 	"log"
 	"log/slog"
@@ -18,8 +19,9 @@ func main() {
 	bootstrap.SetupLogger(slog.LevelDebug)
 
 	var publisher = dispatch.NewInMemoryPublisher()
+	hub := websocket.NewHub()
 
-	registry := bootstrap.SetupRegistry(publisher)
+	registry := bootstrap.SetupRegistry(publisher, hub)
 
 	// All except views / projections must be after replay ⚠️
 	disk := persistence.New()
@@ -33,7 +35,7 @@ func main() {
 
 	slog.Info("Initializing http endpoints")
 	r := chi.NewRouter()
-	handlers.SetupHTTPHandlers(r, publisher, registry)
+	handlers.SetupHTTPHandlers(r, publisher, registry, hub)
 
 	log.Fatal(net.ListenAndServe(":8080", r))
 }

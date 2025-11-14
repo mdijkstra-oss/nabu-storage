@@ -26,3 +26,7 @@ func (p Project) WithUnhealthy() any {
 	p.Healthy = false
 	return &p
 }
+
+func (p Project) IsPatchable() bool {
+	return true
+}

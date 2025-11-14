@@ -5,6 +5,7 @@ import (
 	"hermes-relay/internal/bootstrap"
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/cqrs/dispatch"
+	"hermes-relay/internal/cqrs/patches"
 	"hermes-relay/internal/cqrs/persistence"
 	"hermes-relay/internal/domain/entities/file"
 	"hermes-relay/internal/domain/entities/project"
@@ -14,6 +15,12 @@ import (
 	"path/filepath"
 	"time"
 )
+
+type noOpActiveChecker struct{}
+
+func (n noOpActiveChecker) IsActive(projectID string) bool {
+	return false
+}
 
 func main() {
 	var reset bool
@@ -42,7 +49,8 @@ func main() {
 
 func setupPublisher(reset bool) *dispatch.InMemoryPublisher {
 	publisher := dispatch.NewInMemoryPublisher()
-	registry := bootstrap.SetupRegistry(publisher)
+	var activeChecker patches.ActiveProjectChecker = noOpActiveChecker{}
+	registry := bootstrap.SetupRegistry(publisher, activeChecker)
 
 	disk := persistence.New()
 

@@ -12,12 +12,13 @@ import (
 	projectview "hermes-relay/internal/domain/projections/project-entity"
 	"hermes-relay/internal/domain/projections/registry"
 	"hermes-relay/internal/handlers/http"
+	"hermes-relay/internal/handlers/http/websocket"
 	"hermes-relay/internal/lib/utils"
 	"log/slog"
 	net "net/http"
 )
 
-func SetupHTTPHandlers(r chi.Router, publisher *dispatch.InMemoryPublisher, registryState *registry.RegistryState) {
+func SetupHTTPHandlers(r chi.Router, publisher *dispatch.InMemoryPublisher, registryState *registry.RegistryState, hub *websocket.Hub) {
 	r.Use(middleware.Logger) // Todo: log level
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.RequestID)
@@ -27,7 +28,7 @@ func SetupHTTPHandlers(r chi.Router, publisher *dispatch.InMemoryPublisher, regi
 
 	r.Post("/commands", http.CommandHandler(publisher.Publish))
 	//r.Post("/events", http.EventHandler(publisher.Publish))
-	r.Get("/ws/", http.WebSocketHandler(publisher.Publish, publisher.Subscribe))
+	r.Get("/ws/{projectId}", websocket.Handler(hub, registryState, publisher.Subscribe))
 
 	// ⚠️ No joins / complex queries
 	// That would probably mean that you'd have to reduce into a new entity

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/cqrs/dispatch"
+	"hermes-relay/internal/cqrs/patches"
 	codehandlers "hermes-relay/internal/domain/entities/code/handlers"
 	filehandlers "hermes-relay/internal/domain/entities/file/handlers"
 	projecthandlers "hermes-relay/internal/domain/entities/project/handlers"
@@ -20,8 +21,10 @@ func SetupLogger(level slog.Level) {
 	slog.SetDefault(logger)
 }
 
-func SetupRegistry(publisher *dispatch.InMemoryPublisher) *registry.RegistryState {
+func SetupRegistry(publisher *dispatch.InMemoryPublisher, activeChecker patches.ActiveProjectChecker) *registry.RegistryState {
 	registryState := registry.NewRegistryState()
+
+	patchingReducer := patches.WrapRegistryWithPatching(registryState, publisher, activeChecker)
 
 	publisher.Subscribe(dispatch.LimitOnType(commands.DomainEvent, dispatch.ReadOnlyRoutes(func(message *commands.AnyMessage) error {
 		projectID := commands.ExtractProjectID(message)
@@ -33,7 +36,7 @@ func SetupRegistry(publisher *dispatch.InMemoryPublisher) *registry.RegistryStat
 			return fmt.Errorf("required project ID for any domain event. %+v", message)
 		}
 
-		registryState.ApplyEvent(message)
+		patchingReducer(message)
 
 		return nil
 	})))
