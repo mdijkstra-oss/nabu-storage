@@ -24,24 +24,38 @@ func SetupLogger(level slog.Level) {
 func SetupRegistry(publisher *dispatch.InMemoryPublisher, activeChecker patches.ActiveProjectChecker) *registry.RegistryState {
 	registryState := registry.NewRegistryState()
 
-	patchingReducer := patches.WrapRegistryWithPatching(registryState, publisher, activeChecker)
-
-	publisher.Subscribe(dispatch.LimitOnType(commands.DomainEvent, dispatch.ReadOnlyRoutes(func(message *commands.AnyMessage) error {
-		projectID := commands.ExtractProjectID(message)
-		if projectID == "" {
-			projectID = registryState.GetProjectIDForEntity(message.AggregateType, message.AggregateID)
-		}
-
-		if projectID == "" {
-			return fmt.Errorf("required project ID for any domain event. %+v", message)
-		}
-
-		patchingReducer(message)
-
-		return nil
-	})))
+	setupRegistryWithPatching(publisher, registryState, activeChecker)
 
 	return registryState
+}
+
+// Todo: may need improvement
+// Registry hold project aggregated references
+// Patching are events websocket can listen on to get updated and full state
+func setupRegistryWithPatching(
+	publisher *dispatch.InMemoryPublisher,
+	registryState *registry.RegistryState,
+	activeChecker patches.ActiveProjectChecker,
+) {
+	publisher.Subscribe(dispatch.LimitOnType(commands.DomainEvent, func(message *commands.AnyMessage, pub dispatch.PublishFunc) (*commands.AnyMessage, error) {
+		projectID := registryState.ResolveProjectID(message)
+		if projectID == "" {
+			return nil, fmt.Errorf("required project ID for any domain event. %+v", message)
+		}
+
+		before := registryState.GetProject(projectID)
+		registryState.ApplyEvent(message)
+		after := registryState.GetProject(projectID)
+
+		action, err := patches.DecidePatch(before, after, activeChecker.IsActive(projectID))
+		if err != nil {
+			slog.Error("failed to decide patch action", "projectID", projectID, "error", err)
+		} else {
+			patches.EmitPatchAction(pub, projectID, action)
+		}
+
+		return nil, nil
+	}))
 }
 
 func SetupCommandHandlers(publisher *dispatch.InMemoryPublisher, registryState *registry.RegistryState) {

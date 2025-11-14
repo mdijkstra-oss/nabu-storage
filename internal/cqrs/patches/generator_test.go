@@ -2,6 +2,8 @@ package patches
 
 import (
 	"encoding/json"
+	jsonpatch "github.com/evanphx/json-patch/v5"
+	"hermes-relay/internal/domain/entities/project"
 	th "hermes-relay/internal/lib/test-helpers"
 	"hermes-relay/internal/lib/utils"
 	"testing"
@@ -75,4 +77,74 @@ func TestGeneratePatch(t *testing.T) {
 		result := utils.Should(json.Marshal(normalized))
 		return string(result)
 	})
+}
+
+func TestGeneratePatchRoundTrip(t *testing.T) {
+	tests := []struct {
+		Name   string
+		Before *project.Project
+		After  *project.Project
+	}{
+		{
+			Name: "Simple field update",
+			Before: &project.Project{
+				ID:          "proj-1",
+				Name:        "Old Name",
+				Description: "Old Description",
+				Healthy:     true,
+			},
+			After: &project.Project{
+				ID:          "proj-1",
+				Name:        "New Name",
+				Description: "Old Description",
+				Healthy:     true,
+			},
+		},
+		{
+			Name: "Multiple field changes",
+			Before: &project.Project{
+				ID:          "proj-1",
+				Name:        "Project A",
+				Description: "First version",
+				Healthy:     true,
+			},
+			After: &project.Project{
+				ID:          "proj-1",
+				Name:        "Project B",
+				Description: "Second version",
+				Healthy:     true,
+			},
+		},
+		{
+			Name: "Health status change",
+			Before: &project.Project{
+				ID:          "proj-1",
+				Name:        "Test",
+				Description: "Test",
+				Healthy:     true,
+			},
+			After: &project.Project{
+				ID:          "proj-1",
+				Name:        "Test",
+				Description: "Test",
+				Healthy:     false,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			patch, err := GeneratePatch(tt.Before, tt.After)
+			th.AssertError(t, err, "", "generate patch")
+
+			beforeJSON := utils.Should(json.Marshal(tt.Before))
+			result, err := jsonpatch.MergePatch(beforeJSON, patch)
+			th.AssertError(t, err, "", "apply patch")
+
+			var patched project.Project
+			utils.ShouldWork(json.Unmarshal(result, &patched))
+
+			th.AssertEqual(t, &patched, tt.After, "patched should equal after")
+		})
+	}
 }

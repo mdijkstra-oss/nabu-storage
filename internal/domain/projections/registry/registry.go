@@ -51,13 +51,17 @@ func (rs *RegistryState) GetProjectIDForEntity(aggregateType commands.AggregateT
 	return rs.state.EntityToProject[key]
 }
 
+func (rs *RegistryState) ResolveProjectID(message *commands.AnyMessage) string {
+	projectID := commands.ExtractProjectID(message)
+	if projectID == "" {
+		projectID = rs.GetProjectIDForEntity(message.AggregateType, message.AggregateID)
+	}
+	return projectID
+}
+
 func Validate[P any](registry *RegistryState, validator func(project.Project, P, *commands.AnyMessage) error, handler dispatch.CommandRouter) dispatch.CommandRouter {
 	return func(message *commands.AnyMessage, publisher dispatch.PublishFunc) (*commands.AnyMessage, error) {
-		projectID := commands.ExtractProjectID(message)
-
-		if projectID == "" {
-			projectID = registry.GetProjectIDForEntity(message.AggregateType, message.AggregateID)
-		}
+		projectID := registry.ResolveProjectID(message)
 
 		proj := registry.GetProject(projectID)
 
