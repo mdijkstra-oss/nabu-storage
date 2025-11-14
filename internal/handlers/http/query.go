@@ -8,7 +8,6 @@ import (
 	"hermes-relay/internal/domain/projections/registry"
 	"hermes-relay/internal/lib/utils"
 	"net/http"
-	"reflect"
 )
 
 var validate = validator.New()
@@ -45,7 +44,7 @@ func bindPathParams(r *http.Request, dst any) error {
 			}
 		}
 	}
-	return bindParams(pathParams, dst, "path")
+	return utils.BindParams(pathParams, dst, "path")
 }
 
 func bindQueryParams(r *http.Request, dst any) error {
@@ -55,52 +54,7 @@ func bindQueryParams(r *http.Request, dst any) error {
 			queryParams[key] = values[0]
 		}
 	}
-	return bindParams(queryParams, dst, "query")
-}
-
-func bindParams(params map[string]string, dst any, tagName string) error {
-	v := reflect.ValueOf(dst)
-	if v.Kind() != reflect.Ptr {
-		return errors.New("dst must be a pointer")
-	}
-
-	v = v.Elem()
-	if v.Kind() != reflect.Struct {
-		return errors.New("dst must be pointer to struct")
-	}
-
-	t := v.Type()
-	for i := 0; i < v.NumField(); i++ {
-		field := t.Field(i)
-		fieldValue := v.Field(i)
-
-		if !fieldValue.CanSet() {
-			continue
-		}
-
-		if field.Anonymous && field.Type.Kind() == reflect.Struct {
-			if err := bindParams(params, fieldValue.Addr().Interface(), tagName); err != nil {
-				return err
-			}
-			continue
-		}
-
-		tag := field.Tag.Get(tagName)
-		if tag == "" {
-			continue
-		}
-
-		value, ok := params[tag]
-		if !ok || value == "" {
-			continue
-		}
-
-		if err := utils.SetFieldFromString(fieldValue, value, tag); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return utils.BindParams(queryParams, dst, "query")
 }
 
 func Query[Q, R any](handler func(Q) R) http.HandlerFunc {

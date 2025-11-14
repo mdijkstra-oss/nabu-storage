@@ -12,6 +12,47 @@ func IsNilPtr[T any](v T) bool {
 	return rv.Kind() == reflect.Ptr && rv.IsNil()
 }
 
+type FieldHandler func(field reflect.StructField, fieldValue reflect.Value) (shouldContinue bool, err error)
+
+func IterateFields(dst any, handler FieldHandler) error {
+	v := reflect.ValueOf(dst)
+	if v.Kind() != reflect.Ptr || v.IsNil() {
+		return errors.New("dst must be non-nil pointer")
+	}
+
+	v = v.Elem()
+	if v.Kind() != reflect.Struct {
+		return errors.New("dst must be pointer to struct")
+	}
+
+	t := v.Type()
+	for i := 0; i < v.NumField(); i++ {
+		field := t.Field(i)
+		fieldValue := v.Field(i)
+
+		if !fieldValue.CanSet() {
+			continue
+		}
+
+		if field.Anonymous && field.Type.Kind() == reflect.Struct {
+			if err := IterateFields(fieldValue.Addr().Interface(), handler); err != nil {
+				return err
+			}
+			continue
+		}
+
+		shouldContinue, err := handler(field, fieldValue)
+		if err != nil {
+			return err
+		}
+		if !shouldContinue {
+			break
+		}
+	}
+
+	return nil
+}
+
 func SetFieldFromString(field reflect.Value, value string, fieldName string) error {
 	if field.Kind() == reflect.Ptr {
 		if field.IsNil() {
@@ -47,47 +88,37 @@ func SetFieldFromString(field reflect.Value, value string, fieldName string) err
 	return nil
 }
 
+func BindParams(params map[string]string, dst any, tagName string) error {
+	return IterateFields(dst, func(field reflect.StructField, fieldValue reflect.Value) (bool, error) {
+		tag := field.Tag.Get(tagName)
+		if tag == "" {
+			return true, nil
+		}
+
+		value, ok := params[tag]
+		if !ok || value == "" {
+			return true, nil
+		}
+
+		err := SetFieldFromString(fieldValue, value, tag)
+		return true, err
+	})
+}
+
 func ApplyDefaults(dst any) error {
-	v := reflect.ValueOf(dst)
-	if v.Kind() != reflect.Ptr || v.IsNil() {
-		return errors.New("dst must be non-nil pointer")
-	}
-
-	v = v.Elem()
-	if v.Kind() != reflect.Struct {
-		return errors.New("dst must be pointer to struct")
-	}
-
-	t := v.Type()
-	for i := 0; i < v.NumField(); i++ {
-		structField := t.Field(i)
-		field := v.Field(i)
-
-		if !field.CanSet() {
-			continue
+	return IterateFields(dst, func(field reflect.StructField, fieldValue reflect.Value) (bool, error) {
+		if !fieldValue.IsZero() {
+			return true, nil
 		}
 
-		if structField.Anonymous && structField.Type.Kind() == reflect.Struct {
-			if err := ApplyDefaults(field.Addr().Interface()); err != nil {
-				return err
-			}
-			continue
-		}
-
-		if !field.IsZero() {
-			continue
-		}
-
-		defaultVal := structField.Tag.Get("default")
+		defaultVal := field.Tag.Get("default")
 		if defaultVal == "" {
-			continue
+			return true, nil
 		}
 
-		if err := SetFieldFromString(field, defaultVal, structField.Name); err != nil {
-			return err
-		}
-	}
-	return nil
+		err := SetFieldFromString(fieldValue, defaultVal, field.Name)
+		return true, err
+	})
 }
 
 func ApplyDefaultsFromMap(dst any, sourceMap map[string]any) error {
