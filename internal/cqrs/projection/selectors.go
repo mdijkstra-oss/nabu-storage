@@ -2,6 +2,10 @@ package projection
 
 import "hermes-relay/internal/lib/utils"
 
+type Entity interface {
+	GetID() string
+}
+
 func GetByID[T Entity](entities []T, id string) *T {
 	for _, e := range entities {
 		if e.GetID() == id {

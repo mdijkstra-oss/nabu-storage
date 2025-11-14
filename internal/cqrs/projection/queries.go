@@ -6,21 +6,15 @@ type GetByIDQuery struct {
 	ID string `path:"id" validate:"required"`
 }
 
-type EmptyQuery struct{}
-
 func ByID[T Entity](entities []T, q GetByIDQuery) []T {
 	return utils.Filter(entities, func(entity T) bool {
 		return entity.GetID() == q.ID
 	})
 }
 
-func ByAll[T Entity](items []T, _ EmptyQuery) []T {
-	return items
-}
-
 type PaginationQuery struct {
 	Page     int `query:"page" validate:"min=1" default:"1"`
-	PageSize int `query:"page_size" validate:"min=1,max=100" default:"20"`
+	PageSize int `query:"page_size" wvalidate:"min=1,max=100" default:"20"`
 }
 
 type PaginationResult[T any] struct {
