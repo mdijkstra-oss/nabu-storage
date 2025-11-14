@@ -104,20 +104,13 @@ func ProjectQuery[Q, R any](
 }
 
 func respondWithError(w http.ResponseWriter, err error) {
-	response := typedErrorOutput(err)
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(response.StatusCode)
-	utils.Should(w.Write(response.Body))
+	WriteResponse(w, typedErrorOutput(err))
 }
 
 func respondWithJSON(w http.ResponseWriter, result any) {
 	if utils.IsNilPtr(result) {
-		respondWithError(w, &utils.NotFoundError{Message: "not found"})
+		WriteResponse(w, typedErrorOutput(&utils.NotFoundError{Message: "not found"}))
 		return
 	}
-
-	response := successQueryOutput(result)
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(response.StatusCode)
-	utils.Should(w.Write(response.Body))
+	WriteResponse(w, successQueryOutput(result))
 }

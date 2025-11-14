@@ -84,3 +84,9 @@ func isCreatedAction(action commands.Action) bool {
 	s := string(action)
 	return strings.HasSuffix(s, "Created") || strings.HasSuffix(s, "Added")
 }
+
+func WriteResponse(w http.ResponseWriter, response Response) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	utils.Should(w.Write(response.Body))
+}
