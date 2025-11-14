@@ -24,14 +24,13 @@ func main() {
 	registry := bootstrap.SetupRegistry(publisher, hub)
 
 	// All except views / projections must be after replay ⚠️
+	slog.Info("Initializing command persistence")
 	disk := persistence.New()
 	utils.MustNotError(disk.ReplayAllEvents(publisher))
 
 	bootstrap.SetupCommandHandlers(publisher, registry)
 
 	publisher.Subscribe(dispatch.LimitOnType(commands.DomainEvent, dispatch.ReadOnlyRoutes(disk.Apply())))
-
-	slog.Info("Initializing command persistence")
 
 	slog.Info("Initializing http endpoints")
 	r := chi.NewRouter()
