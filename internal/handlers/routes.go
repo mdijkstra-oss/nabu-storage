@@ -61,13 +61,12 @@ func SetupHTTPHandlers(r chi.Router, publisher *dispatch.InMemoryPublisher, regi
 					summary := fileview.ToSummary(*f)
 					return &summary, nil
 				}))
-				r.Get("/{id}/chunks", http.ToJSON(func(req *net.Request) ([]chunk.ChunkResult, error) {
+				r.Get("/{id}/chunks", http.ToJSON(func(req *net.Request) (*chunk.ChunkResult, error) {
 					f := http.FileFromContext(req.Context(), chi.URLParam(req, "id"))
 					if f == nil {
 						return nil, nil
 					}
-					files := []fileview.File{*f}
-				return chunk.ByChunk(files, chunk.ChunkQuery{}), nil
+					return chunk.GetChunk(*f, chunk.ChunkQuery{}), nil
 				}))
 			})
 

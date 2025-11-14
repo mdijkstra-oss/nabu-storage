@@ -1,17 +1,5 @@
 package projection
 
-import "hermes-relay/internal/lib/utils"
-
-type GetByIDQuery struct {
-	ID string `path:"id" validate:"required"`
-}
-
-func ByID[T Entity](entities []T, q GetByIDQuery) []T {
-	return utils.Filter(entities, func(entity T) bool {
-		return entity.GetID() == q.ID
-	})
-}
-
 type PaginationQuery struct {
 	Page     int `query:"page" validate:"min=1" default:"1"`
 	PageSize int `query:"page_size" wvalidate:"min=1,max=100" default:"20"`

@@ -1,7 +1,6 @@
 package chunk
 
 import (
-	"hermes-relay/internal/cqrs/projection"
 	"hermes-relay/internal/domain/entities/file"
 	fileview "hermes-relay/internal/domain/projections/file-entity"
 	"hermes-relay/internal/lib/utils"
@@ -9,7 +8,6 @@ import (
 )
 
 type ChunkQuery struct {
-	projection.GetByIDQuery
 	ChunkFilter
 	ChunkID string `query:"chunkId"`
 }
@@ -21,38 +19,33 @@ type ChunkResult struct {
 	Next        *int       `json:"next"`
 }
 
-func ByChunk(files []fileview.File, q ChunkQuery) []ChunkResult {
-	filtered := projection.ByID(files, q.GetByIDQuery)
-	if len(filtered) == 0 {
-		return nil
-	}
-
-	fileData := filtered[0]
-	chunks := ApplyFilter(fileData.Chunks, q.ChunkFilter)
+// GetChunk applies query to file and returns single chunk with navigation
+func GetChunk(f fileview.File, q ChunkQuery) *ChunkResult {
+	chunks := ApplyFilter(f.Chunks, q.ChunkFilter)
 
 	if len(chunks) == 0 {
 		return nil
 	}
 
-	chunkID := findChunkIndex(chunks, q.ChunkID)
-	if chunkID == -1 {
+	chunkIndex := findChunkIndex(chunks, q.ChunkID)
+	if chunkIndex == -1 {
 		return nil
 	}
 
-	currentChunk := chunks[chunkID]
+	currentChunk := chunks[chunkIndex]
 
 	var next *int
-	if chunkID+1 < len(chunks) {
-		nextID := parseID(chunks[chunkID+1].ID)
+	if chunkIndex+1 < len(chunks) {
+		nextID := parseID(chunks[chunkIndex+1].ID)
 		next = &nextID
 	}
 
-	return []ChunkResult{{
+	return &ChunkResult{
 		Chunk:       currentChunk,
 		ChunkID:     parseID(currentChunk.ID),
 		TotalChunks: len(chunks),
 		Next:        next,
-	}}
+	}
 }
 
 func findChunkIndex(chunks []file.Chunk, requestedID string) int {
