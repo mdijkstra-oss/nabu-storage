@@ -9,6 +9,7 @@ import (
 
 type ChunkQuery struct {
 	ChunkFilter
+	ID      string `path:"id" validate:"required"`
 	ChunkID string `query:"chunkId"`
 }
 

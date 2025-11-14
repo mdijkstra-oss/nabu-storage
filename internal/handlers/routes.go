@@ -34,58 +34,54 @@ func SetupHTTPHandlers(r chi.Router, publisher *dispatch.InMemoryPublisher, regi
 	r.Route("/queries/projects", func(r chi.Router) {
 		// Todo: r.Use(middleware.RequireAuth)
 
-		r.Get("/", http.ToJSON(func(req *net.Request) ([]projection.PaginationResult[project.Project], error) {
+		r.Get("/", http.Query(func(query projection.PaginationQuery) []projection.PaginationResult[project.Project] {
 			allProjects := registryState.GetAllProjects()
-			return projection.Paginate(allProjects, projection.PaginationQuery{}), nil
+			return projection.Paginate(allProjects, query)
 		}))
 
 		r.Route("/{projectId}", func(r chi.Router) {
 			// Todo: r.Use(middleware.RequireProjectAccess)
-			r.Use(http.WithProject(registryState))
 
-			r.Get("/", http.ToJSON(func(r *net.Request) (*project.Project, error) {
-				return http.ProjectFromRequest(r), nil
+			r.Get("/", http.ProjectQuery(registryState, func(query http.EmptyQuery, proj project.Project) *project.Project {
+				return &proj
 			}))
 
 			r.Route("/files", func(r chi.Router) {
-				r.Get("/", http.ToJSON(func(r *net.Request) ([]fileview.FileSummary, error) {
-					files := http.FilesFromRequest(r)
-					return utils.Map(files, fileview.ToSummary), nil
+				r.Get("/", http.ProjectQuery(registryState, func(query projection.PaginationQuery, proj project.Project) []fileview.FileSummary {
+					files := projectview.GetAllFiles(proj)
+					return utils.Map(files, fileview.ToSummary)
 				}))
-				r.Get("/{id}", http.ToJSON(func(req *net.Request) (*fileview.FileSummary, error) {
-					fileID := chi.URLParam(req, "id")
-					f := http.FileFromContext(req.Context(), fileID)
+
+				r.Get("/{id}", http.ProjectQuery(registryState, func(query http.IDQuery, proj project.Project) *fileview.FileSummary {
+					f := projectview.GetFile(proj, query.ID)
 					if f == nil {
-						return nil, nil
+						return nil
 					}
 					summary := fileview.ToSummary(*f)
-					return &summary, nil
+					return &summary
 				}))
-				r.Get("/{id}/chunks", http.ToJSON(func(req *net.Request) (*chunk.ChunkResult, error) {
-					f := http.FileFromContext(req.Context(), chi.URLParam(req, "id"))
+
+				r.Get("/{id}/chunks", http.ProjectQuery(registryState, func(query chunk.ChunkQuery, proj project.Project) *chunk.ChunkResult {
+					f := projectview.GetFile(proj, query.ID)
 					if f == nil {
-						return nil, nil
+						return nil
 					}
-					return chunk.GetChunk(*f, chunk.ChunkQuery{}), nil
+					return chunk.GetChunk(*f, query)
 				}))
 			})
 
 			r.Route("/codes", func(r chi.Router) {
-				r.Get("/", http.ToJSON(func(req *net.Request) ([]projection.PaginationResult[code.Code], error) {
-					codes := http.CodesFromRequest(req)
-					return projection.Paginate(codes, projection.PaginationQuery{}), nil
+				r.Get("/", http.ProjectQuery(registryState, func(query projection.PaginationQuery, proj project.Project) []projection.PaginationResult[code.Code] {
+					codes := projectview.GetAllCodes(proj)
+					return projection.Paginate(codes, query)
 				}))
-				r.Get("/{id}", http.ToJSON(func(req *net.Request) (*code.Code, error) {
-					codeID := chi.URLParam(req, "id")
-					return http.CodeFromContext(req.Context(), codeID), nil
+
+				r.Get("/{id}", http.ProjectQuery(registryState, func(query http.IDQuery, proj project.Project) *code.Code {
+					return projectview.GetCode(proj, query.ID)
 				}))
-				r.Get("/slug/{slug}", http.ToJSON(func(req *net.Request) (*code.Code, error) {
-					slug := chi.URLParam(req, "slug")
-					proj := http.ProjectFromRequest(req)
-					if proj == nil {
-					return nil, nil
-				}
-				return projectview.GetCodeBySlug(*proj, slug), nil
+
+				r.Get("/slug/{slug}", http.ProjectQuery(registryState, func(query http.SlugQuery, proj project.Project) *code.Code {
+					return projectview.GetCodeBySlug(proj, query.Slug)
 				}))
 			})
 		})

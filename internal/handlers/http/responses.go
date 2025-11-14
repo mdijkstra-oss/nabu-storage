@@ -30,6 +30,14 @@ func successOutput(result *commands.AnyMessage, acceptedOnly bool) Response {
 	}
 }
 
+func successQueryOutput(result any) Response {
+	body, _ := json.Marshal(result)
+	return Response{
+		StatusCode: http.StatusOK,
+		Body:       body,
+	}
+}
+
 func typedErrorOutput(err error) Response {
 	switch {
 	case utils.IsValidationError(err):
