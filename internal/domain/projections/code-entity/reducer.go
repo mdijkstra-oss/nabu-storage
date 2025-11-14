@@ -4,6 +4,7 @@ import (
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/cqrs/projection"
 	"hermes-relay/internal/domain/entities/code"
+	"hermes-relay/internal/lib/utils"
 )
 
 var Reducer = projection.WithHealthCheck(
@@ -35,31 +36,8 @@ func CreatedCodeReducer(_ *Code, message *commands.AnyMessage, payload *code.Cre
 }
 
 func UpdatedCodeReducer(current *Code, _ *commands.AnyMessage, payload *code.UpdatedCodePayload) *Code {
-	if payload.Slug != "" {
-		current.Slug = payload.Slug
-	}
-	if payload.Color != "" {
-		current.Color = payload.Color
-	}
-	if payload.Definition != "" {
-		current.Definition = payload.Definition
-	}
-	if payload.InclusionCriteria != "" {
-		current.InclusionCriteria = payload.InclusionCriteria
-	}
-	if payload.ExclusionCriteria != "" {
-		current.ExclusionCriteria = payload.ExclusionCriteria
-	}
-	if payload.Examples != nil {
-		current.Examples = payload.Examples
-	}
-	if payload.CounterExamples != nil {
-		current.CounterExamples = payload.CounterExamples
-	}
-	if payload.Notes != "" {
-		current.Notes = payload.Notes
-	}
-	return current
+	updated := utils.ApplyPartialUpdate(*current, payload)
+	return &updated
 }
 
 func MergedCodesReducer(current *Code, message *commands.AnyMessage, payload *code.MergedCodesPayload) *Code {

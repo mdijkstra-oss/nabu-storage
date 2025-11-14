@@ -159,3 +159,30 @@ func ApplyDefaultsFromMap(dst any, sourceMap map[string]any) error {
 	}
 	return nil
 }
+
+func ApplyPartialUpdate[T any](current T, updates any) T {
+	result := current
+
+	updatesValue := reflect.ValueOf(updates)
+	if updatesValue.Kind() == reflect.Ptr {
+		updatesValue = updatesValue.Elem()
+	}
+
+	resultPtr := reflect.ValueOf(&result)
+	resultValue := resultPtr.Elem()
+
+	updatesType := updatesValue.Type()
+	for i := 0; i < updatesValue.NumField(); i++ {
+		updateField := updatesValue.Field(i)
+		fieldName := updatesType.Field(i).Name
+
+		if !updateField.IsZero() {
+			resultField := resultValue.FieldByName(fieldName)
+			if resultField.IsValid() && resultField.CanSet() {
+				resultField.Set(updateField)
+			}
+		}
+	}
+
+	return result
+}

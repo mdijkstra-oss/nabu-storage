@@ -18,10 +18,7 @@ func GetBySlug(codes []code.Code, slug string) *code.Code {
 }
 
 func IsSlugAvailable(codes []code.Code, slug string, excludeID string) bool {
-	for _, c := range codes {
-		if c.Slug == slug && c.ID != excludeID {
-			return false
-		}
-	}
-	return true
+	return !utils.Exists(codes, func(c code.Code) bool {
+		return c.Slug == slug && c.ID != excludeID
+	})
 }

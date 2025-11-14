@@ -48,60 +48,55 @@ func CreatedFileReducer(_ *File, message *commands.AnyMessage, payload *file.Cre
 }
 
 func UpdatedFileReducer(current *File, _ *commands.AnyMessage, payload *file.UpdatedFilePayload) *File {
-	current.Name = payload.Name
-	if payload.Description != "" {
-		current.Description = payload.Description
-	}
-	return current
+	updated := utils.ApplyPartialUpdate(*current, payload)
+	return &updated
 }
 
 func CodedFileReducer(current *File, message *commands.AnyMessage, payload *file.CodeFileData) *File {
-	for _, action := range payload.Actions {
-		chunkID := utils.FindIndex(current.Chunks, func(c file.Chunk) bool {
-			return c.ID == action.ChunkID
-		})
-
-		if chunkID == -1 {
-			slog.Warn("Chunk not found", "id", action.ChunkID)
-			continue
-		}
-
-		chunk := &current.Chunks[chunkID]
-
-		switch action.Action {
-		case file.RemoveCoding:
-			chunk.Codes = utils.Filter(chunk.Codes, func(section file.CodedSection) bool {
-				return section.CodeID != action.CodeID
-			})
-
-		case file.SetCoding:
-			chunk.Codes = utils.Filter(chunk.Codes, func(section file.CodedSection) bool {
-				return section.CodeID != action.CodeID
-			})
-			fallthrough
-
-		case file.AppendCoding:
-			for _, section := range action.Sections {
-				start, end, found := find.FindRange(section.Text, chunk.Content)
-				if !found {
-					slog.Warn("Text not found", "chunk", action.ChunkID, "section", section)
-					continue
-				}
-
-				chunk.Codes = append(chunk.Codes, file.CodedSection{
-					StartIndex: start,
-					EndIndex:   end,
-					CodeSlug:   action.CodeSlug,
-					CodeID:     action.CodeID,
-					CodedSectionAttributes: file.CodedSectionAttributes{
-						Text:     section.Text,
-						AIReason: section.AIReason,
-						Comment:  section.Comment,
-					},
-				})
+	current.Chunks = utils.Reduce(payload.Actions, current.Chunks, func(chunks []file.Chunk, action file.CodingAction) []file.Chunk {
+		return utils.Map(chunks, func(chunk file.Chunk) file.Chunk {
+			if chunk.ID != action.ChunkID {
+				return chunk
 			}
-		}
-	}
+
+			switch action.Action {
+			case file.RemoveCoding:
+				chunk.Codes = utils.Filter(chunk.Codes, func(section file.CodedSection) bool {
+					return section.CodeID != action.CodeID
+				})
+
+			case file.SetCoding:
+				chunk.Codes = utils.Filter(chunk.Codes, func(section file.CodedSection) bool {
+					return section.CodeID != action.CodeID
+				})
+				fallthrough
+
+			case file.AppendCoding:
+				newCodes := utils.Reduce(action.Sections, []file.CodedSection{}, func(codes []file.CodedSection, section file.CodedSectionAttributes) []file.CodedSection {
+					start, end, found := find.FindRange(section.Text, chunk.Content)
+					if !found {
+						slog.Warn("Text not found", "chunk", action.ChunkID, "section", section)
+						return codes
+					}
+
+					return append(codes, file.CodedSection{
+						StartIndex: start,
+						EndIndex:   end,
+						CodeSlug:   action.CodeSlug,
+						CodeID:     action.CodeID,
+						CodedSectionAttributes: file.CodedSectionAttributes{
+							Text:     section.Text,
+							AIReason: section.AIReason,
+							Comment:  section.Comment,
+						},
+					})
+				})
+				chunk.Codes = append(chunk.Codes, newCodes...)
+			}
+
+			return chunk
+		})
+	})
 	return current
 }
 
@@ -112,45 +107,44 @@ func ClearedCodingReducer(current *File, message *commands.AnyMessage, payload a
 	return current
 }
 
-func DeletedCodeReducer(current *File, message *commands.AnyMessage, _ code.DeletedCodePayload) *File {
-	codeID := message.AggregateID
-
-	current.Chunks = utils.Map(current.Chunks, func(chunk file.Chunk) file.Chunk {
-		chunk.Codes = utils.Filter(chunk.Codes, func(cs file.CodedSection) bool {
-			return cs.CodeID != codeID
-		})
+func mapChunkCodes(chunks []file.Chunk, transform func([]file.CodedSection) []file.CodedSection) []file.Chunk {
+	return utils.Map(chunks, func(chunk file.Chunk) file.Chunk {
+		chunk.Codes = transform(chunk.Codes)
 		return chunk
 	})
+}
 
+func DeletedCodeReducer(current *File, message *commands.AnyMessage, _ code.DeletedCodePayload) *File {
+	codeID := message.AggregateID
+	current.Chunks = mapChunkCodes(current.Chunks, func(codes []file.CodedSection) []file.CodedSection {
+		return utils.Filter(codes, func(cs file.CodedSection) bool {
+			return cs.CodeID != codeID
+		})
+	})
 	return current
 }
 
 func UpdatedCodeReducer(current *File, message *commands.AnyMessage, payload code.UpdateCodePayload) *File {
 	codeID := message.AggregateID
-
-	current.Chunks = utils.Map(current.Chunks, func(chunk file.Chunk) file.Chunk {
-		chunk.Codes = utils.Map(chunk.Codes, func(cs file.CodedSection) file.CodedSection {
+	current.Chunks = mapChunkCodes(current.Chunks, func(codes []file.CodedSection) []file.CodedSection {
+		return utils.Map(codes, func(cs file.CodedSection) file.CodedSection {
 			if cs.CodeID == codeID {
 				cs.CodeSlug = payload.Slug
 			}
 			return cs
 		})
-		return chunk
 	})
-
 	return current
 }
 
 func MergedCodesReducer(current *File, _ *commands.AnyMessage, payload code.MergedCodesPayload) *File {
-	current.Chunks = utils.Map(current.Chunks, func(chunk file.Chunk) file.Chunk {
-		chunk.Codes = utils.Map(chunk.Codes, func(cs file.CodedSection) file.CodedSection {
+	current.Chunks = mapChunkCodes(current.Chunks, func(codes []file.CodedSection) []file.CodedSection {
+		return utils.Map(codes, func(cs file.CodedSection) file.CodedSection {
 			if cs.CodeID == payload.SourceID {
 				cs.CodeID = payload.TargetID
 			}
 			return cs
 		})
-		return chunk
 	})
-
 	return current
 }

@@ -8,6 +8,7 @@ import (
 	"hermes-relay/internal/domain/entities/project"
 	codeview "hermes-relay/internal/domain/projections/code-entity"
 	fileview "hermes-relay/internal/domain/projections/file-entity"
+	"hermes-relay/internal/lib/utils"
 )
 
 var Reducer = projection.WithHealthCheck(
@@ -39,12 +40,7 @@ func CreatedProjectReducer(_ *Project, message *commands.AnyMessage, payload *pr
 	}
 }
 
-func UpdatedProjectReducer(current *Project, message *commands.AnyMessage, payload *project.UpdatedProjectPayload) *Project {
-	if payload.Name != "" {
-		current.Name = payload.Name
-	}
-	if payload.Description != "" {
-		current.Description = payload.Description
-	}
-	return current
+func UpdatedProjectReducer(current *Project, _ *commands.AnyMessage, payload *project.UpdatedProjectPayload) *Project {
+	updated := utils.ApplyPartialUpdate(*current, payload)
+	return &updated
 }

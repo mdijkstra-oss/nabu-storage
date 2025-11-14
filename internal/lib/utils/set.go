@@ -87,3 +87,11 @@ func Contains[T comparable](slice []T, item T) bool {
 		return s == item
 	})
 }
+
+func Reduce[T, U any](slice []T, initial U, fn func(U, T) U) U {
+	result := initial
+	for _, item := range slice {
+		result = fn(result, item)
+	}
+	return result
+}
