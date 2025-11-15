@@ -5,7 +5,6 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"hermes-relay/internal/cqrs/dispatch"
 	"hermes-relay/internal/cqrs/projection"
-	"hermes-relay/internal/domain/entities/project"
 	codeview "hermes-relay/internal/domain/projections/code-entity"
 	fileview "hermes-relay/internal/domain/projections/file-entity"
 	projectview "hermes-relay/internal/domain/projections/project-entity"
@@ -34,7 +33,7 @@ func SetupHTTPHandlers(r chi.Router, publisher *dispatch.InMemoryPublisher, regi
 	r.Route("/queries/projects", func(r chi.Router) {
 		// Todo: r.Use(middleware.RequireAuth)
 
-		r.Get("/", http.Query(func(query projection.PaginationQuery) []projection.PaginationResult[project.Project] {
+		r.Get("/", http.Query(func(query projection.PaginationQuery) []projection.PaginationResult[projectview.ProjectView] {
 			return registry.QueryAllProjects(registryState, query)
 		}))
 

@@ -2,10 +2,12 @@ package registry
 
 import (
 	"hermes-relay/internal/cqrs/projection"
-	"hermes-relay/internal/domain/entities/project"
+	projectview "hermes-relay/internal/domain/projections/project-entity"
+	"hermes-relay/internal/lib/utils"
 )
 
-func QueryAllProjects(state *RegistryState, query projection.PaginationQuery) []projection.PaginationResult[project.Project] {
+func QueryAllProjects(state *RegistryState, query projection.PaginationQuery) []projection.PaginationResult[projectview.ProjectView] {
 	allProjects := state.GetAllProjects()
-	return projection.Paginate(allProjects, query)
+	projectViews := utils.Map(allProjects, projectview.ToView)
+	return projection.Paginate(projectViews, query)
 }

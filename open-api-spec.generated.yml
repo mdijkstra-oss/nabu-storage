@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: hermes-relay-api
-  version: 1.1.0
+  version: 1.2.0
   description: |
     CQRS-based qualitative data analysis API for coding and analyzing research data.
 
@@ -295,24 +295,52 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /ws/:
+  /ws/{projectId}:
     get:
-      summary: WebSocket connection for real-time events
+      summary: WebSocket connection for real-time project updates
       description: |
-        Establish a WebSocket connection to:
-        - Send commands (same format as POST /commands)
-        - Receive domain events in real-time
+        Establish a WebSocket connection for a specific project to receive real-time updates.
 
-        **Client → Server**: Send AnyMessage commands (single or batch)
-        **Server → Client**: Receive domain events and command responses
+        **Connection**: GET /ws/{projectId}
 
-        **Message Format**: All messages are JSON-encoded
-        **Error Handling**: Errors are sent back through the WebSocket as JSON responses
+        **Message Types**:
+        - **snapshot**: Full project state sent on initial connection
+        - **patch**: JSON Patch (RFC 6902) operations for incremental updates
+
+        **Snapshot Message Format**:
+        ```json
+        {
+          "type": "snapshot",
+          "projectId": "550e8400-e29b-41d4-a716-446655440000",
+          "data": { ...full project object... }
+        }
+        ```
+
+        **Patch Message Format**:
+        ```json
+        {
+          "type": "patch",
+          "projectId": "550e8400-e29b-41d4-a716-446655440000",
+          "data": [
+            {"op": "add", "path": "/codes/660e8400-...", "value": {...}},
+            {"op": "replace", "path": "/files/770e8400-.../name", "value": "Updated Name"}
+          ]
+        }
+        ```
+
+        Patches follow JSON Patch specification (RFC 6902) with operations: add, remove, replace, move, copy, test
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
       responses:
         '101':
           description: WebSocket upgrade successful
         '400':
-          description: Upgrade failed
+          description: Project ID required or invalid
         '500':
           description: Server error
 
@@ -345,13 +373,28 @@ paths:
                   - id: "550e8400-e29b-41d4-a716-446655440000"
                     name: "Healthcare Patient Experience Study"
                     description: "Qualitative analysis of patient interviews"
-                    code_ids: ["660e8400-e29b-41d4-a716-446655440001", "770e8400-e29b-41d4-a716-446655440002"]
-                    file_ids: ["880e8400-e29b-41d4-a716-446655440003"]
+                    codes:
+                      "660e8400-e29b-41d4-a716-446655440001":
+                        id: "660e8400-e29b-41d4-a716-446655440001"
+                        project_id: "550e8400-e29b-41d4-a716-446655440000"
+                        slug: "emotion:anxiety"
+                        color: "red-500"
+                        definition: "Patient expressions of worry about medical procedures"
+                        healthy: true
+                    files:
+                      "880e8400-e29b-41d4-a716-446655440003":
+                        id: "880e8400-e29b-41d4-a716-446655440003"
+                        project_id: "550e8400-e29b-41d4-a716-446655440000"
+                        name: "Interview Transcript - Patient P07"
+                        title: "Patient P07 Pre-operative Interview"
+                        healthy: true
+                    healthy: true
                   - id: "550e8400-e29b-41d4-a716-446655440010"
                     name: "UX Research Q1 2025"
                     description: "User experience research for new features"
-                    code_ids: ["990e8400-e29b-41d4-a716-446655440011"]
-                    file_ids: []
+                    codes: {}
+                    files: {}
+                    healthy: true
                 total: 15
                 page: 1
                 page_size: 20
@@ -377,8 +420,22 @@ paths:
                 id: "550e8400-e29b-41d4-a716-446655440000"
                 name: "Policy Impact Assessment"
                 description: "Analysis of energy transition policy documents"
-                code_ids: ["660e8400-e29b-41d4-a716-446655440001"]
-                file_ids: ["770e8400-e29b-41d4-a716-446655440002"]
+                codes:
+                  "660e8400-e29b-41d4-a716-446655440001":
+                    id: "660e8400-e29b-41d4-a716-446655440001"
+                    project_id: "550e8400-e29b-41d4-a716-446655440000"
+                    slug: "topic:energy-transition"
+                    color: "green-600"
+                    definition: "References to renewable energy and sustainability"
+                    healthy: true
+                files:
+                  "770e8400-e29b-41d4-a716-446655440002":
+                    id: "770e8400-e29b-41d4-a716-446655440002"
+                    project_id: "550e8400-e29b-41d4-a716-446655440000"
+                    name: "Policy Document - Climate Action Plan 2025"
+                    title: "National Climate Action Plan"
+                    healthy: true
+                healthy: true
         '404':
           description: Project not found
 
@@ -412,6 +469,7 @@ paths:
                   time: "2025-01-10T14:30:00Z"
                   type: "source"
                   locked: true
+                  healthy: true
 
   /queries/projects/{projectId}/files/{id}:
     get:
@@ -447,6 +505,7 @@ paths:
                 time: "2025-01-10T14:30:00Z"
                 type: "source"
                 locked: true
+                healthy: true
         '404':
           description: File not found
 
@@ -586,11 +645,13 @@ paths:
                     definition: "Patient expressions of worry, nervousness, or fear about medical procedures"
                     inclusion_criteria: "Look for explicit anxiety words or implicit indicators"
                     examples: ["I was really worried about the surgery"]
+                    healthy: true
                   - id: "770e8400-e29b-41d4-a716-446655440002"
                     project_id: "550e8400-e29b-41d4-a716-446655440000"
                     slug: "theme:communication"
                     color: "blue-400"
                     definition: "Interactions between patients and healthcare providers"
+                    healthy: true
                 total: 8
                 page: 1
                 page_size: 20
@@ -632,6 +693,7 @@ paths:
                 counter_examples:
                   - "We need to protect our forests and wildlife"
                 notes: "Consider splitting into sub-codes for different energy types"
+                healthy: true
         '404':
           description: Code not found
 
@@ -667,6 +729,7 @@ paths:
                 definition: "Moments where users express confusion, frustration, or struggle with interface elements"
                 inclusion_criteria: "Look for verbal confusion, repeated errors, requests for help"
                 examples: ["I don't know where to click", "This doesn't work like I expected"]
+                healthy: true
         '400':
           description: Invalid slug format
           content:
@@ -788,6 +851,9 @@ components:
       required:
         - id
         - name
+        - codes
+        - files
+        - healthy
       properties:
         id:
           type: string
@@ -799,18 +865,19 @@ components:
         description:
           type: string
           maxLength: 2000
-        code_ids:
-          type: array
-          items:
-            type: string
-            format: uuid
-          description: List of code IDs in this project
-        file_ids:
-          type: array
-          items:
-            type: string
-            format: uuid
-          description: List of file IDs in this project
+        codes:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/Code'
+          description: Map of code IDs to full Code objects
+        files:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/FileSummary'
+          description: Map of file IDs to FileSummary objects (without chunks)
+        healthy:
+          type: boolean
+          description: Whether the project is in a healthy state
 
     ProjectPaginationResult:
       type: object
@@ -839,6 +906,7 @@ components:
         - slug
         - color
         - definition
+        - healthy
       properties:
         id:
           type: string
@@ -907,6 +975,9 @@ components:
             Analyst notes: evolving thoughts, connections to theory,
             frequency observations, ideas for refinement
           example: "Consider creating sub-codes for pre-procedure vs post-procedure anxiety. Appears frequently in older patients."
+        healthy:
+          type: boolean
+          description: Whether the code is in a healthy state
 
     CodePaginationResult:
       type: object
@@ -934,6 +1005,7 @@ components:
         - project_id
         - name
         - title
+        - healthy
       properties:
         id:
           type: string
@@ -948,6 +1020,9 @@ components:
         description:
           type: string
           maxLength: 2000
+        healthy:
+          type: boolean
+          description: Whether the file is in a healthy state
         title:
           type: string
           minLength: 1
