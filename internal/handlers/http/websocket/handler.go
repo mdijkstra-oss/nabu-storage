@@ -37,7 +37,7 @@ func Handler(hub *Hub, registryState *registry.RegistryState, subscribe func(dis
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		defer utils.ShouldWork(conn.Close())
+		defer func() { utils.ShouldWork(conn.Close()) }()
 
 		handleConnection(conn, projectID, hub, registryState, subscribe)
 	}
