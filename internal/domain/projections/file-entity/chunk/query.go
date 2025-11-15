@@ -2,14 +2,13 @@ package chunk
 
 import (
 	"hermes-relay/internal/domain/entities/file"
-	fileview "hermes-relay/internal/domain/projections/file-entity"
 	"hermes-relay/internal/lib/utils"
 	"strconv"
 )
 
 type ChunkQuery struct {
 	ChunkFilter
-	ID      string `path:"id" validate:"required"`
+	ID      string `path:"id" validate:"required,valid_id"`
 	ChunkID string `query:"chunkId"`
 }
 
@@ -21,7 +20,7 @@ type ChunkResult struct {
 }
 
 // GetChunk applies query to file and returns single chunk with navigation
-func GetChunk(f fileview.File, q ChunkQuery) *ChunkResult {
+func GetChunk(f file.File, q ChunkQuery) *ChunkResult {
 	chunks := ApplyFilter(f.Chunks, q.ChunkFilter)
 
 	if len(chunks) == 0 {

@@ -2,7 +2,6 @@ package chunk
 
 import (
 	"hermes-relay/internal/domain/entities/file"
-	fileview "hermes-relay/internal/domain/projections/file-entity"
 	test_helpers "hermes-relay/internal/lib/test-helpers"
 	"testing"
 )
@@ -16,7 +15,7 @@ func float64Ptr(f float64) *float64 {
 }
 
 func TestByChunk(t *testing.T) {
-	file1 := fileview.File{
+	file1 := file.File{
 		BaseFile: file.BaseFile{
 			ID:        "file-1",
 			ProjectID: "project-1",

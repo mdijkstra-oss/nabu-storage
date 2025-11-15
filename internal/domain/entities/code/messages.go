@@ -1,7 +1,7 @@
 package code
 
 type CreateCodeData struct {
-	ProjectID         string   `json:"project_id" validate:"required"`
+	ProjectID         string   `json:"project_id" validate:"required,valid_id"`
 	Slug              string   `json:"slug" validate:"required,code_slug" normalize:"trim,lowercase"`
 	Color             string   `json:"color" validate:"required" normalize:"trim,lowercase"`
 	Definition        string   `json:"definition" validate:"required"`
@@ -24,10 +24,10 @@ type UpdateCodeData struct {
 }
 
 type DeleteCodeData struct {
-	ProjectID string `json:"project_id" validate:"required"`
+	ProjectID string `json:"project_id" validate:"required,valid_id"`
 }
 
 type MergeCodesData struct {
-	SourceID string `json:"source_id" validate:"required"`
-	TargetID string `json:"target_id" validate:"required"`
+	SourceID string `json:"source_id" validate:"required,valid_id"`
+	TargetID string `json:"target_id" validate:"required,valid_id"`
 }

@@ -10,7 +10,7 @@ const (
 
 type CodingAction struct {
 	CodeSlug string                   `json:"code_slug" validate:"required,code_slug"`
-	CodeID   string                   `json:"code_id" validate:"required"`
+	CodeID   string                   `json:"code_id" validate:"required,valid_id"`
 	Action   CodingMutation           `json:"action" validate:"oneof=SetCoding AppendCoding RemoveCoding"`
 	Sections []CodedSectionAttributes `json:"texts" validate:"min=1,dive,required"`
 	ChunkID  string                   `json:"chunk_id" validate:"required"`

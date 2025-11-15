@@ -5,10 +5,9 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"hermes-relay/internal/cqrs/dispatch"
 	"hermes-relay/internal/cqrs/projection"
-	"hermes-relay/internal/domain/entities/code"
 	"hermes-relay/internal/domain/entities/project"
+	codeview "hermes-relay/internal/domain/projections/code-entity"
 	fileview "hermes-relay/internal/domain/projections/file-entity"
-	"hermes-relay/internal/domain/projections/file-entity/chunk"
 	projectview "hermes-relay/internal/domain/projections/project-entity"
 	"hermes-relay/internal/domain/projections/registry"
 	"hermes-relay/internal/handlers/http"
@@ -36,54 +35,24 @@ func SetupHTTPHandlers(r chi.Router, publisher *dispatch.InMemoryPublisher, regi
 		// Todo: r.Use(middleware.RequireAuth)
 
 		r.Get("/", http.Query(func(query projection.PaginationQuery) []projection.PaginationResult[project.Project] {
-			allProjects := registryState.GetAllProjects()
-			return projection.Paginate(allProjects, query)
+			return registry.QueryAllProjects(registryState, query)
 		}))
 
 		r.Route("/{projectId}", func(r chi.Router) {
 			// Todo: r.Use(middleware.RequireProjectAccess)
 
-			r.Get("/", http.ProjectQuery(registryState, func(query http.EmptyQuery, proj project.Project) *project.Project {
-				return &proj
-			}))
+			r.Get("/", http.ProjectQuery(registryState, projectview.QueryProject))
 
 			r.Route("/files", func(r chi.Router) {
-				r.Get("/", http.ProjectQuery(registryState, func(query projection.PaginationQuery, proj project.Project) []fileview.FileSummary {
-					files := projectview.GetAllFiles(proj)
-					return utils.Map(files, fileview.ToSummary)
-				}))
-
-				r.Get("/{id}", http.ProjectQuery(registryState, func(query http.IDQuery, proj project.Project) *fileview.FileSummary {
-					f := projectview.GetFile(proj, query.ID)
-					if f == nil {
-						return nil
-					}
-					summary := fileview.ToSummary(*f)
-					return &summary
-				}))
-
-				r.Get("/{id}/chunks", http.ProjectQuery(registryState, func(query chunk.ChunkQuery, proj project.Project) *chunk.ChunkResult {
-					f := projectview.GetFile(proj, query.ID)
-					if f == nil {
-						return nil
-					}
-					return chunk.GetChunk(*f, query)
-				}))
+				r.Get("/", http.ProjectQuery(registryState, fileview.QueryFiles))
+				r.Get("/{id}", http.ProjectQuery(registryState, fileview.QueryFile))
+				r.Get("/{id}/chunks", http.ProjectQuery(registryState, fileview.QueryChunk))
 			})
 
 			r.Route("/codes", func(r chi.Router) {
-				r.Get("/", http.ProjectQuery(registryState, func(query projection.PaginationQuery, proj project.Project) []projection.PaginationResult[code.Code] {
-					codes := projectview.GetAllCodes(proj)
-					return projection.Paginate(codes, query)
-				}))
-
-				r.Get("/{id}", http.ProjectQuery(registryState, func(query http.IDQuery, proj project.Project) *code.Code {
-					return projectview.GetCode(proj, query.ID)
-				}))
-
-				r.Get("/slug/{slug}", http.ProjectQuery(registryState, func(query http.SlugQuery, proj project.Project) *code.Code {
-					return projectview.GetCodeBySlug(proj, query.Slug)
-				}))
+				r.Get("/", http.ProjectQuery(registryState, codeview.QueryCodes))
+				r.Get("/{id}", http.ProjectQuery(registryState, codeview.QueryCode))
+				r.Get("/slug/{slug}", http.ProjectQuery(registryState, codeview.QueryCodeBySlug))
 			})
 		})
 	})

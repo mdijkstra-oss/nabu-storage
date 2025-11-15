@@ -74,12 +74,12 @@ func Validate[P any](registry *RegistryState, validator func(project.Project, P,
 		}
 
 		var payload P
-		if err := commands.UnmarshallPayload(message, &payload); err != nil {
-			slog.Warn("failed to unmarshal command payload, ignoring invalid request",
+		if err := commands.EnsureValidPayload(message, &payload); err != nil {
+			slog.Warn("failed to validate command payload, ignoring invalid request",
 				"action", message.Action,
 				"aggregateType", message.AggregateType,
 				"error", err)
-			return nil, utils.FieldError("payload", "invalid format")
+			return nil, err
 		}
 
 		validationErr := validator(*proj, payload, message)

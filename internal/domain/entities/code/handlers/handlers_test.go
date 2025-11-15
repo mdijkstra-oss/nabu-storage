@@ -9,10 +9,11 @@ import (
 )
 
 var (
-	testProjectID    = utils.NewID()
-	testCodeID1      = utils.NewID()
-	testCodeID2      = utils.NewID()
-	testDeleteCodeID = utils.NewID()
+	testProjectID        = utils.NewID()
+	testCodeID1          = utils.NewID()
+	testCodeID2          = utils.NewID()
+	testDeleteCodeID     = utils.NewID()
+	testNonexistentID    = utils.NewID()
 )
 
 var cmds = []*commands.AnyMessage{
@@ -189,7 +190,7 @@ func TestCodeRouter(t *testing.T) {
 		{
 			Name: "MergeCodes with non-existent source fails",
 			Input: commands.ToAny(commands.NewCommand[code.MergeCodesPayload, any](code.MergeCodes, code.MergeCodesPayload{
-				SourceID: "code-nonexistent",
+				SourceID: testNonexistentID,
 				TargetID: testCodeID2,
 			}, code.EntityName, testCodeID2, nil)),
 			ExpectErr: "validation failed: source_id not found",
@@ -198,7 +199,7 @@ func TestCodeRouter(t *testing.T) {
 			Name: "MergeCodes with non-existent target fails",
 			Input: commands.ToAny(commands.NewCommand[code.MergeCodesPayload, any](code.MergeCodes, code.MergeCodesPayload{
 				SourceID: testCodeID1,
-				TargetID: "code-nonexistent",
+				TargetID: testNonexistentID,
 			}, code.EntityName, testCodeID1, nil)),
 			ExpectErr: "validation failed: target_id not found",
 		},

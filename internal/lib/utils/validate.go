@@ -22,4 +22,8 @@ func init() {
 		pattern := `^[a-z]+(-[a-z]+)*:[a-z]+(-[a-z]+)*$`
 		return regexp.MustCompile(pattern).MatchString(value)
 	})
+
+	registerFieldValidation("valid_id", func(value string) bool {
+		return ValidID(value)
+	})
 }

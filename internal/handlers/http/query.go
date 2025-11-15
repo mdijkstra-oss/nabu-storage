@@ -3,14 +3,11 @@ package http
 import (
 	"errors"
 	"github.com/go-chi/chi/v5"
-	"github.com/go-playground/validator/v10"
 	"hermes-relay/internal/domain/entities/project"
 	"hermes-relay/internal/domain/projections/registry"
 	"hermes-relay/internal/lib/utils"
 	"net/http"
 )
-
-var validate = validator.New()
 
 func ParseQuery[Q any](r *http.Request) (Q, error) {
 	var query Q
@@ -27,7 +24,7 @@ func ParseQuery[Q any](r *http.Request) (Q, error) {
 		return query, err
 	}
 
-	if err := validate.Struct(query); err != nil {
+	if err := utils.Validate.Struct(query); err != nil {
 		return query, utils.ToValidationError(err)
 	}
 
