@@ -203,6 +203,8 @@ func (d *DiskPersistence) Apply() func(*commands.AnyMessage) error {
 }
 
 // ReplayAllEvents loads all events from disk and publishes them to the publisher
+// Panics and errors during replay will crash the application - this is intentional
+// as corrupt event store data requires manual intervention
 func (d *DiskPersistence) ReplayAllEvents(publisher *dispatch.InMemoryPublisher) error {
 	events, err := d.LoadAllEvents()
 	if err != nil {

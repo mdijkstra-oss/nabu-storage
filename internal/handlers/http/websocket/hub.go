@@ -2,6 +2,7 @@ package websocket
 
 import (
 	"github.com/gorilla/websocket"
+	"hermes-relay/internal/lib/utils"
 	"sync"
 )
 
@@ -53,9 +54,11 @@ func (h *Hub) Broadcast(projectID string, messageType int, data []byte) {
 	h.mu.RUnlock()
 
 	for _, conn := range conns {
-		if err := conn.WriteMessage(messageType, data); err != nil {
-			h.Unregister(projectID, conn)
-			conn.Close()
-		}
+		utils.GuardWith(func() {
+			if err := conn.WriteMessage(messageType, data); err != nil {
+				h.Unregister(projectID, conn)
+				conn.Close()
+			}
+		}, "projectID", projectID, "operation", "broadcast")
 	}
 }

@@ -76,19 +76,21 @@ func handleConnection(
 }
 
 func sendInitialSnapshot(conn *websocket.Conn, projectID string, registryState *registry.RegistryState) {
-	project := registryState.GetProject(projectID)
-	if project == nil {
-		slog.Warn("project not found for initial snapshot", "projectID", projectID)
-		return
-	}
+	utils.GuardWith(func() {
+		project := registryState.GetProject(projectID)
+		if project == nil {
+			slog.Warn("project not found for initial snapshot", "projectID", projectID)
+			return
+		}
 
-	msg := Message{
-		Type:      "snapshot",
-		ProjectID: projectID,
-		Data:      project,
-	}
+		msg := Message{
+			Type:      "snapshot",
+			ProjectID: projectID,
+			Data:      project,
+		}
 
-	utils.ShouldWork(conn.WriteJSON(msg))
+		utils.ShouldWork(conn.WriteJSON(msg))
+	}, "projectID", projectID, "operation", "sendInitialSnapshot")
 }
 
 func forwardProjectEvent[T patches.ProjectEventPayload](
@@ -98,23 +100,26 @@ func forwardProjectEvent[T patches.ProjectEventPayload](
 	messageType string,
 ) dispatch.CommandRouter {
 	return dispatch.LimitOnAction(action, func(msg *commands.AnyMessage, _ dispatch.PublishFunc) (*commands.AnyMessage, error) {
-		var payload T
-		if err := commands.UnmarshallPayload(msg, &payload); err != nil {
-			slog.Error("failed to unmarshal payload", "action", action, "error", err)
-			return nil, nil
-		}
+		utils.GuardWith(func() {
+			var payload T
+			if err := commands.UnmarshallPayload(msg, &payload); err != nil {
+				slog.Error("failed to unmarshal payload", "action", action, "error", err)
+				return
+			}
 
-		if payload.GetProjectID() != projectID {
-			return nil, nil
-		}
+			if payload.GetProjectID() != projectID {
+				return
+			}
 
-		message := Message{
-			Type:      messageType,
-			ProjectID: payload.GetProjectID(),
-			Data:      payload.GetData(),
-		}
+			message := Message{
+				Type:      messageType,
+				ProjectID: payload.GetProjectID(),
+				Data:      payload.GetData(),
+			}
 
-		utils.ShouldWork(conn.WriteJSON(message))
+			utils.ShouldWork(conn.WriteJSON(message))
+		}, "projectID", projectID, "action", action, "operation", "forwardProjectEvent")
+
 		return nil, nil
 	})
 }

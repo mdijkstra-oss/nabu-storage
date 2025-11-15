@@ -55,7 +55,9 @@ func (p *InMemoryPublisher) Publish(event *commands.AnyMessage) (*commands.AnyMe
 	var firstResult *commands.AnyMessage
 
 	for _, sub := range subscribers {
-		result, err := sub.router(event, p.Publish)
+		result, err := utils.GuardReturnErrorWith(func() (*commands.AnyMessage, error) {
+			return sub.router(event, p.Publish)
+		}, "action", event.Action, "aggregateType", event.AggregateType, "operation", "subscriber")
 
 		if result != nil {
 			if firstResult == nil {
@@ -65,7 +67,9 @@ func (p *InMemoryPublisher) Publish(event *commands.AnyMessage) (*commands.AnyMe
 			// Cascade events should not fail the primary event.
 			// Log errors but continue processing.
 			// Todo: Add replay limiter
-			utils.Should(p.Publish(result))
+			utils.GuardWith(func() {
+				utils.Should(p.Publish(result))
+			}, "parentAction", event.Action, "cascadeAction", result.Action, "operation", "cascade")
 		}
 
 		if err != nil {
