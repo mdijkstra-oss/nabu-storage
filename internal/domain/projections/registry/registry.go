@@ -2,10 +2,8 @@ package registry
 
 import (
 	"hermes-relay/internal/cqrs/commands"
-	"hermes-relay/internal/cqrs/dispatch"
 	"hermes-relay/internal/domain/entities/project"
 	"hermes-relay/internal/lib/utils"
-	"log/slog"
 	"sync"
 )
 
@@ -57,36 +55,4 @@ func (rs *RegistryState) ResolveProjectID(message *commands.AnyMessage) string {
 		projectID = rs.GetProjectIDForEntity(message.AggregateType, message.AggregateID)
 	}
 	return projectID
-}
-
-func Validate[P any](registry *RegistryState, validator func(project.Project, P, *commands.AnyMessage) error, handler dispatch.CommandRouter) dispatch.CommandRouter {
-	return func(message *commands.AnyMessage, publisher dispatch.PublishFunc) (*commands.AnyMessage, error) {
-		projectID := registry.ResolveProjectID(message)
-
-		proj := registry.GetProject(projectID)
-
-		if proj == nil {
-			return nil, utils.FieldError("ProjectID", "not found")
-		}
-
-		if !proj.IsHealthy() {
-			return nil, &utils.InternalError{Message: "project is in unhealthy state due to corrupted data, commands are blocked"}
-		}
-
-		var payload P
-		if err := commands.EnsureValidPayload(message, &payload); err != nil {
-			slog.Warn("failed to validate command payload, ignoring invalid request",
-				"action", message.Action,
-				"aggregateType", message.AggregateType,
-				"error", err)
-			return nil, err
-		}
-
-		validationErr := validator(*proj, payload, message)
-		if validationErr != nil {
-			return nil, validationErr
-		}
-
-		return handler(message, publisher)
-	}
 }

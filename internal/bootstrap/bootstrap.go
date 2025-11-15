@@ -5,9 +5,7 @@ import (
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/cqrs/dispatch"
 	"hermes-relay/internal/cqrs/patches"
-	codehandlers "hermes-relay/internal/domain/entities/code/handlers"
-	filehandlers "hermes-relay/internal/domain/entities/file/handlers"
-	projecthandlers "hermes-relay/internal/domain/entities/project/handlers"
+	"hermes-relay/internal/domain"
 	"hermes-relay/internal/domain/projections/registry"
 	"log/slog"
 	"os"
@@ -60,14 +58,5 @@ func setupRegistryWithPatching(
 
 func SetupCommandHandlers(publisher *dispatch.InMemoryPublisher, registryState *registry.RegistryState) {
 	slog.Info("Setting up command handlers for new incoming messages")
-
-	var commandRouter = dispatch.LimitOnType(commands.Command,
-		dispatch.CombineRouters(
-			codehandlers.NewRouter(registryState),
-			filehandlers.NewRouter(registryState),
-			projecthandlers.NewRouter(registryState),
-		),
-	)
-
-	publisher.Subscribe(commandRouter)
+	publisher.Subscribe(domain.NewCommandRouter(registryState))
 }
