@@ -112,7 +112,7 @@ paths:
                         chunk_id: "1"
                         texts:
                           - text: "I was really worried about the surgery"
-                            ai_reason: "Explicit expression of pre-procedure worry"
+                            reason: "Explicit expression of pre-procedure worry"
                             comment: ""
               batchCommands:
                 summary: Create multiple codes in one request
@@ -588,7 +588,7 @@ paths:
                           code_slug: "emotion:anxiety"
                           code_id: "660e8400-e29b-41d4-a716-446655440001"
                           text: "feeling anxious about the upcoming procedure"
-                          ai_reason: "Direct expression of pre-procedure anxiety"
+                          reason: "Direct expression of pre-procedure anxiety"
                           comment: ""
                     chunk_id: 1
                     total_chunks: 5
@@ -1103,10 +1103,10 @@ components:
           minLength: 1
           maxLength: 1500
           description: The coded text excerpt
-        ai_reason:
+        reason:
           type: string
           maxLength: 1500
-          description: AI-generated reasoning for this code application
+          description: Reasoning for this code application
         comment:
           type: string
           maxLength: 1500
@@ -1355,7 +1355,7 @@ components:
           type: string
           minLength: 1
           maxLength: 1500
-        ai_reason:
+        reason:
           type: string
           maxLength: 1500
         comment:
@@ -1590,7 +1590,7 @@ x-command-reference:
                 "texts": [
                   {
                     "text": "I didn't understand how to submit the form",
-                    "ai_reason": "User expresses confusion about a core interface function",
+                    "reason": "User expresses confusion about a core interface function",
                     "comment": ""
                   }
                 ]

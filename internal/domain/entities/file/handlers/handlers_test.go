@@ -79,9 +79,8 @@ func TestFileRouter(t *testing.T) {
 						Action:   file.SetCoding,
 						Sections: []file.CodedSectionAttributes{
 							{
-								Text:     "Some text to code",
-								AIReason: "Test reason",
-								Comment:  "Test comment",
+								Text:   "Some text to code",
+								Reason: "Test reason",
 							},
 						},
 						ChunkID: "chunk-1",
@@ -97,9 +96,8 @@ func TestFileRouter(t *testing.T) {
 						Action:   file.SetCoding,
 						Sections: []file.CodedSectionAttributes{
 							{
-								Text:     "Some text to code",
-								AIReason: "Test reason",
-								Comment:  "Test comment",
+								Text:   "Some text to code",
+								Reason: "Test reason",
 							},
 						},
 						ChunkID: "chunk-1",
@@ -116,7 +114,7 @@ func TestFileRouter(t *testing.T) {
 						CodeSlug: "topic:first",
 						Action:   file.SetCoding,
 						Sections: []file.CodedSectionAttributes{
-							{Text: "First section", AIReason: "First reason"},
+							{Text: "First section", Reason: "First reason"},
 						},
 						ChunkID: "chunk-1",
 					},
@@ -125,7 +123,7 @@ func TestFileRouter(t *testing.T) {
 						CodeSlug: "topic:second",
 						Action:   file.AppendCoding,
 						Sections: []file.CodedSectionAttributes{
-							{Text: "Second section", Comment: "Second comment"},
+							{Text: "Second section"},
 						},
 						ChunkID: "chunk-2",
 					},
@@ -139,7 +137,7 @@ func TestFileRouter(t *testing.T) {
 						CodeSlug: "topic:first",
 						Action:   file.SetCoding,
 						Sections: []file.CodedSectionAttributes{
-							{Text: "First section", AIReason: "First reason"},
+							{Text: "First section", Reason: "First reason"},
 						},
 						ChunkID: "chunk-1",
 					},
@@ -148,7 +146,7 @@ func TestFileRouter(t *testing.T) {
 						CodeSlug: "topic:second",
 						Action:   file.AppendCoding,
 						Sections: []file.CodedSectionAttributes{
-							{Text: "Second section", Comment: "Second comment"},
+							{Text: "Second section"},
 						},
 						ChunkID: "chunk-2",
 					},
@@ -164,7 +162,7 @@ func TestFileRouter(t *testing.T) {
 						CodeSlug: "topic:append",
 						Action:   file.AppendCoding,
 						Sections: []file.CodedSectionAttributes{
-							{Text: "Appending text", AIReason: "Append reason", Comment: "Append comment"},
+							{Text: "Appending text", Reason: "Append reason"},
 						},
 						ChunkID: "chunk-1",
 					},
@@ -178,7 +176,7 @@ func TestFileRouter(t *testing.T) {
 						CodeSlug: "topic:append",
 						Action:   file.AppendCoding,
 						Sections: []file.CodedSectionAttributes{
-							{Text: "Appending text", AIReason: "Append reason", Comment: "Append comment"},
+							{Text: "Appending text", Reason: "Append reason"},
 						},
 						ChunkID: "chunk-1",
 					},

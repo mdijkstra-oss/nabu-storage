@@ -60,9 +60,8 @@ type CodedSection struct {
 }
 
 type CodedSectionAttributes struct {
-	Text     string `json:"text" validate:"required,min=1,max=1500"` // todo: max halfpage?
-	AIReason string `json:"ai_reason" validate:"max=1500"`
-	Comment  string `json:"comment" validate:"max=1500"`
+	Text   string `json:"text" validate:"required,min=1,max=1500"`
+	Reason string `json:"reason" validate:"max=1500"`
 }
 
 type Chunk struct {

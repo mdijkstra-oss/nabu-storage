@@ -85,9 +85,8 @@ func CodedFileReducer(current *File, message *commands.AnyMessage, payload *file
 						CodeSlug:   action.CodeSlug,
 						CodeID:     action.CodeID,
 						CodedSectionAttributes: file.CodedSectionAttributes{
-							Text:     section.Text,
-							AIReason: section.AIReason,
-							Comment:  section.Comment,
+							Text:   section.Text,
+							Reason: section.Reason,
 						},
 					})
 				})
