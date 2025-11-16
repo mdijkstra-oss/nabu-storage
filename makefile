@@ -1,8 +1,17 @@
-.PHONY: setup-hooks
+.PHONY: setup
 setup:
 	go install github.com/evilmartians/lefthook@latest
 	lefthook install
 	go install gotest.tools/gotestsum@latest
+	go install github.com/watchexec/watchexec@latest
+
+.PHONY: start
+start:
+	go run cmd/main.go
+
+.PHONY: dev
+dev:
+	watchexec -e go -r make start
 
 .PHONY: test
 test:
