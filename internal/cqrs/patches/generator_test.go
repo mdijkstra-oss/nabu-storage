@@ -33,7 +33,7 @@ func TestGeneratePatch(t *testing.T) {
 				Before: testStruct{Name: "old", Count: 1},
 				After:  testStruct{Name: "new", Count: 1},
 			},
-			Expected: `{"name":"new"}`,
+			Expected: `[{"op":"replace","path":"/name","value":"new"}]`,
 		},
 		{
 			Name: "Add field value",
@@ -41,7 +41,7 @@ func TestGeneratePatch(t *testing.T) {
 				Before: testStruct{Name: "test", Count: 0},
 				After:  testStruct{Name: "test", Count: 5},
 			},
-			Expected: `{"count":5}`,
+			Expected: `[{"op":"replace","path":"/count","value":5}]`,
 		},
 		{
 			Name: "Add array field",
@@ -49,7 +49,7 @@ func TestGeneratePatch(t *testing.T) {
 				Before: testStruct{Name: "test", Count: 1},
 				After:  testStruct{Name: "test", Count: 1, Tags: []string{"a", "b"}},
 			},
-			Expected: `{"tags":["a","b"]}`,
+			Expected: `[{"op":"add","path":"/tags","value":["a","b"]}]`,
 		},
 		{
 			Name: "Multiple changes",
@@ -57,7 +57,7 @@ func TestGeneratePatch(t *testing.T) {
 				Before: testStruct{Name: "old", Count: 1},
 				After:  testStruct{Name: "new", Count: 2, Tags: []string{"x"}},
 			},
-			Expected: `{"count":2,"name":"new","tags":["x"]}`,
+			Expected: `[{"op":"replace","path":"/count","value":2},{"op":"replace","path":"/name","value":"new"},{"op":"add","path":"/tags","value":["x"]}]`,
 		},
 		{
 			Name: "No changes produces empty patch",
@@ -65,7 +65,7 @@ func TestGeneratePatch(t *testing.T) {
 				Before: testStruct{Name: "same", Count: 1},
 				After:  testStruct{Name: "same", Count: 1},
 			},
-			Expected: `{}`,
+			Expected: `null`,
 		},
 	}
 
@@ -138,7 +138,10 @@ func TestGeneratePatchRoundTrip(t *testing.T) {
 			th.AssertError(t, err, "", "generate patch")
 
 			beforeJSON := utils.Should(json.Marshal(tt.Before))
-			result, err := jsonpatch.MergePatch(beforeJSON, patch)
+			patchObj, err := jsonpatch.DecodePatch(patch)
+			th.AssertError(t, err, "", "decode patch")
+
+			result, err := patchObj.Apply(beforeJSON)
 			th.AssertError(t, err, "", "apply patch")
 
 			var patched project.Project
