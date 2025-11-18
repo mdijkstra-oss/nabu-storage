@@ -87,7 +87,7 @@ func TestFindRange_FuzzyMatching(t *testing.T) {
 		// Punctuation variations
 		{"comma in text", "Hello, world! How are you?", "Hello world How are", true},
 		{"punctuation removed", "Well... this is interesting!", "Well this is interesting", true},
-		{"mixed punctuation", "The team's goal: ship fast, ship well.", "team goal ship fast ship well", true},
+		{"mixed punctuation", "The team's goal: ship fast, ship well.", "teams goal ship fast ship well", true},
 
 		// Boundary conditions
 		{"start of text", "Start here with some text following after", "Start here with", true},

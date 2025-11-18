@@ -113,7 +113,6 @@ paths:
                         texts:
                           - text: "I was really worried about the surgery"
                             reason: "Explicit expression of pre-procedure worry"
-                            comment: ""
               batchCommands:
                 summary: Create multiple codes in one request
                 value:
@@ -589,7 +588,6 @@ paths:
                           code_id: "660e8400-e29b-41d4-a716-446655440001"
                           text: "feeling anxious about the upcoming procedure"
                           reason: "Direct expression of pre-procedure anxiety"
-                          comment: ""
                     chunk_id: 1
                     total_chunks: 5
                     next: 2
@@ -1107,10 +1105,6 @@ components:
           type: string
           maxLength: 1500
           description: Reasoning for this code application
-        comment:
-          type: string
-          maxLength: 1500
-          description: User comment on this coding
 
     ChunkResult:
       type: object
@@ -1358,9 +1352,6 @@ components:
         reason:
           type: string
           maxLength: 1500
-        comment:
-          type: string
-          maxLength: 1500
 
 x-command-reference:
   description: |
@@ -1590,8 +1581,7 @@ x-command-reference:
                 "texts": [
                   {
                     "text": "I didn't understand how to submit the form",
-                    "reason": "User expresses confusion about a core interface function",
-                    "comment": ""
+                    "reason": "User expresses confusion about a core interface function"
                   }
                 ]
               }

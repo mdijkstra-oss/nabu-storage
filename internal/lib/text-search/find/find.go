@@ -2,7 +2,11 @@ package find
 
 import "strings"
 
-const MIN_OVERLAP = 0.8
+// MIN_OVERLAP at 1.0 requires exact token matching while still handling whitespace/punctuation
+// variations via tokenization. Lower values (e.g. 0.8) cause boundary precision issues where
+// non-matching tokens at the start of windows get included in returned indices.
+// Punctuation at word boundaries is preserved in the returned range.
+const MIN_OVERLAP = 1.0
 
 // FindRange assumes small chunks of text, (like half to full page perhaps) multi-word
 // It's fast, but looses accuracy on larger texts and smaller needles
