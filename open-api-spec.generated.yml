@@ -63,7 +63,7 @@ paths:
                   payload:
                     project_id: "550e8400-e29b-41d4-a716-446655440000"
                     slug: "emotion:anxiety"
-                    color: "red-500"
+                    color: "red-7"
                     definition: "Patient expressions of worry, nervousness, or fear about medical procedures, outcomes, or waiting times"
                     inclusion_criteria: "Look for explicit anxiety words (worried, nervous, scared, anxious) or implicit indicators like excessive questioning about risks, repeated concerns about outcomes, or physical manifestations mentioned"
                     exclusion_criteria: "Do not code general discomfort or mild concern. Exclude post-procedure relief statements that mention past anxiety"
@@ -83,7 +83,7 @@ paths:
                   aggregateType: Code
                   aggregateId: "660e8400-e29b-41d4-a716-446655440001"
                   payload:
-                    color: "orange-600"
+                    color: "orange-8"
                     definition: "Updated to focus specifically on pre-procedure anxiety, excluding post-treatment concerns"
               createFile:
                 summary: Create a source file
@@ -123,7 +123,7 @@ paths:
                     payload:
                       project_id: "550e8400-e29b-41d4-a716-446655440000"
                       slug: "usability:friction-point"
-                      color: "amber-500"
+                      color: "amber-7"
                       definition: "Points where users struggle with the interface, experience confusion, or express frustration with system interactions"
                       inclusion_criteria: "Include moments where users pause, express confusion verbally, ask for help, or make errors repeatedly. Look for phrases like 'I don't understand', 'where do I...', or observable struggle"
                       examples:
@@ -136,7 +136,7 @@ paths:
                     payload:
                       project_id: "550e8400-e29b-41d4-a716-446655440000"
                       slug: "theme:accessibility"
-                      color: "blue-400"
+                      color: "blue-6"
                       definition: "Comments and observations about ease of access for users with disabilities or special needs"
       responses:
         '200':
@@ -183,7 +183,7 @@ paths:
                           payload:
                             project_id: "550e8400-e29b-41d4-a716-446655440000"
                             slug: "usability:friction-point"
-                            color: "amber-500"
+                            color: "amber-7"
                             definition: "Points where users struggle with the interface"
                       - index: 1
                         success: true
@@ -199,7 +199,7 @@ paths:
                           payload:
                             project_id: "550e8400-e29b-41d4-a716-446655440000"
                             slug: "theme:accessibility"
-                            color: "blue-400"
+                            color: "blue-6"
                             definition: "Comments about ease of access for users with disabilities"
         '202':
           description: Command(s) accepted for async processing
@@ -377,7 +377,7 @@ paths:
                         id: "660e8400-e29b-41d4-a716-446655440001"
                         project_id: "550e8400-e29b-41d4-a716-446655440000"
                         slug: "emotion:anxiety"
-                        color: "red-500"
+                        color: "red-7"
                         definition: "Patient expressions of worry about medical procedures"
                         healthy: true
                     files:
@@ -424,7 +424,7 @@ paths:
                     id: "660e8400-e29b-41d4-a716-446655440001"
                     project_id: "550e8400-e29b-41d4-a716-446655440000"
                     slug: "topic:energy-transition"
-                    color: "green-600"
+                    color: "green-8"
                     definition: "References to renewable energy and sustainability"
                     healthy: true
                 files:
@@ -639,7 +639,7 @@ paths:
                   - id: "660e8400-e29b-41d4-a716-446655440001"
                     project_id: "550e8400-e29b-41d4-a716-446655440000"
                     slug: "emotion:anxiety"
-                    color: "red-500"
+                    color: "red-7"
                     definition: "Patient expressions of worry, nervousness, or fear about medical procedures"
                     inclusion_criteria: "Look for explicit anxiety words or implicit indicators"
                     examples: ["I was really worried about the surgery"]
@@ -647,7 +647,7 @@ paths:
                   - id: "770e8400-e29b-41d4-a716-446655440002"
                     project_id: "550e8400-e29b-41d4-a716-446655440000"
                     slug: "theme:communication"
-                    color: "blue-400"
+                    color: "blue-6"
                     definition: "Interactions between patients and healthcare providers"
                     healthy: true
                 total: 8
@@ -681,7 +681,7 @@ paths:
                 id: "660e8400-e29b-41d4-a716-446655440001"
                 project_id: "550e8400-e29b-41d4-a716-446655440000"
                 slug: "topic:energy-transition"
-                color: "green-600"
+                color: "green-8"
                 definition: "References to renewable energy, fossil fuel phase-out, or sustainability initiatives in policy documents"
                 inclusion_criteria: "Include mentions of solar, wind, carbon reduction targets, climate goals"
                 exclusion_criteria: "Exclude general environmental topics not related to energy policy"
@@ -723,7 +723,7 @@ paths:
                 id: "660e8400-e29b-41d4-a716-446655440001"
                 project_id: "550e8400-e29b-41d4-a716-446655440000"
                 slug: "usability:friction-point"
-                color: "amber-500"
+                color: "amber-7"
                 definition: "Moments where users express confusion, frustration, or struggle with interface elements"
                 inclusion_criteria: "Look for verbal confusion, repeated errors, requests for help"
                 examples: ["I don't know where to click", "This doesn't work like I expected"]
@@ -924,11 +924,14 @@ components:
           example: "emotion:anxiety"
         color:
           type: string
+          pattern: '^(gray|mauve|slate|sage|olive|sand|tomato|red|ruby|crimson|pink|plum|purple|violet|iris|indigo|blue|cyan|teal|jade|green|grass|lime|mint|sky|yellow|amber|orange|brown|bronze|gold)-(6|7|8|9|10)$'
           description: |
-            Tailwind CSS color format (e.g., red-500, blue-400, amber-600).
-            Supports standard colors with shades 50-950.
-            Can be multi-word colors like light-blue-400.
-          example: "red-500"
+            Radix color format: [color]-[step] where color is one of the Radix colors
+            (gray, mauve, slate, sage, olive, sand, tomato, red, ruby, crimson, pink, plum,
+            purple, violet, iris, indigo, blue, cyan, teal, jade, green, grass, lime, mint,
+            sky, yellow, amber, orange, brown, bronze, gold) and step is 6-10 (inclusive).
+            Lower steps = less prominent, higher steps = more prominent.
+          example: "red-7"
         definition:
           type: string
           description: |
@@ -1180,7 +1183,8 @@ components:
           description: Automatically lowercased and trimmed
         color:
           type: string
-          description: Tailwind color format (automatically lowercased and trimmed)
+          pattern: '^(gray|mauve|slate|sage|olive|sand|tomato|red|ruby|crimson|pink|plum|purple|violet|iris|indigo|blue|cyan|teal|jade|green|grass|lime|mint|sky|yellow|amber|orange|brown|bronze|gold)-(6|7|8|9|10)$'
+          description: Radix color format [color]-[step] (automatically lowercased and trimmed)
         definition:
           type: string
           minLength: 1
@@ -1216,6 +1220,7 @@ components:
           maxLength: 100
         color:
           type: string
+          pattern: '^(gray|mauve|slate|sage|olive|sand|tomato|red|ruby|crimson|pink|plum|purple|violet|iris|indigo|blue|cyan|teal|jade|green|grass|lime|mint|sky|yellow|amber|orange|brown|bronze|gold)-(6|7|8|9|10)$'
         definition:
           type: string
         inclusion_criteria:
@@ -1430,7 +1435,7 @@ x-command-reference:
           "payload": {
             "project_id": "550e8400-e29b-41d4-a716-446655440000",
             "slug": "speaker:mark-rutte",
-            "color": "purple-500",
+            "color": "purple-7",
             "definition": "Quotes and statements by Mark Rutte in parliamentary debates, including both direct quotes and paraphrased positions attributed to him",
             "inclusion_criteria": "Include statements where Rutte is explicitly named as speaker or where the context clearly identifies him. Include both verbatim quotes and reported speech",
             "exclusion_criteria": "Do not code statements about Rutte made by others, or general references without specific statements",

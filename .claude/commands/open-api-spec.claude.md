@@ -432,9 +432,11 @@ Document all found commands in a "Supported Commands by Aggregate" section. For 
   - NO numbers allowed
   - Examples: `topic:patient-experience`, `emotion:anxiety`, `theme:climate-change`
   - Source: `internal/lib/utils/validate.go` line 22
-- **Colors**: Check code entity for Tailwind color format and examples
-  - Should support multi-word colors (e.g., `light-blue-400`)
-  - Should document shade range (50-950)
+- **Colors**: Based on Code entity Color field comments in `internal/domain/entities/code/entity.go`
+  - Radix colors: gray, mauve, slate, sage, olive, sand, tomato, red, ruby, crimson, pink, plum, purple, violet, iris, indigo, blue, cyan, teal, jade, green, grass, lime, mint, sky, yellow, amber, orange, brown, bronze, gold
+  - Color steps: 6-10 (inclusive), where lower=less prominent, higher=more prominent
+  - Format: `[color]-[step]` (e.g., `red-7`, `blue-9`, `amber-6`)
+  - Pattern: `^(gray|mauve|slate|sage|olive|sand|tomato|red|ruby|crimson|pink|plum|purple|violet|iris|indigo|blue|cyan|teal|jade|green|grass|lime|mint|sky|yellow|amber|orange|brown|bronze|gold)-(6|7|8|9|10)$`
 - **Field lengths**: `maxLength` in OpenAPI = `max` value from validation tags
 
 ### Validation Error Message Formats
