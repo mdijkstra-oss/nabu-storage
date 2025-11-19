@@ -23,13 +23,13 @@ func TestByChunk(t *testing.T) {
 		},
 		Chunks: []file.Chunk{
 			{ID: "1", Content: "Climate change impacts", Codes: []file.CodedSection{
-				{StartIndex: 0, EndIndex: 14, CodeSlug: "topic:climate", CodeID: "code-1", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change"}},
+				{CodeSlug: "topic:climate", CodeID: "code-1", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change"}},
 			}},
 			{ID: "2", Content: "Economic policies affect", Codes: []file.CodedSection{
-				{StartIndex: 0, EndIndex: 8, CodeSlug: "topic:economy", CodeID: "code-2", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Economic"}},
+				{CodeSlug: "topic:economy", CodeID: "code-2", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Economic"}},
 			}},
 			{ID: "3", Content: "Climate patterns shift", Codes: []file.CodedSection{
-				{StartIndex: 0, EndIndex: 7, CodeSlug: "topic:climate", CodeID: "code-3", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate"}},
+				{CodeSlug: "topic:climate", CodeID: "code-3", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate"}},
 			}},
 		},
 	}
@@ -43,7 +43,7 @@ func TestByChunk(t *testing.T) {
 			Name:  "First chunk by default",
 			Input: ChunkQuery{},
 			Expected: &ChunkResult{
-				Chunk:       file.Chunk{ID: "1", Content: "Climate change impacts", Codes: []file.CodedSection{{StartIndex: 0, EndIndex: 14, CodeSlug: "topic:climate", CodeID: "code-1", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change"}}}},
+				Chunk:       file.Chunk{ID: "1", Content: "Climate change impacts", Codes: []file.CodedSection{{CodeSlug: "topic:climate", CodeID: "code-1", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change"}}}},
 				ChunkID:     1,
 				TotalChunks: 3,
 				Next:        intPtr(2),
@@ -55,7 +55,7 @@ func TestByChunk(t *testing.T) {
 				ChunkID: "1",
 			},
 			Expected: &ChunkResult{
-				Chunk:       file.Chunk{ID: "1", Content: "Climate change impacts", Codes: []file.CodedSection{{StartIndex: 0, EndIndex: 14, CodeSlug: "topic:climate", CodeID: "code-1", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change"}}}},
+				Chunk:       file.Chunk{ID: "1", Content: "Climate change impacts", Codes: []file.CodedSection{{CodeSlug: "topic:climate", CodeID: "code-1", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change"}}}},
 				ChunkID:     1,
 				TotalChunks: 3,
 				Next:        intPtr(2),
@@ -67,7 +67,7 @@ func TestByChunk(t *testing.T) {
 				ChunkID: "2",
 			},
 			Expected: &ChunkResult{
-				Chunk:       file.Chunk{ID: "2", Content: "Economic policies affect", Codes: []file.CodedSection{{StartIndex: 0, EndIndex: 8, CodeSlug: "topic:economy", CodeID: "code-2", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Economic"}}}},
+				Chunk:       file.Chunk{ID: "2", Content: "Economic policies affect", Codes: []file.CodedSection{{CodeSlug: "topic:economy", CodeID: "code-2", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Economic"}}}},
 				ChunkID:     2,
 				TotalChunks: 3,
 				Next:        intPtr(3),
@@ -79,7 +79,7 @@ func TestByChunk(t *testing.T) {
 				ChunkID: "3",
 			},
 			Expected: &ChunkResult{
-				Chunk:       file.Chunk{ID: "3", Content: "Climate patterns shift", Codes: []file.CodedSection{{StartIndex: 0, EndIndex: 7, CodeSlug: "topic:climate", CodeID: "code-3", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate"}}}},
+				Chunk:       file.Chunk{ID: "3", Content: "Climate patterns shift", Codes: []file.CodedSection{{CodeSlug: "topic:climate", CodeID: "code-3", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate"}}}},
 				ChunkID:     3,
 				TotalChunks: 3,
 				Next:        nil,
@@ -100,7 +100,7 @@ func TestByChunk(t *testing.T) {
 				},
 			},
 			Expected: &ChunkResult{
-				Chunk:       file.Chunk{ID: "1", Content: "Climate change impacts", Codes: []file.CodedSection{{StartIndex: 0, EndIndex: 14, CodeSlug: "topic:climate", CodeID: "code-1", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change"}}}},
+				Chunk:       file.Chunk{ID: "1", Content: "Climate change impacts", Codes: []file.CodedSection{{CodeSlug: "topic:climate", CodeID: "code-1", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change"}}}},
 				ChunkID:     1,
 				TotalChunks: 2,
 				Next:        intPtr(3),
@@ -115,7 +115,7 @@ func TestByChunk(t *testing.T) {
 				ChunkID: "3",
 			},
 			Expected: &ChunkResult{
-				Chunk:       file.Chunk{ID: "3", Content: "Climate patterns shift", Codes: []file.CodedSection{{StartIndex: 0, EndIndex: 7, CodeSlug: "topic:climate", CodeID: "code-3", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate"}}}},
+				Chunk:       file.Chunk{ID: "3", Content: "Climate patterns shift", Codes: []file.CodedSection{{CodeSlug: "topic:climate", CodeID: "code-3", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate"}}}},
 				ChunkID:     3,
 				TotalChunks: 2,
 				Next:        nil,
@@ -140,7 +140,7 @@ func TestByChunk(t *testing.T) {
 				},
 			},
 			Expected: &ChunkResult{
-				Chunk:       file.Chunk{ID: "1", Content: "Climate change impacts", Codes: []file.CodedSection{{StartIndex: 0, EndIndex: 14, CodeSlug: "topic:climate", CodeID: "code-1", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change"}}}},
+				Chunk:       file.Chunk{ID: "1", Content: "Climate change impacts", Codes: []file.CodedSection{{CodeSlug: "topic:climate", CodeID: "code-1", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change"}}}},
 				ChunkID:     1,
 				TotalChunks: 2,
 				Next:        intPtr(3),
@@ -154,7 +154,7 @@ func TestByChunk(t *testing.T) {
 				},
 			},
 			Expected: &ChunkResult{
-				Chunk:       file.Chunk{ID: "1", Content: "Climate change impacts", Codes: []file.CodedSection{{StartIndex: 0, EndIndex: 14, CodeSlug: "topic:climate", CodeID: "code-1", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change"}}}},
+				Chunk:       file.Chunk{ID: "1", Content: "Climate change impacts", Codes: []file.CodedSection{{CodeSlug: "topic:climate", CodeID: "code-1", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change"}}}},
 				ChunkID:     1,
 				TotalChunks: 1,
 				Next:        nil,

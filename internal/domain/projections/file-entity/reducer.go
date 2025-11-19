@@ -73,19 +73,17 @@ func CodedFileReducer(current *File, message *commands.AnyMessage, payload *file
 
 			case file.AppendCoding:
 				newCodes := utils.Reduce(action.Sections, []file.CodedSection{}, func(codes []file.CodedSection, section file.CodedSectionAttributes) []file.CodedSection {
-					start, end, found := find.FindRange(section.Text, chunk.Content)
+					foundText, found := find.FindRange(section.Text, chunk.Content)
 					if !found {
 						slog.Warn("Text not found", "chunk", action.ChunkID, "section", section)
 						return codes
 					}
 
 					return append(codes, file.CodedSection{
-						StartIndex: start,
-						EndIndex:   end,
-						CodeSlug:   action.CodeSlug,
-						CodeID:     action.CodeID,
+						CodeSlug: action.CodeSlug,
+						CodeID:   action.CodeID,
 						CodedSectionAttributes: file.CodedSectionAttributes{
-							Text:   section.Text,
+							Text:   foundText,
 							Reason: section.Reason,
 						},
 					})

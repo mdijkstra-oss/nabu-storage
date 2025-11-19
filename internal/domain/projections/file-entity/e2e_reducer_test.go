@@ -56,20 +56,35 @@ func replayEvents(events []*commands.AnyMessage, reducer func(*File, *commands.A
 	return state
 }
 
-func validateCodedSectionIndices(t *testing.T, file *File) {
+func validateCodedSectionTexts(t *testing.T, file *File) {
 	t.Helper()
 
 	for _, chunk := range file.Chunks {
 		for _, code := range chunk.Codes {
-			actualText := chunk.Content[code.StartIndex:code.EndIndex]
-			if actualText != code.Text {
+			if code.Text == "" {
+				t.Errorf("Empty text for coded section %s in chunk %s", code.CodeSlug, chunk.ID)
+				continue
+			}
+
+			// Verify the text actually exists in the chunk content
+			if !containsText(chunk.Content, code.Text) {
 				t.Errorf(
-					"Coded section mismatch in chunk %s, code %s\n  Indices: [%d, %d)\n  Expected: %q\n  Actual:   %q",
-					chunk.ID, code.CodeSlug, code.StartIndex, code.EndIndex, code.Text, actualText,
+					"Coded section text not found in chunk %s, code %s\n  Text: %q",
+					chunk.ID, code.CodeSlug, code.Text,
 				)
 			}
 		}
 	}
+}
+
+func containsText(content, text string) bool {
+	// Simple substring search - the text should be an exact substring
+	for i := 0; i <= len(content)-len(text); i++ {
+		if content[i:i+len(text)] == text {
+			return true
+		}
+	}
+	return false
 }
 
 func TestE2EReducer(t *testing.T) {
@@ -85,7 +100,7 @@ func TestE2EReducer(t *testing.T) {
 				if len(chunk.Codes) != 7 {
 					t.Fatalf("Expected 7 coded sections (9 minus 2 broken ones), got %d", len(chunk.Codes))
 				}
-				validateCodedSectionIndices(t, final)
+				validateCodedSectionTexts(t, final)
 			},
 		},
 		{
@@ -130,7 +145,7 @@ func TestE2EReducer(t *testing.T) {
 					}
 				}
 
-				validateCodedSectionIndices(t, final)
+				validateCodedSectionTexts(t, final)
 			},
 		},
 	}

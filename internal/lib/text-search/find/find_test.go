@@ -2,6 +2,7 @@ package find
 
 import (
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -9,29 +10,23 @@ import (
 // Helper types and functions
 // =====================================================
 
-type Position struct {
-	Start int
-	End   int
-}
-
-
-func assertFound(t *testing.T, needle, text string, found bool, pos Position) {
+func assertFound(t *testing.T, needle, searchText, foundText string, found bool) {
 	t.Helper()
 	if !found {
-		t.Fatalf("Expected to find %q in %q, but got found=false", needle, text)
+		t.Fatalf("Expected to find %q in %q, but got found=false", needle, searchText)
 	}
-	if pos.Start < 0 || pos.End > len(text) || pos.Start >= pos.End {
-		t.Fatalf("Invalid position: [%d:%d] for text length %d", pos.Start, pos.End, len(text))
+	if foundText == "" {
+		t.Fatalf("Expected non-empty found text, but got empty string")
 	}
 }
 
-func assertNotFound(t *testing.T, needle, text string, found bool, pos Position) {
+func assertNotFound(t *testing.T, needle, searchText, foundText string, found bool) {
 	t.Helper()
 	if found {
-		t.Errorf("Expected not to find %q, but got found=true at [%d:%d]", needle, pos.Start, pos.End)
+		t.Errorf("Expected not to find %q, but got found=true with text %q", needle, foundText)
 	}
-	if pos.Start != 0 || pos.End != 0 {
-		t.Errorf("Expected zero positions for not found, got [%d:%d]", pos.Start, pos.End)
+	if foundText != "" {
+		t.Errorf("Expected empty text for not found, got %q", foundText)
 	}
 }
 
@@ -51,13 +46,16 @@ func runFindRangeTests(t *testing.T, tests []FindRangeTestCase) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			start, end, found := FindRange(tt.needle, tt.text)
-			pos := Position{Start: start, End: end}
+			foundText, found := FindRange(tt.needle, tt.text)
 
 			if tt.wantFind {
-				assertFound(t, tt.needle, tt.text, found, pos)
+				assertFound(t, tt.needle, tt.text, foundText, found)
+				// Verify that the found text actually exists in the original text
+				if !strings.Contains(tt.text, foundText) {
+					t.Errorf("Found text %q does not exist in original text", foundText)
+				}
 			} else {
-				assertNotFound(t, tt.needle, tt.text, found, pos)
+				assertNotFound(t, tt.needle, tt.text, foundText, found)
 			}
 		})
 	}

@@ -10,10 +10,11 @@ const MIN_OVERLAP = 1.0
 
 // FindRange assumes small chunks of text, (like half to full page perhaps) multi-word
 // It's fast, but looses accuracy on larger texts and smaller needles
-func FindRange(needle, chunk string) (start, end int, found bool) {
+// Returns the exact text found in the chunk (not indices)
+func FindRange(needle, chunk string) (text string, found bool) {
 	needleTokens := tokenize(needle)
 	if len(needleTokens) == 0 {
-		return 0, 0, false
+		return "", false
 	}
 
 	// For fuzzy matching, we need variable-length windows
@@ -36,10 +37,46 @@ func FindRange(needle, chunk string) (start, end int, found bool) {
 
 		// Check if we have the right number of tokens and sufficient overlap
 		if len(windowTokens) == len(needleTokens) && tokenOverlap(needleTokens, windowTokens) >= MIN_OVERLAP {
-			return i, windowEnd, true
+			// Refine boundaries to match needle length as closely as possible
+			refinedStart, refinedEnd := refineBoundaries(chunk, i, windowEnd, needle)
+
+			// Return the exact text found in the chunk
+			return chunk[refinedStart:refinedEnd], true
 		}
 	}
-	return 0, 0, false
+	return "", false
+}
+
+// refineBoundaries adjusts start/end to match the needle text as closely as possible
+// It trims leading/trailing whitespace and adjusts the boundaries to match needle length
+func refineBoundaries(text string, start, end int, needle string) (int, int) {
+	// Trim leading whitespace
+	for start < end && isWhitespace(text[start]) {
+		start++
+	}
+
+	// Trim trailing whitespace
+	for end > start && isWhitespace(text[end-1]) {
+		end--
+	}
+
+	// Adjust end to match needle length more closely
+	// The window might include extra characters due to fuzzy matching
+	// Try to align the end with the last character of the needle
+	currentLen := end - start
+	needleLen := len(needle)
+
+	// If window is longer than needle, trim from the end
+	if currentLen > needleLen {
+		// Calculate how much to trim
+		diff := currentLen - needleLen
+		// But don't trim more than a few characters to avoid breaking the match
+		if diff <= 10 { // Reasonable threshold for punctuation/spacing differences
+			end = start + needleLen
+		}
+	}
+
+	return start, end
 }
 
 func isWhitespace(c byte) bool {

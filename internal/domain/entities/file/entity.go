@@ -52,10 +52,8 @@ type Attributes struct {
 }
 
 type CodedSection struct {
-	StartIndex int    `json:"start_index" validate:"required,gte=0"`
-	EndIndex   int    `json:"end_index" validate:"required,gtfield=StartIndex"`
-	CodeSlug   string `json:"code_slug" validate:"required,min=3,max=100,code_slug" normalize:"trim,lowercase"`
-	CodeID     string `json:"code_id" validate:"required"`
+	CodeSlug string `json:"code_slug" validate:"required,min=3,max=100,code_slug" normalize:"trim,lowercase"`
+	CodeID   string `json:"code_id" validate:"required"`
 	CodedSectionAttributes
 }
 
