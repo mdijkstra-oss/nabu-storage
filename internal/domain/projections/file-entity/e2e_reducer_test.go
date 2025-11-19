@@ -107,7 +107,7 @@ func TestE2EReducer(t *testing.T) {
 			ExpectedFile: "testdata/min_words.expected.json",
 		},
 		{
-			Name:         "Edge cases: whitespace, word order, hyphens",
+			Name:         "Edge cases: whitespace and hyphens",
 			EventsFile:   "testdata/edge_cases.jsonl",
 			ExpectedFile: "testdata/edge_cases.expected.json",
 		},

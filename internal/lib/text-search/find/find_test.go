@@ -80,6 +80,7 @@ func TestFind_FuzzyMatching(t *testing.T) {
 		{"different case", "Hello World", "hello world", true, ""},
 
 		{"non-existent", "The quick brown fox", "purple elephant dancing", false, ""},
+		{"scrambled word order", "The quick brown fox jumps", "fox brown quick", false, ""},
 		{"empty needle", "Some text here", "", false, ""},
 		{"empty text", "", "something", false, ""},
 		{"needle too long", "short", "this is a much longer needle than the text", false, ""},

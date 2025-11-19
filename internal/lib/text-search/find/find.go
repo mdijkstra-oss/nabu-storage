@@ -54,7 +54,7 @@ func Find(needle, chunk string) (text string, found bool) {
 		windowText := chunk[start:end]
 		windowTokens := tokenize(windowText)
 
-		if len(windowTokens) == len(needleTokens) && tokenOverlap(needleTokens, windowTokens) >= MIN_OVERLAP {
+		if len(windowTokens) == len(needleTokens) && tokenOverlap(needleTokens, windowTokens) >= MIN_OVERLAP && isSubsequence(needleTokens, windowTokens) {
 			for start > 0 && !unicode.IsSpace(rune(chunk[start-1])) {
 				start--
 			}
@@ -123,6 +123,16 @@ func tokenOverlap(needle, window []string) float64 {
 	}
 
 	return float64(satisfied) / float64(len(needle))
+}
+
+func isSubsequence(needle, window []string) bool {
+	needleIdx := 0
+	for _, token := range window {
+		if needleIdx < len(needle) && token == needle[needleIdx] {
+			needleIdx++
+		}
+	}
+	return needleIdx == len(needle)
 }
 
 func CountWords(text string) int {
