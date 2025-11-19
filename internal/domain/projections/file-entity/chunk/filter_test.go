@@ -98,8 +98,6 @@ func TestFilterChunksByCoverage(t *testing.T) {
 	}, extractIDs)
 }
 
-// Helper functions
-
 func floatPtr(f float64) *float64 {
 	return &f
 }

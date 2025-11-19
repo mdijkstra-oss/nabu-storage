@@ -6,52 +6,58 @@ import (
 )
 
 func TestCalculateCoverage(t *testing.T) {
-	text := "Climate change impacts global warming."
-
 	tests := []struct {
 		Name     string
+		Text     string
 		Input    []string
 		Expected float64
 	}{
 		{
 			Name:     "No subtexts returns 0.0",
+			Text:     "Climate change impacts global warming.",
 			Input:    []string{},
 			Expected: 0.0,
 		},
 		{
 			Name:     "Single subtext coverage",
+			Text:     "Climate change impacts global warming.",
 			Input:    []string{"Climate change"},
 			Expected: 0.37,
 		},
 		{
 			Name:     "Multiple subtexts coverage",
+			Text:     "Climate change impacts global warming.",
 			Input:    []string{"Climate change", "global warming"},
 			Expected: 0.74,
 		},
 		{
 			Name:     "All text covered",
+			Text:     "Climate change impacts global warming.",
 			Input:    []string{"Climate change impacts global warming."},
 			Expected: 1.0,
 		},
+		{
+			Name:     "Empty text returns 0.0",
+			Text:     "",
+			Input:    []string{"test"},
+			Expected: 0.0,
+		},
+		{
+			Name:     "Overlapping subtexts can exceed 1.0",
+			Text:     "Short text",
+			Input:    []string{"Short text", "text", "Short"},
+			Expected: 1.9,
+		},
 	}
 
-	test_helpers.RunFunctionTests(t, tests, func(subTexts []string) float64 {
-		return CalculateCoverage(text, subTexts)
-	})
-
-	t.Run("Empty text returns 0.0", func(t *testing.T) {
-		result := CalculateCoverage("", []string{"test"})
-		if result != 0.0 {
-			t.Errorf("CalculateCoverage() = %v, expected 0.0", result)
-		}
-	})
-
-	t.Run("Overlapping subtexts can exceed 1.0", func(t *testing.T) {
-		result := CalculateCoverage("Short text", []string{"Short text", "text", "Short"})
-		if result != 1.9 {
-			t.Errorf("CalculateCoverage() = %v, expected 1.9", result)
-		}
-	})
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			result := CalculateCoverage(tt.Text, tt.Input)
+			if result != tt.Expected {
+				t.Errorf("CalculateCoverage() = %v, expected %v", result, tt.Expected)
+			}
+		})
+	}
 }
 
 func TestContainsText(t *testing.T) {
