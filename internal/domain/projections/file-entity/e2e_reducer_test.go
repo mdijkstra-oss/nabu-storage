@@ -5,21 +5,14 @@ import (
 	"encoding/json"
 	"hermes-relay/internal/cqrs/commands"
 	"os"
-	"path/filepath"
+	"reflect"
 	"testing"
 )
 
 type E2EReducerTestCase struct {
-	Name          string
-	EventsFile    string
-	ValidateState func(t *testing.T, final *File)
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
+	Name         string
+	EventsFile   string
+	ExpectedFile string
 }
 
 func loadEventsFromFile(t *testing.T, filePath string) []*commands.AnyMessage {
@@ -48,6 +41,22 @@ func loadEventsFromFile(t *testing.T, filePath string) []*commands.AnyMessage {
 	return events
 }
 
+func loadExpectedFromFile(t *testing.T, filePath string) *File {
+	t.Helper()
+
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		t.Fatalf("Failed to read expected file %s: %v", filePath, err)
+	}
+
+	var expected File
+	if err := json.Unmarshal(data, &expected); err != nil {
+		t.Fatalf("Failed to unmarshal expected file: %v", err)
+	}
+
+	return &expected
+}
+
 func replayEvents(events []*commands.AnyMessage, reducer func(*File, *commands.AnyMessage) *File) *File {
 	var state *File
 	for _, event := range events {
@@ -56,111 +65,65 @@ func replayEvents(events []*commands.AnyMessage, reducer func(*File, *commands.A
 	return state
 }
 
-func validateCodedSectionTexts(t *testing.T, file *File) {
+func compareFiles(t *testing.T, actual, expected *File) {
 	t.Helper()
 
-	for _, chunk := range file.Chunks {
-		for _, code := range chunk.Codes {
-			if code.Text == "" {
-				t.Errorf("Empty text for coded section %s in chunk %s", code.CodeSlug, chunk.ID)
-				continue
-			}
+	// Normalize time field for comparison (reducer sets to time.Now())
+	actualCopy := *actual
+	actualCopy.Time = expected.Time
 
-			// Verify the text actually exists in the chunk content
-			if !containsText(chunk.Content, code.Text) {
-				t.Errorf(
-					"Coded section text not found in chunk %s, code %s\n  Text: %q",
-					chunk.ID, code.CodeSlug, code.Text,
-				)
-			}
-		}
+	if !reflect.DeepEqual(&actualCopy, expected) {
+		actualJSON, _ := json.MarshalIndent(&actualCopy, "", "  ")
+		expectedJSON, _ := json.MarshalIndent(expected, "", "  ")
+		t.Errorf("File mismatch:\n\nActual:\n%s\n\nExpected:\n%s", actualJSON, expectedJSON)
 	}
-}
-
-func containsText(content, text string) bool {
-	// Simple substring search - the text should be an exact substring
-	for i := 0; i <= len(content)-len(text); i++ {
-		if content[i:i+len(text)] == text {
-			return true
-		}
-	}
-	return false
 }
 
 func TestE2EReducer(t *testing.T) {
 	tests := []E2EReducerTestCase{
 		{
-			Name:       "Broken test should fail",
-			EventsFile: "testdata/broken-test.ndjson",
-			ValidateState: func(t *testing.T, final *File) {
-				if final == nil {
-					t.Fatal("Expected non-nil file state")
-				}
-				chunk := final.Chunks[0]
-				if len(chunk.Codes) != 7 {
-					t.Fatalf("Expected 7 coded sections (9 minus 2 broken ones), got %d", len(chunk.Codes))
-				}
-				validateCodedSectionTexts(t, final)
-			},
+			Name:         "Fuzzy matching with spacing issues",
+			EventsFile:   "testdata/spacing_fuzzy.jsonl",
+			ExpectedFile: "testdata/spacing_fuzzy.expected.json",
 		},
 		{
-			Name:       "Nature test with multiple coded sections",
-			EventsFile: "testdata/nature-test.ndjson",
-			ValidateState: func(t *testing.T, final *File) {
-				if final == nil {
-					t.Fatal("Expected non-nil file state")
-				}
-				if final.Name != "Morning by the Stream" {
-					t.Errorf("Expected name 'Morning by the Stream', got %q", final.Name)
-				}
-				if len(final.Chunks) != 1 {
-					t.Fatalf("Expected 1 chunk, got %d", len(final.Chunks))
-				}
-
-				chunk := final.Chunks[0]
-				expectedCodeCount := 9
-				if len(chunk.Codes) != expectedCodeCount {
-					t.Logf("Actual coded sections found:")
-					for i, code := range chunk.Codes {
-						t.Logf("  [%d] %s: %q", i, code.CodeSlug, code.Text[:min(50, len(code.Text))])
-					}
-					t.Fatalf("Expected %d coded sections, got %d", expectedCodeCount, len(chunk.Codes))
-				}
-
-				expectedCodes := map[string]int{
-					"setting:forest":    2,
-					"element:water":     3,
-					"element:wildlife":  1,
-					"mood:tranquil":     3,
-				}
-
-				actualCodes := make(map[string]int)
-				for _, code := range chunk.Codes {
-					actualCodes[code.CodeSlug]++
-				}
-
-				for slug, expectedCount := range expectedCodes {
-					if actualCodes[slug] != expectedCount {
-						t.Errorf("Expected %d instances of %q, got %d", expectedCount, slug, actualCodes[slug])
-					}
-				}
-
-				validateCodedSectionTexts(t, final)
-			},
+			Name:         "Wrong text should not be found",
+			EventsFile:   "testdata/not_found.jsonl",
+			ExpectedFile: "testdata/not_found.expected.json",
+		},
+		{
+			Name:         "Punctuation and newline variations",
+			EventsFile:   "testdata/punctuation_newlines.jsonl",
+			ExpectedFile: "testdata/punctuation_newlines.expected.json",
+		},
+		{
+			Name:         "Casing and punctuation differences",
+			EventsFile:   "testdata/casing_punctuation.jsonl",
+			ExpectedFile: "testdata/casing_punctuation.expected.json",
+		},
+		{
+			Name:         "Minimum 3 words required",
+			EventsFile:   "testdata/min_words.jsonl",
+			ExpectedFile: "testdata/min_words.expected.json",
+		},
+		{
+			Name:         "Edge cases: whitespace, word order, hyphens",
+			EventsFile:   "testdata/edge_cases.jsonl",
+			ExpectedFile: "testdata/edge_cases.expected.json",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
-			eventsPath := filepath.Join(tt.EventsFile)
-			events := loadEventsFromFile(t, eventsPath)
+			events := loadEventsFromFile(t, tt.EventsFile)
+			expected := loadExpectedFromFile(t, tt.ExpectedFile)
 
 			if len(events) == 0 {
 				t.Fatal("No events loaded from file")
 			}
 
-			final := replayEvents(events, Reducer)
-			tt.ValidateState(t, final)
+			actual := replayEvents(events, Reducer)
+			compareFiles(t, actual, expected)
 		})
 	}
 }

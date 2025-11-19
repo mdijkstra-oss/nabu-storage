@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestFindRange_Comprehensive(t *testing.T) {
+func TestFind_Comprehensive(t *testing.T) {
 	tests := []struct {
 		name         string
 		text         string
@@ -45,7 +45,7 @@ func TestFindRange_Comprehensive(t *testing.T) {
 			text:         "Everything was balanced—the deer, the stream.",
 			needle:       "balanced—the deer",
 			expectFound:  true,
-			expectActual: "balanced—the deer",
+			expectActual: "balanced—the deer,",
 		},
 		{
 			name:         "text with quotes in needle",
@@ -80,7 +80,7 @@ func TestFindRange_Comprehensive(t *testing.T) {
 			text:         "We need apples, oranges, bananas, and grapes.",
 			needle:       "oranges, bananas, and grapes",
 			expectFound:  true,
-			expectActual: "oranges, bananas, and grapes",
+			expectActual: "oranges, bananas, and grapes.",
 		},
 		{
 			name:         "parentheses in text",
@@ -115,20 +115,20 @@ func TestFindRange_Comprehensive(t *testing.T) {
 			text:         "The IMPORTANT thing is CLARITY.",
 			needle:       "important thing is clarity",
 			expectFound:  true,
-			expectActual: "IMPORTANT thing is CLARITY",
+			expectActual: "IMPORTANT thing is CLARITY.",
 		},
 		{
 			name:         "trailing punctuation",
 			text:         "This is the end...",
 			needle:       "This is the end",
 			expectFound:  true,
-			expectActual: "This is the end",
+			expectActual: "This is the end...",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			foundText, found := FindRange(tt.needle, tt.text)
+			foundText, found := Find(tt.needle, tt.text)
 
 			if found != tt.expectFound {
 				t.Fatalf("Expected found=%v, got found=%v", tt.expectFound, found)

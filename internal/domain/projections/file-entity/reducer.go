@@ -73,7 +73,12 @@ func CodedFileReducer(current *File, message *commands.AnyMessage, payload *file
 
 			case file.AppendCoding:
 				newCodes := utils.Reduce(action.Sections, []file.CodedSection{}, func(codes []file.CodedSection, section file.CodedSectionAttributes) []file.CodedSection {
-					foundText, found := find.FindRange(section.Text, chunk.Content)
+					if find.CountWords(section.Text) < 3 {
+						slog.Warn("Text too short, need at least 3 words", "chunk", action.ChunkID, "section", section)
+						return codes
+					}
+
+					foundText, found := find.Find(section.Text, chunk.Content)
 					if !found {
 						slog.Warn("Text not found", "chunk", action.ChunkID, "section", section)
 						return codes
@@ -145,3 +150,4 @@ func MergedCodesReducer(current *File, _ *commands.AnyMessage, payload code.Merg
 	})
 	return current
 }
+

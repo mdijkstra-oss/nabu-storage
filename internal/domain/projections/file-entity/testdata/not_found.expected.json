@@ -1,0 +1,27 @@
+{
+  "id": "file-456",
+  "project_id": "proj-1",
+  "name": "Not Found Test",
+  "description": "Tests that wrong text is not included",
+  "healthy": true,
+  "title": "",
+  "summary": "",
+  "time": "0001-01-01T00:00:00Z",
+  "type": "source",
+  "original": "",
+  "locked": false,
+  "chunks": [
+    {
+      "id": "chunk-1",
+      "content": "This document has CORRECT TEXT FOUND in it. But it does not have the INCORRECT WORDS NOT FOUND anywhere.",
+      "codes": [
+        {
+          "code_slug": "test:correct",
+          "code_id": "code-1",
+          "text": "CORRECT TEXT FOUND",
+          "reason": "This should be found"
+        }
+      ]
+    }
+  ]
+}

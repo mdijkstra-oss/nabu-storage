@@ -1,0 +1,51 @@
+{
+  "id": "file-999",
+  "project_id": "proj-1",
+  "name": "Casing and Punctuation Test",
+  "description": "Tests fuzzy matching with case and punctuation differences",
+  "healthy": true,
+  "title": "",
+  "summary": "",
+  "time": "0001-01-01T00:00:00Z",
+  "type": "source",
+  "original": "",
+  "locked": false,
+  "chunks": [
+    {
+      "id": "chunk-1",
+      "content": "This should totally match! The IMPORTANT section here talks about various TOPICS. Another example with Different Casing patterns. Final statement works great.",
+      "codes": [
+        {
+          "code_slug": "test:punctuation-diff",
+          "code_id": "code-1",
+          "text": "This should totally match!",
+          "reason": "Question mark instead of exclamation should still match"
+        },
+        {
+          "code_slug": "test:case-lower",
+          "code_id": "code-2",
+          "text": "The IMPORTANT section here talks about various TOPICS.",
+          "reason": "All lowercase should match mixed case"
+        },
+        {
+          "code_slug": "test:case-upper",
+          "code_id": "code-3",
+          "text": "Another example with Different Casing patterns.",
+          "reason": "All uppercase should match title case"
+        },
+        {
+          "code_slug": "test:case-mixed",
+          "code_id": "code-4",
+          "text": "Final statement works great.",
+          "reason": "Random mixed case should match normal case"
+        },
+        {
+          "code_slug": "test:no-punctuation",
+          "code_id": "code-5",
+          "text": "This should totally match!",
+          "reason": "Missing punctuation should still match"
+        }
+      ]
+    }
+  ]
+}

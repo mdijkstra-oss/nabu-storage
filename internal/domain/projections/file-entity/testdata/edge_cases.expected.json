@@ -1,0 +1,39 @@
+{
+  "id": "file-edge",
+  "project_id": "proj-1",
+  "name": "Edge Cases Test",
+  "description": "Tests edge cases like whitespace, word order, hyphens",
+  "healthy": true,
+  "title": "",
+  "summary": "",
+  "time": "0001-01-01T00:00:00Z",
+  "type": "source",
+  "original": "",
+  "locked": false,
+  "chunks": [
+    {
+      "id": "chunk-1",
+      "content": "The quick brown fox jumps high. This is a well-known fact about animals.",
+      "codes": [
+        {
+          "code_slug": "test:whitespace",
+          "code_id": "code-1",
+          "text": "quick brown fox",
+          "reason": "Leading/trailing whitespace should still match"
+        },
+        {
+          "code_slug": "test:word-order",
+          "code_id": "code-2",
+          "text": "quick brown fox",
+          "reason": "Word order doesn't matter, bag-of-words matching"
+        },
+        {
+          "code_slug": "test:hyphen",
+          "code_id": "code-3",
+          "text": "well-known fact about",
+          "reason": "Space instead of hyphen should still match"
+        }
+      ]
+    }
+  ]
+}

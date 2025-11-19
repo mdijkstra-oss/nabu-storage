@@ -1,0 +1,33 @@
+{
+  "id": "file-min",
+  "project_id": "proj-1",
+  "name": "Minimum Words Test",
+  "description": "Tests minimum 3-word requirement",
+  "healthy": true,
+  "title": "",
+  "summary": "",
+  "time": "0001-01-01T00:00:00Z",
+  "type": "source",
+  "original": "",
+  "locked": false,
+  "chunks": [
+    {
+      "id": "chunk-1",
+      "content": "The quick brown fox jumps over the lazy dog. Works fine here.",
+      "codes": [
+        {
+          "code_slug": "test:three-words",
+          "code_id": "code-3",
+          "text": "quick brown fox",
+          "reason": "3 words should be found"
+        },
+        {
+          "code_slug": "test:four-words",
+          "code_id": "code-4",
+          "text": "jumps over the lazy",
+          "reason": "4 words should be found"
+        }
+      ]
+    }
+  ]
+}

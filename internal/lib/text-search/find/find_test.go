@@ -34,19 +34,19 @@ func assertNotFound(t *testing.T, needle, searchText, foundText string, found bo
 // Unified test runner
 // =====================================================
 
-type FindRangeTestCase struct {
+type FindTestCase struct {
 	name     string
 	text     string
 	needle   string
 	wantFind bool
 }
 
-func runFindRangeTests(t *testing.T, tests []FindRangeTestCase) {
+func runFindTests(t *testing.T, tests []FindTestCase) {
 	t.Helper()
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			foundText, found := FindRange(tt.needle, tt.text)
+			foundText, found := Find(tt.needle, tt.text)
 
 			if tt.wantFind {
 				assertFound(t, tt.needle, tt.text, foundText, found)
@@ -65,8 +65,8 @@ func runFindRangeTests(t *testing.T, tests []FindRangeTestCase) {
 // Tests
 // =====================================================
 
-func TestFindRange_FuzzyMatching(t *testing.T) {
-	tests := []FindRangeTestCase{
+func TestFind_FuzzyMatching(t *testing.T) {
+	tests := []FindTestCase{
 		// Exact matches
 		{"exact match", "The quick brown fox jumps over the lazy dog", "brown fox jumps", true},
 		{"single word", "one two three four", "three", true},
@@ -101,17 +101,17 @@ func TestFindRange_FuzzyMatching(t *testing.T) {
 		{"needle too long", "short", "this is a much longer needle than the text", false},
 	}
 
-	runFindRangeTests(t, tests)
+	runFindTests(t, tests)
 }
 
-func TestFindRange_RealisticDocument(t *testing.T) {
+func TestFind_RealisticDocument(t *testing.T) {
 	content, err := os.ReadFile("realistic-document.md")
 	if err != nil {
 		t.Fatalf("Failed to read realistic document: %v", err)
 	}
 	text := string(content)
 
-	tests := []FindRangeTestCase{
+	tests := []FindTestCase{
 		{"heading text", text, "User Research Interview Notes", true},
 		{"paragraph with punctuation", text, "The main challenge is context switching", true},
 		{"list item", text, "Too many disconnected tools", true},
@@ -123,11 +123,11 @@ func TestFindRange_RealisticDocument(t *testing.T) {
 		{"team needs", text, "Sarah's team needs a solution", true},
 	}
 
-	runFindRangeTests(t, tests)
+	runFindTests(t, tests)
 }
 
-func TestFindRange_EdgeCases(t *testing.T) {
-	tests := []FindRangeTestCase{
+func TestFind_EdgeCases(t *testing.T) {
+	tests := []FindTestCase{
 		{"empty needle", "Some text here", "", false},
 		{"empty text", "", "something", false},
 		{"both empty", "", "", false},
@@ -138,5 +138,5 @@ func TestFindRange_EdgeCases(t *testing.T) {
 		{"whitespace only needle", "some text", "   ", false},
 	}
 
-	runFindRangeTests(t, tests)
+	runFindTests(t, tests)
 }

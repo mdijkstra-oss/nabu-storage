@@ -20,6 +20,6 @@ func CalculateCoverage(text string, subTexts []string) float64 {
 }
 
 func ContainsText(text, searchText string) bool {
-	_, found := find.FindRange(searchText, text)
+	_, found := find.Find(searchText, text)
 	return found
 }
