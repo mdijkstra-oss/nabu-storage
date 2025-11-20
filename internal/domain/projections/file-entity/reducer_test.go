@@ -326,7 +326,7 @@ func TestFileReducer(t *testing.T) {
 					},
 				},
 			},
-			Event: domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.DeletedCode, &code.DeletedCodePayload{ProjectID: "project-1"}),
+			Event: domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.DeletedCode, nil),
 			Expected: &File{
 				BaseFile: file.BaseFile{
 					ID:         "file-1",

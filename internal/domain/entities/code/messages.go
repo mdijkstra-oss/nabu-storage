@@ -23,10 +23,6 @@ type UpdateCodeData struct {
 	Notes             string   `json:"notes,omitempty"`
 }
 
-type DeleteCodeData struct {
-	ProjectID string `json:"project_id" validate:"required,valid_id"`
-}
-
 type MergeCodesData struct {
 	SourceID string `json:"source_id" validate:"required,valid_id"`
 	TargetID string `json:"target_id" validate:"required,valid_id"`

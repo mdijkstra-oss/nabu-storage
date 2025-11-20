@@ -89,9 +89,7 @@ func TestCodeRouter(t *testing.T) {
 		},
 		{
 			Name: "DeleteCode",
-			Input: commands.ToAny(commands.NewCommand[code.DeleteCodeData, any](code.DeleteCode, code.DeleteCodeData{
-				ProjectID: testProjectID,
-			}, code.EntityName, testDeleteCodeID, nil)),
+			Input: commands.ToAny(commands.NewCommand[code.DeleteCodePayload, any](code.DeleteCode, code.DeleteCodePayload{}, code.EntityName, testDeleteCodeID, nil)),
 			ExpectErr:   "",
 			ExpectEvent: commands.ToAny(commands.NewDomainEvent[any, any](code.DeletedCode, nil, code.EntityName, testDeleteCodeID, nil)),
 		},

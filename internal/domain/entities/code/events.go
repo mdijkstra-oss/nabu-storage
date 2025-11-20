@@ -13,5 +13,5 @@ const (
 
 type CreatedCodePayload = CreateCodeData
 type UpdatedCodePayload = UpdateCodeData
-type DeletedCodePayload = DeleteCodeData
+type DeletedCodePayload = commands.EmptyPayload
 type MergedCodesPayload = MergeCodesData
