@@ -25,7 +25,7 @@ var (
 var cmds = []*commands.AnyMessage{}
 
 var ignoreGeneratedIDs = []th.IgnoreFieldsOption{
-	{Type: file.AddedSection{}, Fields: []string{"ID"}},
+	{Type: file.AddedSection{}, Fields: []string{"ID"}, EnsureValidUUID: true},
 }
 
 func TestFileRouter(t *testing.T) {

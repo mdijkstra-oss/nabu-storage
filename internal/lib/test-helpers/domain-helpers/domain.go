@@ -1,12 +1,12 @@
 package domain_helpers
 
 import (
+	"testing"
+
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/lib/test-helpers"
 	"hermes-relay/internal/lib/utils"
-	"testing"
 )
 
 // Todo: drop this I think, this function exists in domain code itself
@@ -16,9 +16,10 @@ func NewDomainEvent(entityName commands.AggregateType, aggregateID string, actio
 
 func AssertMessage(t *testing.T, got, want *commands.AnyMessage, msg string, extraOpts ...cmp.Option) {
 	t.Helper()
-	defaultOpts := []cmp.Option{
-		cmpopts.IgnoreFields(commands.AnyMessage{}, "ID", "Timestamp", "CausationID", "AggregateID"),
+	ignoreOpts := []test_helpers.IgnoreFieldsOption{
+		{Type: commands.AnyMessage{}, Fields: []string{"ID", "Timestamp", "CausationID", "AggregateID"}},
 	}
+	defaultOpts := test_helpers.ToCmpOptions(ignoreOpts)
 	opts := append(defaultOpts, extraOpts...)
 	test_helpers.AssertEqual(t, got, want, msg, opts...)
 }

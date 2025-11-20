@@ -1,24 +1,68 @@
 package test_helpers
 
 import (
+	"reflect"
+	"testing"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"hermes-relay/internal/lib/utils"
-	"reflect"
-	"testing"
 )
 
 type IgnoreFieldsOption struct {
-	Type   any
-	Fields []string
+	Type            any
+	Fields          []string
+	EnsureValidUUID bool
 }
 
 func ToCmpOptions(opts []IgnoreFieldsOption) []cmp.Option {
-	result := make([]cmp.Option, len(opts))
-	for i, opt := range opts {
-		result[i] = cmpopts.IgnoreFields(opt.Type, opt.Fields...)
+	result := []cmp.Option{}
+	for _, opt := range opts {
+		if opt.EnsureValidUUID {
+			result = append(result, createUUIDValidator(opt))
+		} else {
+			result = append(result, cmpopts.IgnoreFields(opt.Type, opt.Fields...))
+		}
 	}
 	return result
+}
+
+func createUUIDValidator(opt IgnoreFieldsOption) cmp.Option {
+	typeVal := reflect.TypeOf(opt.Type)
+	fieldNames := make(map[string]bool)
+	for _, field := range opt.Fields {
+		fieldNames[field] = true
+	}
+
+	isValidOrPlaceholder := func(val string) bool {
+		if val == "generated-id" {
+			return true
+		}
+		return utils.ValidID(val)
+	}
+
+	return cmp.FilterPath(
+		func(p cmp.Path) bool {
+			if len(p) < 2 {
+				return false
+			}
+			structField, ok := p[len(p)-1].(cmp.StructField)
+			if !ok {
+				return false
+			}
+			parentType := p[len(p)-2].Type()
+			return parentType == typeVal && fieldNames[structField.Name()]
+		},
+		cmp.Comparer(func(a, b string) bool {
+			if !isValidOrPlaceholder(a) {
+				panic("expected valid UUID or placeholder in 'got', but found: " + a)
+			}
+			if !isValidOrPlaceholder(b) {
+				panic("expected valid UUID or placeholder in 'want', but found: " + b)
+			}
+			return true
+		}),
+	)
 }
 
 func AssertEqual(t *testing.T, got, want any, msg string, opts ...cmp.Option) {
