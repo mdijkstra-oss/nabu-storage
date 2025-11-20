@@ -68,9 +68,16 @@ func replayEvents(events []*commands.AnyMessage, reducer func(*File, *commands.A
 func compareFiles(t *testing.T, actual, expected *File) {
 	t.Helper()
 
-	// Normalize time field for comparison (reducer sets to time.Now())
+	// Normalize time and section IDs for comparison
 	actualCopy := *actual
 	actualCopy.Time = expected.Time
+
+	// Normalize section IDs (they are generated dynamically)
+	for i := range actualCopy.Chunks {
+		for j := range actualCopy.Chunks[i].Codes {
+			actualCopy.Chunks[i].Codes[j].ID = ""
+		}
+	}
 
 	if !reflect.DeepEqual(&actualCopy, expected) {
 		actualJSON, _ := json.MarshalIndent(&actualCopy, "", "  ")

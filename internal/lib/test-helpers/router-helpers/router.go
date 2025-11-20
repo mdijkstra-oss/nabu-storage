@@ -4,6 +4,7 @@ import (
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/cqrs/dispatch"
 	"hermes-relay/internal/domain/projections/registry"
+	th "hermes-relay/internal/lib/test-helpers"
 	"testing"
 )
 
@@ -13,6 +14,7 @@ type RouterTestCase struct {
 	ExpectErr       string
 	ExpectEvent     *commands.AnyMessage
 	ExpectPublished []*commands.AnyMessage
+	IgnoreFields    []th.IgnoreFieldsOption
 }
 
 func RunRouterTests(
@@ -42,6 +44,7 @@ func RunRouterTests(
 			ExpectErr:       tt.ExpectErr,
 			ExpectEvent:     tt.ExpectEvent,
 			ExpectPublished: expectedPublished,
+			IgnoreFields:    tt.IgnoreFields,
 		}
 	}
 

@@ -134,7 +134,7 @@ func TestFileReducer(t *testing.T) {
 			Expected: nil,
 		},
 		{
-			Name: "AppendCoding adds codes to chunk",
+			Name: "AddedCodeSections adds sections to chunk",
 			Initial: &File{
 				BaseFile: file.BaseFile{
 					ID:         "file-1",
@@ -151,17 +151,10 @@ func TestFileReducer(t *testing.T) {
 					},
 				},
 			},
-			Event: domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.CodedFile, &file.CodedFilePayload{
-				Actions: []file.CodingAction{
-					{
-						CodeID:   "code-1",
-						CodeSlug: "topic:climate",
-						Action:   file.AppendCoding,
-						ChunkID:  "1",
-						Sections: []file.CodedSectionAttributes{
-							{Text: "Climate change impacts", Reason: "Climate ref"},
-						},
-					},
+			Event: domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.AddedCodeSections, &file.AddedCodeSectionsPayload{
+				ChunkID: "1",
+				Sections: []file.AddedSection{
+					{ID: "section-id-1", CodeID: "code-1", CodeSlug: "topic:climate", Text: "Climate change impacts", Reason: "Climate ref"},
 				},
 			}),
 			Expected: &File{
@@ -177,14 +170,14 @@ func TestFileReducer(t *testing.T) {
 						ID:      "1",
 						Content: "Climate change impacts global warming.\n",
 						Codes: []file.CodedSection{
-							{CodeID: "code-1", CodeSlug: "topic:climate", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change impacts", Reason: "Climate ref"}},
+							{ID: "generated-id", CodeID: "code-1", CodeSlug: "topic:climate", Text: "Climate change impacts", Reason: "Climate ref"},
 						},
 					},
 				},
 			},
 		},
 		{
-			Name: "SetCoding replaces existing codes with same CodeID",
+			Name: "UpdatedCodeSections updates text and reason",
 			Initial: &File{
 				BaseFile: file.BaseFile{
 					ID:         "file-1",
@@ -198,23 +191,16 @@ func TestFileReducer(t *testing.T) {
 						ID:      "1",
 						Content: "Climate change impacts global warming.\n",
 						Codes: []file.CodedSection{
-							{CodeID: "code-1", CodeSlug: "topic:climate", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change impacts", Reason: "Old"}},
-							{CodeID: "code-1", CodeSlug: "topic:climate", CodedSectionAttributes: file.CodedSectionAttributes{Text: "impacts global warming", Reason: "Old"}},
+							{ID: "section-1", CodeID: "code-1", CodeSlug: "topic:climate", Text: "Climate change impacts", Reason: "Old"},
+							{ID: "section-2", CodeID: "code-1", CodeSlug: "topic:climate", Text: "impacts global warming", Reason: "Old"},
 						},
 					},
 				},
 			},
-			Event: domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.CodedFile, &file.CodedFilePayload{
-				Actions: []file.CodingAction{
-					{
-						CodeID:   "code-1",
-						CodeSlug: "topic:climate",
-						Action:   file.SetCoding,
-						ChunkID:  "1",
-						Sections: []file.CodedSectionAttributes{
-							{Text: "change impacts global", Reason: "New"},
-						},
-					},
+			Event: domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.UpdatedCodeSections, &file.UpdateCodeSectionsPayload{
+				ChunkID: "1",
+				Sections: []file.UpdateSectionOp{
+					{ID: "section-1", Text: "Climate change impacts", Reason: "New reason"},
 				},
 			}),
 			Expected: &File{
@@ -230,14 +216,15 @@ func TestFileReducer(t *testing.T) {
 						ID:      "1",
 						Content: "Climate change impacts global warming.\n",
 						Codes: []file.CodedSection{
-							{CodeID: "code-1", CodeSlug: "topic:climate", CodedSectionAttributes: file.CodedSectionAttributes{Text: "change impacts global", Reason: "New"}},
+							{ID: "section-1", CodeID: "code-1", CodeSlug: "topic:climate", Text: "Climate change impacts", Reason: "New reason"},
+							{ID: "section-2", CodeID: "code-1", CodeSlug: "topic:climate", Text: "impacts global warming", Reason: "Old"},
 						},
 					},
 				},
 			},
 		},
 		{
-			Name: "RemoveCoding removes codes by CodeID",
+			Name: "RemovedCodeSections removes sections by ID",
 			Initial: &File{
 				BaseFile: file.BaseFile{
 					ID:         "file-1",
@@ -251,22 +238,15 @@ func TestFileReducer(t *testing.T) {
 						ID:      "1",
 						Content: "Climate change impacts global warming.\n",
 						Codes: []file.CodedSection{
-							{CodeID: "code-1", CodeSlug: "topic:climate", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change impacts"}},
-							{CodeID: "code-2", CodeSlug: "topic:temperature", CodedSectionAttributes: file.CodedSectionAttributes{Text: "impacts global warming"}},
+							{ID: "section-1", CodeID: "code-1", CodeSlug: "topic:climate", Text: "Climate change impacts"},
+							{ID: "section-2", CodeID: "code-2", CodeSlug: "topic:temperature", Text: "impacts global warming"},
 						},
 					},
 				},
 			},
-			Event: domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.CodedFile, &file.CodedFilePayload{
-				Actions: []file.CodingAction{
-					{
-						CodeID:   "code-1",
-						CodeSlug: "topic:climate",
-						Action:   file.RemoveCoding,
-						ChunkID:  "1",
-						Sections: []file.CodedSectionAttributes{{Text: "dummy"}},
-					},
-				},
+			Event: domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.RemovedCodeSections, &file.RemoveCodeSectionsPayload{
+				ChunkID:    "1",
+				SectionIDs: []string{"section-1"},
 			}),
 			Expected: &File{
 				BaseFile: file.BaseFile{
@@ -281,7 +261,7 @@ func TestFileReducer(t *testing.T) {
 						ID:      "1",
 						Content: "Climate change impacts global warming.\n",
 						Codes: []file.CodedSection{
-							{CodeID: "code-2", CodeSlug: "topic:temperature", CodedSectionAttributes: file.CodedSectionAttributes{Text: "impacts global warming"}},
+							{ID: "section-2", CodeID: "code-2", CodeSlug: "topic:temperature", Text: "impacts global warming"},
 						},
 					},
 				},
@@ -302,7 +282,7 @@ func TestFileReducer(t *testing.T) {
 						ID:      "1",
 						Content: "Test content\n",
 						Codes: []file.CodedSection{
-							{CodeSlug: "topic:climate", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Test"}},
+							{ID: "section-1", CodeSlug: "topic:climate", Text: "Test"},
 						},
 					},
 				},
@@ -340,8 +320,8 @@ func TestFileReducer(t *testing.T) {
 						ID:      "1",
 						Content: "Climate change impacts global warming.\n",
 						Codes: []file.CodedSection{
-							{CodeID: "code-1", CodeSlug: "topic:climate", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change impacts"}},
-							{CodeID: "code-2", CodeSlug: "topic:temperature", CodedSectionAttributes: file.CodedSectionAttributes{Text: "impacts global warming"}},
+							{ID: "section-1", CodeID: "code-1", CodeSlug: "topic:climate", Text: "Climate change impacts"},
+							{ID: "section-2", CodeID: "code-2", CodeSlug: "topic:temperature", Text: "impacts global warming"},
 						},
 					},
 				},
@@ -360,7 +340,7 @@ func TestFileReducer(t *testing.T) {
 						ID:      "1",
 						Content: "Climate change impacts global warming.\n",
 						Codes: []file.CodedSection{
-							{CodeID: "code-2", CodeSlug: "topic:temperature", CodedSectionAttributes: file.CodedSectionAttributes{Text: "impacts global warming"}},
+							{ID: "section-2", CodeID: "code-2", CodeSlug: "topic:temperature", Text: "impacts global warming"},
 						},
 					},
 				},
@@ -381,8 +361,8 @@ func TestFileReducer(t *testing.T) {
 						ID:      "1",
 						Content: "Climate change impacts global warming.\n",
 						Codes: []file.CodedSection{
-							{CodeID: "code-1", CodeSlug: "topic:climate-old", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change impacts"}},
-							{CodeID: "code-1", CodeSlug: "topic:climate-old", CodedSectionAttributes: file.CodedSectionAttributes{Text: "impacts global warming"}},
+							{ID: "section-1", CodeID: "code-1", CodeSlug: "topic:climate-old", Text: "Climate change impacts"},
+							{ID: "section-2", CodeID: "code-1", CodeSlug: "topic:climate-old", Text: "impacts global warming"},
 						},
 					},
 				},
@@ -401,8 +381,8 @@ func TestFileReducer(t *testing.T) {
 						ID:      "1",
 						Content: "Climate change impacts global warming.\n",
 						Codes: []file.CodedSection{
-							{CodeID: "code-1", CodeSlug: "topic:climate-new", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change impacts"}},
-							{CodeID: "code-1", CodeSlug: "topic:climate-new", CodedSectionAttributes: file.CodedSectionAttributes{Text: "impacts global warming"}},
+							{ID: "section-1", CodeID: "code-1", CodeSlug: "topic:climate-new", Text: "Climate change impacts"},
+							{ID: "section-2", CodeID: "code-1", CodeSlug: "topic:climate-new", Text: "impacts global warming"},
 						},
 					},
 				},
@@ -423,8 +403,8 @@ func TestFileReducer(t *testing.T) {
 						ID:      "1",
 						Content: "Climate change impacts global warming.\n",
 						Codes: []file.CodedSection{
-							{CodeID: "code-1", CodeSlug: "topic:climate", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change impacts"}},
-							{CodeID: "code-2", CodeSlug: "topic:temperature", CodedSectionAttributes: file.CodedSectionAttributes{Text: "impacts global warming"}},
+							{ID: "section-1", CodeID: "code-1", CodeSlug: "topic:climate", Text: "Climate change impacts"},
+							{ID: "section-2", CodeID: "code-2", CodeSlug: "topic:temperature", Text: "impacts global warming"},
 						},
 					},
 				},
@@ -443,8 +423,8 @@ func TestFileReducer(t *testing.T) {
 						ID:      "1",
 						Content: "Climate change impacts global warming.\n",
 						Codes: []file.CodedSection{
-							{CodeID: "code-2", CodeSlug: "topic:climate", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change impacts"}},
-							{CodeID: "code-2", CodeSlug: "topic:temperature", CodedSectionAttributes: file.CodedSectionAttributes{Text: "impacts global warming"}},
+							{ID: "section-1", CodeID: "code-2", CodeSlug: "topic:climate", Text: "Climate change impacts"},
+							{ID: "section-2", CodeID: "code-2", CodeSlug: "topic:temperature", Text: "impacts global warming"},
 						},
 					},
 				},
@@ -462,13 +442,20 @@ func TestFileReducer(t *testing.T) {
 	combinedTests := append(tests, deletedEntityTests...)
 	combinedTests = append(combinedTests, deletedProjectTests...)
 
-	// Normalize Time field to testTime for comparison
-	normalizeTime := func(f *File) *File {
+	// Normalize Time and ID fields for comparison
+	normalize := func(f *File) *File {
 		if f != nil {
 			f.Time = testTime
+			for i := range f.Chunks {
+				for j := range f.Chunks[i].Codes {
+					if f.Chunks[i].Codes[j].ID != "" && f.Chunks[i].Codes[j].ID != "section-1" && f.Chunks[i].Codes[j].ID != "section-2" {
+						f.Chunks[i].Codes[j].ID = "generated-id"
+					}
+				}
+			}
 		}
 		return f
 	}
 
-	reducer_helpers.RunReducerTests(t, combinedTests, Reducer, normalizeTime)
+	reducer_helpers.RunReducerTests(t, combinedTests, Reducer, normalize)
 }

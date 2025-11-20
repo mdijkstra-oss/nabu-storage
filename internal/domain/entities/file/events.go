@@ -3,11 +3,13 @@ package file
 import "hermes-relay/internal/cqrs/commands"
 
 const (
-	CreatedFile   = "CreatedFile"
-	UpdatedFile   = "UpdatedFile"
-	DeletedFile   = "DeletedFile"
-	CodedFile     = "CodedFile"
-	ClearedCoding = "ClearedCoding"
+	CreatedFile              = "CreatedFile"
+	UpdatedFile              = "UpdatedFile"
+	DeletedFile              = "DeletedFile"
+	AddedCodeSections        = "AddedCodeSections"
+	UpdatedCodeSections      = "UpdatedCodeSections"
+	RemovedCodeSections      = "RemovedCodeSections"
+	ClearedCoding            = "ClearedCoding"
 )
 
 // CreatedFilePayload Created must always be just entity?
@@ -21,5 +23,3 @@ type CreatedFilePayload struct {
 
 type UpdatedFilePayload = UpdateFilePayload
 type DeletedFilePayload = commands.EmptyPayload
-
-type CodedFilePayload = CodeFileData

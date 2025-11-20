@@ -17,7 +17,9 @@ var Reducer = projection.WithHealthCheck(
 		projection.IfExists(
 			projection.For(file.UpdatedFile, UpdatedFileReducer),
 			projection.For(file.DeletedFile, projection.DeletedEntity[File]),
-			projection.For(file.CodedFile, CodedFileReducer),
+			projection.For(file.AddedCodeSections, AddedCodeSectionsReducer),
+			projection.For(file.UpdatedCodeSections, UpdatedCodeSectionsReducer),
+			projection.For(file.RemovedCodeSections, RemovedCodeSectionsReducer),
 			projection.For(file.ClearedCoding, ClearedCodingReducer),
 			projection.For(code.DeletedCode, DeletedCodeReducer),
 			projection.For(code.UpdatedCode, UpdatedCodeReducer),
@@ -52,52 +54,79 @@ func UpdatedFileReducer(current *File, _ *commands.AnyMessage, payload *file.Upd
 	return &updated
 }
 
-func CodedFileReducer(current *File, message *commands.AnyMessage, payload *file.CodeFileData) *File {
-	current.Chunks = utils.Reduce(payload.Actions, current.Chunks, func(chunks []file.Chunk, action file.CodingAction) []file.Chunk {
-		return utils.Map(chunks, func(chunk file.Chunk) file.Chunk {
-			if chunk.ID != action.ChunkID {
-				return chunk
-			}
+func toCodedSection(section file.AddedSection) file.CodedSection {
+	return file.CodedSection(section)
+}
 
-			switch action.Action {
-			case file.RemoveCoding:
-				chunk.Codes = utils.Filter(chunk.Codes, func(section file.CodedSection) bool {
-					return section.CodeID != action.CodeID
-				})
-
-			case file.SetCoding:
-				chunk.Codes = utils.Filter(chunk.Codes, func(section file.CodedSection) bool {
-					return section.CodeID != action.CodeID
-				})
-				fallthrough
-
-			case file.AppendCoding:
-				newCodes := utils.Reduce(action.Sections, []file.CodedSection{}, func(codes []file.CodedSection, section file.CodedSectionAttributes) []file.CodedSection {
-					if find.CountWords(section.Text) < 3 {
-						slog.Warn("Text too short, need at least 3 words", "chunk", action.ChunkID, "section", section)
-						return codes
-					}
-
-					foundText, found := find.Find(section.Text, chunk.Content)
-					if !found {
-						slog.Warn("Text not found", "chunk", action.ChunkID, "section", section)
-						return codes
-					}
-
-					return append(codes, file.CodedSection{
-						CodeSlug: action.CodeSlug,
-						CodeID:   action.CodeID,
-						CodedSectionAttributes: file.CodedSectionAttributes{
-							Text:   foundText,
-							Reason: section.Reason,
-						},
-					})
-				})
-				chunk.Codes = append(chunk.Codes, newCodes...)
-			}
-
+func AddedCodeSectionsReducer(current *File, _ *commands.AnyMessage, payload *file.AddedCodeSectionsPayload) *File {
+	current.Chunks = utils.Map(current.Chunks, func(chunk file.Chunk) file.Chunk {
+		if chunk.ID != payload.ChunkID {
 			return chunk
+		}
+
+		validSections := utils.Reduce(payload.Sections, []file.CodedSection{}, func(sections []file.CodedSection, section file.AddedSection) []file.CodedSection {
+			if find.CountWords(section.Text) < 3 {
+				slog.Warn("Text too short, need at least 3 words", "chunk", payload.ChunkID, "section", section)
+				return sections
+			}
+
+			foundText, found := find.Find(section.Text, chunk.Content)
+			if !found {
+				slog.Warn("Text not found", "chunk", payload.ChunkID, "section", section)
+				return sections
+			}
+
+			codedSection := toCodedSection(section)
+			codedSection.Text = foundText
+			return append(sections, codedSection)
 		})
+
+		chunk.Codes = append(chunk.Codes, validSections...)
+		return chunk
+	})
+	return current
+}
+
+func UpdatedCodeSectionsReducer(current *File, _ *commands.AnyMessage, payload *file.UpdateCodeSectionsPayload) *File {
+	current.Chunks = utils.Map(current.Chunks, func(chunk file.Chunk) file.Chunk {
+		if chunk.ID != payload.ChunkID {
+			return chunk
+		}
+
+		chunk.Codes = utils.Map(chunk.Codes, func(section file.CodedSection) file.CodedSection {
+			for _, op := range payload.Sections {
+				if section.ID == op.ID {
+					if op.Text != "" {
+						section.Text = op.Text
+					}
+					if op.Reason != "" {
+						section.Reason = op.Reason
+					}
+					return section
+				}
+			}
+			return section
+		})
+		return chunk
+	})
+	return current
+}
+
+func RemovedCodeSectionsReducer(current *File, _ *commands.AnyMessage, payload *file.RemoveCodeSectionsPayload) *File {
+	current.Chunks = utils.Map(current.Chunks, func(chunk file.Chunk) file.Chunk {
+		if chunk.ID != payload.ChunkID {
+			return chunk
+		}
+
+		chunk.Codes = utils.Filter(chunk.Codes, func(section file.CodedSection) bool {
+			for _, id := range payload.SectionIDs {
+				if section.ID == id {
+					return false
+				}
+			}
+			return true
+		})
+		return chunk
 	})
 	return current
 }

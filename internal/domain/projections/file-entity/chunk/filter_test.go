@@ -11,9 +11,9 @@ func TestCalculateChunkCoverage(t *testing.T) {
 		ID:      "1",
 		Content: "Climate change impacts global warming.",
 		Codes: []file.CodedSection{
-			{CodeSlug: "topic:climate", CodeID: "code-1", CodedSectionAttributes: file.CodedSectionAttributes{Text: "Climate change"}},
-			{CodeSlug: "emotion:concern", CodeID: "code-2", CodedSectionAttributes: file.CodedSectionAttributes{Text: "impacts"}},
-			{CodeSlug: "topic:temperature", CodeID: "code-3", CodedSectionAttributes: file.CodedSectionAttributes{Text: "global warming"}},
+			{ID: "section-1", CodeSlug: "topic:climate", CodeID: "code-1", Text: "Climate change"},
+			{ID: "section-2", CodeSlug: "emotion:concern", CodeID: "code-2", Text: "impacts"},
+			{ID: "section-3", CodeSlug: "topic:temperature", CodeID: "code-3", Text: "global warming"},
 		},
 	}
 
@@ -67,12 +67,12 @@ type coverageFilterInput struct {
 
 func TestFilterChunksByCoverage(t *testing.T) {
 	chunks := []file.Chunk{
-		{ID: "1", Content: "AAAAAAAAAA", Codes: []file.CodedSection{{CodeSlug: "topic:climate", CodeID: "code-1", CodedSectionAttributes: file.CodedSectionAttributes{Text: "AA"}}}},
-		{ID: "2", Content: "BBBBBBBBBB", Codes: []file.CodedSection{{CodeSlug: "topic:economy", CodeID: "code-2", CodedSectionAttributes: file.CodedSectionAttributes{Text: "BBBBB"}}}},
-		{ID: "3", Content: "CCCCCCCCCC", Codes: []file.CodedSection{{CodeSlug: "topic:climate", CodeID: "code-3", CodedSectionAttributes: file.CodedSectionAttributes{Text: "CCCCCCCC"}}}},
+		{ID: "1", Content: "AAAAAAAAAA", Codes: []file.CodedSection{{ID: "s1", CodeSlug: "topic:climate", CodeID: "code-1", Text: "AA"}}},
+		{ID: "2", Content: "BBBBBBBBBB", Codes: []file.CodedSection{{ID: "s2", CodeSlug: "topic:economy", CodeID: "code-2", Text: "BBBBB"}}},
+		{ID: "3", Content: "CCCCCCCCCC", Codes: []file.CodedSection{{ID: "s3", CodeSlug: "topic:climate", CodeID: "code-3", Text: "CCCCCCCC"}}},
 		{ID: "4", Content: "DDDDDDDDDD", Codes: []file.CodedSection{
-			{CodeSlug: "topic:climate", CodeID: "code-4", CodedSectionAttributes: file.CodedSectionAttributes{Text: "DDDDD"}},
-			{CodeSlug: "topic:economy", CodeID: "code-5", CodedSectionAttributes: file.CodedSectionAttributes{Text: "DDDDD"}},
+			{ID: "s4", CodeSlug: "topic:climate", CodeID: "code-4", Text: "DDDDD"},
+			{ID: "s5", CodeSlug: "topic:economy", CodeID: "code-5", Text: "DDDDD"},
 		}},
 		{ID: "5", Content: "EEEEEEEEEE", Codes: []file.CodedSection{}},
 	}

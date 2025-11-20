@@ -18,12 +18,15 @@ var (
 	testFileID1      = utils.NewID()
 	testFileID2      = utils.NewID()
 	testFileID3      = utils.NewID()
-	testFileAppendID = utils.NewID()
 	testFileClearID  = utils.NewID()
 	testFileRemoveID = utils.NewID()
 )
 
 var cmds = []*commands.AnyMessage{}
+
+var ignoreGeneratedIDs = []th.IgnoreFieldsOption{
+	{Type: file.AddedSection{}, Fields: []string{"ID"}},
+}
 
 func TestFileRouter(t *testing.T) {
 	tests := []rh.RouterTestCase{
@@ -70,147 +73,48 @@ func TestFileRouter(t *testing.T) {
 			}, file.EntityName, "", nil)),
 		},
 		{
-			Name: "CodeFile with SetCoding action",
-			Input: commands.ToAny(commands.NewCommand[file.CodeFilePayload, any](file.CodeFile, file.CodeFilePayload{
-				Actions: []file.CodingAction{
-					{
-						CodeID:   testCodeID1,
-						CodeSlug: "topic:test",
-						Action:   file.SetCoding,
-						Sections: []file.CodedSectionAttributes{
-							{
-								Text:   "Some text to code",
-								Reason: "Test reason",
-							},
-						},
-						ChunkID: "chunk-1",
-					},
+			Name: "AddCodeSections with valid payload",
+			Input: commands.ToAny(commands.NewCommand[file.AddCodeSectionsPayload, any](file.AddCodeSections, file.AddCodeSectionsPayload{
+				ChunkID: "chunk-1",
+				Sections: []file.AddSectionOp{
+					{CodeID: testCodeID1, CodeSlug: "topic:test", Text: "Some text to code", Reason: "Test reason"},
 				},
 			}, file.EntityName, testFileID1, nil)),
 			ExpectErr: "",
-			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.CodedFilePayload, any](file.CodedFile, file.CodedFilePayload{
-				Actions: []file.CodingAction{
-					{
-						CodeID:   testCodeID1,
-						CodeSlug: "topic:test",
-						Action:   file.SetCoding,
-						Sections: []file.CodedSectionAttributes{
-							{
-								Text:   "Some text to code",
-								Reason: "Test reason",
-							},
-						},
-						ChunkID: "chunk-1",
-					},
+			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.AddedCodeSectionsPayload, any](file.AddedCodeSections, file.AddedCodeSectionsPayload{
+				ChunkID: "chunk-1",
+				Sections: []file.AddedSection{
+					{ID: "generated-id", CodeID: testCodeID1, CodeSlug: "topic:test", Text: "Some text to code", Reason: "Test reason"},
+				},
+			}, file.EntityName, testFileID1, nil)),
+			IgnoreFields: ignoreGeneratedIDs,
+		},
+		{
+			Name: "UpdateCodeSections with valid payload",
+			Input: commands.ToAny(commands.NewCommand[file.UpdateCodeSectionsPayload, any](file.UpdateCodeSections, file.UpdateCodeSectionsPayload{
+				ChunkID: "chunk-1",
+				Sections: []file.UpdateSectionOp{
+					{ID: testCodeID1, Text: "Updated text", Reason: "Updated reason"},
+				},
+			}, file.EntityName, testFileID1, nil)),
+			ExpectErr: "",
+			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.UpdateCodeSectionsPayload, any](file.UpdatedCodeSections, file.UpdateCodeSectionsPayload{
+				ChunkID: "chunk-1",
+				Sections: []file.UpdateSectionOp{
+					{ID: testCodeID1, Text: "Updated text", Reason: "Updated reason"},
 				},
 			}, file.EntityName, testFileID1, nil)),
 		},
 		{
-			Name: "CodeFile with multiple actions",
-			Input: commands.ToAny(commands.NewCommand[file.CodeFilePayload, any](file.CodeFile, file.CodeFilePayload{
-				Actions: []file.CodingAction{
-					{
-						CodeID:   testCodeID1,
-						CodeSlug: "topic:first",
-						Action:   file.SetCoding,
-						Sections: []file.CodedSectionAttributes{
-							{Text: "First section", Reason: "First reason"},
-						},
-						ChunkID: "chunk-1",
-					},
-					{
-						CodeID:   testCodeID2,
-						CodeSlug: "topic:second",
-						Action:   file.AppendCoding,
-						Sections: []file.CodedSectionAttributes{
-							{Text: "Second section"},
-						},
-						ChunkID: "chunk-2",
-					},
-				},
-			}, file.EntityName, testFileID2, nil)),
-			ExpectErr: "",
-			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.CodedFilePayload, any](file.CodedFile, file.CodedFilePayload{
-				Actions: []file.CodingAction{
-					{
-						CodeID:   testCodeID1,
-						CodeSlug: "topic:first",
-						Action:   file.SetCoding,
-						Sections: []file.CodedSectionAttributes{
-							{Text: "First section", Reason: "First reason"},
-						},
-						ChunkID: "chunk-1",
-					},
-					{
-						CodeID:   testCodeID2,
-						CodeSlug: "topic:second",
-						Action:   file.AppendCoding,
-						Sections: []file.CodedSectionAttributes{
-							{Text: "Second section"},
-						},
-						ChunkID: "chunk-2",
-					},
-				},
-			}, file.EntityName, testFileID2, nil)),
-		},
-		{
-			Name: "CodeFile with AppendCoding action",
-			Input: commands.ToAny(commands.NewCommand[file.CodeFilePayload, any](file.CodeFile, file.CodeFilePayload{
-				Actions: []file.CodingAction{
-					{
-						CodeID:   testCodeID1,
-						CodeSlug: "topic:append",
-						Action:   file.AppendCoding,
-						Sections: []file.CodedSectionAttributes{
-							{Text: "Appending text", Reason: "Append reason"},
-						},
-						ChunkID: "chunk-1",
-					},
-				},
-			}, file.EntityName, testFileAppendID, nil)),
-			ExpectErr: "",
-			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.CodedFilePayload, any](file.CodedFile, file.CodedFilePayload{
-				Actions: []file.CodingAction{
-					{
-						CodeID:   testCodeID1,
-						CodeSlug: "topic:append",
-						Action:   file.AppendCoding,
-						Sections: []file.CodedSectionAttributes{
-							{Text: "Appending text", Reason: "Append reason"},
-						},
-						ChunkID: "chunk-1",
-					},
-				},
-			}, file.EntityName, testFileAppendID, nil)),
-		},
-		{
-			Name: "CodeFile with RemoveCoding action",
-			Input: commands.ToAny(commands.NewCommand[file.CodeFilePayload, any](file.CodeFile, file.CodeFilePayload{
-				Actions: []file.CodingAction{
-					{
-						CodeID:   testCodeID1,
-						CodeSlug: "topic:remove",
-						Action:   file.RemoveCoding,
-						Sections: []file.CodedSectionAttributes{
-							{Text: "Dummy text"},
-						},
-						ChunkID: "chunk-1",
-					},
-				},
+			Name: "RemoveCodeSections with valid payload",
+			Input: commands.ToAny(commands.NewCommand[file.RemoveCodeSectionsPayload, any](file.RemoveCodeSections, file.RemoveCodeSectionsPayload{
+				ChunkID:    "chunk-1",
+				SectionIDs: []string{testCodeID1, testCodeID2},
 			}, file.EntityName, testFileRemoveID, nil)),
 			ExpectErr: "",
-			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.CodedFilePayload, any](file.CodedFile, file.CodedFilePayload{
-				Actions: []file.CodingAction{
-					{
-						CodeID:   testCodeID1,
-						CodeSlug: "topic:remove",
-						Action:   file.RemoveCoding,
-						Sections: []file.CodedSectionAttributes{
-							{Text: "Dummy text"},
-						},
-						ChunkID: "chunk-1",
-					},
-				},
+			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.RemoveCodeSectionsPayload, any](file.RemovedCodeSections, file.RemoveCodeSectionsPayload{
+				ChunkID:    "chunk-1",
+				SectionIDs: []string{testCodeID1, testCodeID2},
 			}, file.EntityName, testFileRemoveID, nil)),
 		},
 		{
@@ -273,79 +177,50 @@ func TestFileRouter(t *testing.T) {
 			ExpectErr: "validation failed: ProjectID is required",
 		},
 		{
-			Name: "CodeFile with empty actions array",
-			Input: commands.ToAny(commands.NewCommand[file.CodeFilePayload, any](file.CodeFile, file.CodeFilePayload{
-				Actions: []file.CodingAction{},
+			Name: "AddCodeSections with empty sections array",
+			Input: commands.ToAny(commands.NewCommand[file.AddCodeSectionsPayload, any](file.AddCodeSections, file.AddCodeSectionsPayload{
+				ChunkID:  "chunk-1",
+				Sections: []file.AddSectionOp{},
 			}, file.EntityName, testFileID1, nil)),
-			ExpectErr: "validation failed: Actions must be at least 1 characters",
+			ExpectErr: "validation failed: Sections must be at least 1 characters",
 		},
 		{
-			Name: "CodeFile with missing CodeSlug",
-			Input: commands.ToAny(commands.NewCommand[file.CodeFilePayload, any](file.CodeFile, file.CodeFilePayload{
-				Actions: []file.CodingAction{
-					{
-						Action:   file.SetCoding,
-						Sections: []file.CodedSectionAttributes{{Text: "Some text"}},
-						ChunkID:  "chunk-1",
-					},
+			Name: "AddCodeSections with missing CodeSlug",
+			Input: commands.ToAny(commands.NewCommand[file.AddCodeSectionsPayload, any](file.AddCodeSections, file.AddCodeSectionsPayload{
+				ChunkID: "chunk-1",
+				Sections: []file.AddSectionOp{
+					{Text: "Some text"},
 				},
 			}, file.EntityName, testFileID1, nil)),
 			ExpectErr: "validation failed: CodeSlug is required, CodeID is required",
 		},
 		{
-			Name: "CodeFile with missing ChunkID",
-			Input: commands.ToAny(commands.NewCommand[file.CodeFilePayload, any](file.CodeFile, file.CodeFilePayload{
-				Actions: []file.CodingAction{
-					{
-						CodeSlug: "topic:test",
-						Action:   file.SetCoding,
-						Sections: []file.CodedSectionAttributes{{Text: "Some text"}},
-					},
-				},
-			}, file.EntityName, testFileID1, nil)),
-			ExpectErr: "validation failed: CodeID is required, ChunkID is required",
-		},
-		{
-			Name: "CodeFile with empty sections array",
-			Input: commands.ToAny(commands.NewCommand[file.CodeFilePayload, any](file.CodeFile, file.CodeFilePayload{
-				Actions: []file.CodingAction{
-					{
-						CodeSlug: "topic:test",
-						Action:   file.SetCoding,
-						Sections: []file.CodedSectionAttributes{},
-						ChunkID:  "chunk-1",
-					},
-				},
-			}, file.EntityName, testFileID1, nil)),
-			ExpectErr: "validation failed: CodeID is required, Sections must be at least 1 characters",
-		},
-		{
-			Name: "CodeFile with invalid slug (no colon)",
-			Input: commands.ToAny(commands.NewCommand[file.CodeFilePayload, any](file.CodeFile, file.CodeFilePayload{
-				Actions: []file.CodingAction{
-					{
-						CodeSlug: "topicclimate",
-						Action:   file.SetCoding,
-						Sections: []file.CodedSectionAttributes{{Text: "Some text"}},
-						ChunkID:  "chunk-1",
-					},
+			Name: "AddCodeSections with invalid slug (no colon)",
+			Input: commands.ToAny(commands.NewCommand[file.AddCodeSectionsPayload, any](file.AddCodeSections, file.AddCodeSectionsPayload{
+				ChunkID: "chunk-1",
+				Sections: []file.AddSectionOp{
+					{CodeSlug: "topicclimate", Text: "Some text"},
 				},
 			}, file.EntityName, testFileID1, nil)),
 			ExpectErr: "validation failed: CodeSlug must match code slug format (lowercase with colon and optional dashes), CodeID is required",
 		},
 		{
-			Name: "CodeFile with invalid slug (uppercase)",
-			Input: commands.ToAny(commands.NewCommand[file.CodeFilePayload, any](file.CodeFile, file.CodeFilePayload{
-				Actions: []file.CodingAction{
-					{
-						CodeSlug: "Topic:climate",
-						Action:   file.SetCoding,
-						Sections: []file.CodedSectionAttributes{{Text: "Some text"}},
-						ChunkID:  "chunk-1",
-					},
+			Name: "UpdateCodeSections with missing section ID",
+			Input: commands.ToAny(commands.NewCommand[file.UpdateCodeSectionsPayload, any](file.UpdateCodeSections, file.UpdateCodeSectionsPayload{
+				ChunkID: "chunk-1",
+				Sections: []file.UpdateSectionOp{
+					{Text: "Updated text"},
 				},
 			}, file.EntityName, testFileID1, nil)),
-			ExpectErr: "validation failed: CodeSlug must match code slug format (lowercase with colon and optional dashes), CodeID is required",
+			ExpectErr: "validation failed: ID is required",
+		},
+		{
+			Name: "RemoveCodeSections with empty section IDs",
+			Input: commands.ToAny(commands.NewCommand[file.RemoveCodeSectionsPayload, any](file.RemoveCodeSections, file.RemoveCodeSectionsPayload{
+				ChunkID:    "chunk-1",
+				SectionIDs: []string{},
+			}, file.EntityName, testFileID1, nil)),
+			ExpectErr: "validation failed: SectionIDs must be at least 1 characters",
 		},
 		{
 			Name: "Wrong entity type returns nil",

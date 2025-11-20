@@ -8,6 +8,19 @@ import (
 	"testing"
 )
 
+type IgnoreFieldsOption struct {
+	Type   any
+	Fields []string
+}
+
+func ToCmpOptions(opts []IgnoreFieldsOption) []cmp.Option {
+	result := make([]cmp.Option, len(opts))
+	for i, opt := range opts {
+		result[i] = cmpopts.IgnoreFields(opt.Type, opt.Fields...)
+	}
+	return result
+}
+
 func AssertEqual(t *testing.T, got, want any, msg string, opts ...cmp.Option) {
 	t.Helper()
 

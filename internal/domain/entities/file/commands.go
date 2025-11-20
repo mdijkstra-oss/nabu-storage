@@ -5,11 +5,13 @@ import "hermes-relay/internal/cqrs/commands"
 const EntityName = "File"
 
 const (
-	CreateFile  commands.Action = "CreateFile"
-	UpdateFile  commands.Action = "UpdateFile"
-	DeleteFile  commands.Action = "DeleteFile"
-	CodeFile    commands.Action = "CodeFile"
-	ClearCoding commands.Action = "ClearCoding" // Remove all coding from given file
+	CreateFile          commands.Action = "CreateFile"
+	UpdateFile          commands.Action = "UpdateFile"
+	DeleteFile          commands.Action = "DeleteFile"
+	AddCodeSections     commands.Action = "AddCodeSections"
+	UpdateCodeSections  commands.Action = "UpdateCodeSections"
+	RemoveCodeSections  commands.Action = "RemoveCodeSections"
+	ClearCoding         commands.Action = "ClearCoding"
 )
 
 type CreateFilePayload struct {
@@ -25,5 +27,3 @@ type UpdateFilePayload struct {
 }
 
 type DeleteFilePayload = commands.EmptyPayload
-
-type CodeFilePayload = CodeFileData

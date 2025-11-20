@@ -14,6 +14,7 @@ type PublisherTestCase struct {
 	ExpectErr       string
 	ExpectEvent     *commands.AnyMessage
 	ExpectPublished []*commands.AnyMessage
+	IgnoreFields    []th.IgnoreFieldsOption
 }
 
 func RunPublisherTests(t *testing.T, tests []PublisherTestCase) {
@@ -35,10 +36,11 @@ func RunPublisherTests(t *testing.T, tests []PublisherTestCase) {
 
 			th.AssertError(t, err, tt.ExpectErr, "error")
 			if tt.ExpectErr == "" {
+				opts := th.ToCmpOptions(tt.IgnoreFields)
 				if result != nil && result.Type == commands.DomainEvent {
-					domain_helpers.AssertDomainEventMessage(t, result, tt.ExpectEvent, "event")
+					domain_helpers.AssertDomainEventMessage(t, result, tt.ExpectEvent, "event", opts...)
 				} else {
-					domain_helpers.AssertMessage(t, result, tt.ExpectEvent, "event")
+					domain_helpers.AssertMessage(t, result, tt.ExpectEvent, "event", opts...)
 				}
 
 				if tt.ExpectPublished != nil {
@@ -47,9 +49,9 @@ func RunPublisherTests(t *testing.T, tests []PublisherTestCase) {
 					}
 					for i, expected := range tt.ExpectPublished {
 						if published[i] != nil && published[i].Type == commands.DomainEvent {
-							domain_helpers.AssertDomainEventMessage(t, published[i], expected, "published["+string(rune(i))+"]")
+							domain_helpers.AssertDomainEventMessage(t, published[i], expected, "published["+string(rune(i))+"]", opts...)
 						} else {
-							domain_helpers.AssertMessage(t, published[i], expected, "published["+string(rune(i))+"]")
+							domain_helpers.AssertMessage(t, published[i], expected, "published["+string(rune(i))+"]", opts...)
 						}
 					}
 				} else if len(published) > 0 {
