@@ -253,7 +253,6 @@ type chunkingTestResult struct {
 }
 
 func TestFileCreationChunking(t *testing.T) {
-	t.Skip("TODO: Fix payload type assertion after FileData refactoring")
 	router := NewRouter(nil)
 
 	createAndTestChunks := func(content string) chunkingTestResult {
@@ -274,17 +273,10 @@ func TestFileCreationChunking(t *testing.T) {
 			return chunkingTestResult{}
 		}
 
-		// Try to get the payload - it should be *file.CreatedFilePayload
-		payload, ok := result.Payload.(*file.CreatedFilePayload)
+		payload, ok := result.Payload.(file.CreatedFilePayload)
 		if !ok {
-			// Try without pointer
-			if p2, ok2 := result.Payload.(file.CreatedFilePayload); ok2 {
-				payload = &p2
-			} else {
-				// Debug: print what type it actually is
-				t.Logf("Payload type: %T", result.Payload)
-				return chunkingTestResult{}
-			}
+			t.Logf("Payload type: %T", result.Payload)
+			return chunkingTestResult{}
 		}
 
 		chunkIDsValid := true
