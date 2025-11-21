@@ -68,6 +68,20 @@ func ValidateDomain[P any](
 	validator func(project.Project, P, *commands.AnyMessage) error,
 	handler dispatch.CommandRouter,
 ) dispatch.CommandRouter {
+	return NormalizeDomain[P](
+		registry,
+		func(proj project.Project, payload P, msg *commands.AnyMessage) (P, error) {
+			return payload, validator(proj, payload, msg)
+		},
+		handler,
+	)
+}
+
+func NormalizeDomain[P any](
+	registry *RegistryState,
+	normalize func(project.Project, P, *commands.AnyMessage) (P, error),
+	handler dispatch.CommandRouter,
+) dispatch.CommandRouter {
 	return func(message *commands.AnyMessage, publisher dispatch.PublishFunc) (*commands.AnyMessage, error) {
 		projectID := registry.ResolveProjectID(message)
 		proj := registry.GetProject(projectID)
@@ -81,10 +95,18 @@ func ValidateDomain[P any](
 			return nil, err
 		}
 
-		if err := validator(*proj, payload, message); err != nil {
+		normalizedPayload, err := normalize(*proj, payload, message)
+		if err != nil {
 			return nil, err
 		}
 
-		return handler(message, publisher)
+		if err := utils.ToValidationError(utils.Validate.Struct(normalizedPayload)); err != nil {
+			return nil, err
+		}
+
+		updatedMessage := *message
+		updatedMessage.Payload = normalizedPayload
+
+		return handler(&updatedMessage, publisher)
 	}
 }

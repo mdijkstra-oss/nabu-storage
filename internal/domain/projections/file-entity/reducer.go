@@ -5,9 +5,7 @@ import (
 	"hermes-relay/internal/cqrs/projection"
 	"hermes-relay/internal/domain/entities/code"
 	"hermes-relay/internal/domain/entities/file"
-	"hermes-relay/internal/lib/text-search/find"
 	"hermes-relay/internal/lib/utils"
-	"log/slog"
 	"time"
 )
 
@@ -57,24 +55,8 @@ func AddedCodeSectionsReducer(current *File, _ *commands.AnyMessage, payload *fi
 			return chunk
 		}
 
-		validSections := utils.Reduce(payload.Sections, []file.CodedSection{}, func(sections []file.CodedSection, section file.AddedSection) []file.CodedSection {
-			if find.CountWords(section.Text) < 3 {
-				slog.Warn("Text too short, need at least 3 words", "chunk", payload.ChunkID, "section", section)
-				return sections
-			}
-
-			foundText, found := find.Find(section.Text, chunk.Content)
-			if !found {
-				slog.Warn("Text not found", "chunk", payload.ChunkID, "section", section)
-				return sections
-			}
-
-			codedSection := toCodedSection(section)
-			codedSection.Text = foundText
-			return append(sections, codedSection)
-		})
-
-		chunk.Codes = append(chunk.Codes, validSections...)
+		sections := utils.Map(payload.Sections, toCodedSection)
+		chunk.Codes = append(chunk.Codes, sections...)
 		return chunk
 	})
 	return current

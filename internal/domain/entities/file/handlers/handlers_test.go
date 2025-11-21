@@ -22,7 +22,32 @@ var (
 	testFileRemoveID = utils.NewID()
 )
 
-var cmds = []*commands.AnyMessage{}
+var cmds = []*commands.AnyMessage{
+	commands.ToAny(commands.NewDomainEvent[any, any](
+		"CreatedProject",
+		map[string]any{"name": "Test Project"},
+		"Project",
+		testProjectID,
+		nil,
+	)),
+	commands.ToAny(commands.NewDomainEvent[file.CreatedFilePayload, any](
+		file.CreatedFile,
+		file.CreatedFilePayload{
+			FileData: file.FileData{
+				ProjectID: testProjectID,
+				Name:      "test-file-1.txt",
+				Type:      file.FileTypeSource,
+				Locked:    true,
+			},
+			Chunks: []file.Chunk{
+				{ID: "chunk-1", Content: "Some text to code here", Codes: []file.CodedSection{}},
+			},
+		},
+		file.EntityName,
+		testFileID1,
+		nil,
+	)),
+}
 
 var ignoreGeneratedIDs = []th.IgnoreFieldsOption{
 	{Type: file.AddedSection{}, Fields: []string{"ID"}, EnsureValidUUID: true},
@@ -92,14 +117,14 @@ func TestFileRouter(t *testing.T) {
 			Input: commands.ToAny(commands.NewCommand[file.UpdateCodeSectionsPayload, any](file.UpdateCodeSections, file.UpdateCodeSectionsPayload{
 				ChunkID: "chunk-1",
 				Sections: []file.UpdateSectionOp{
-					{ID: testCodeID1, Text: "Updated text", Reason: "Updated reason"},
+					{ID: testCodeID1, Text: "Some text to code", Reason: "Updated reason"},
 				},
 			}, file.EntityName, testFileID1, nil)),
 			ExpectErr: "",
 			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.UpdateCodeSectionsPayload, any](file.UpdatedCodeSections, file.UpdateCodeSectionsPayload{
 				ChunkID: "chunk-1",
 				Sections: []file.UpdateSectionOp{
-					{ID: testCodeID1, Text: "Updated text", Reason: "Updated reason"},
+					{ID: testCodeID1, Text: "Some text to code", Reason: "Updated reason"},
 				},
 			}, file.EntityName, testFileID1, nil)),
 		},

@@ -2,6 +2,7 @@ package utils
 
 import (
 	"errors"
+	"fmt"
 	"github.com/go-playground/validator/v10"
 	"log/slog"
 )
@@ -104,6 +105,30 @@ func FieldNotFound(field string) *ValidationError {
 
 func FieldInUse(field string) *ValidationError {
 	return FieldError(field, "already in use")
+}
+
+func ArrayItemErrors(field string, failures map[int]string) *ValidationError {
+	fields := make(map[string]string)
+	var messages []string
+
+	for index, reason := range failures {
+		key := fmt.Sprintf("%s[%d]", field, index)
+		fields[key] = reason
+		messages = append(messages, fmt.Sprintf("%s[%d] %s", field, index, reason))
+	}
+
+	message := fmt.Sprintf("validation failed: %d items failed", len(failures))
+	if len(messages) > 0 {
+		message = "validation failed: " + messages[0]
+		for i := 1; i < len(messages); i++ {
+			message += ", " + messages[i]
+		}
+	}
+
+	return &ValidationError{
+		Message: message,
+		Fields:  fields,
+	}
 }
 
 type NotFoundError struct {
