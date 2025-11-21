@@ -116,7 +116,12 @@ func withLookup(key, projectID string) registryOpt {
 }
 
 func testCode(id, projectID, slug string) code.Code {
-	return code.Code{ID: id, ProjectID: projectID, Slug: slug, Color: "blue-500", Definition: "Test code", Healthy: true}
+	return code.BuildTestCode(id, code.CodeData{
+		ProjectID:  projectID,
+		Slug:       slug,
+		Color:      "blue-500",
+		Definition: "Test code",
+	})
 }
 
 func testFile(id, projectID, name string) file.File {

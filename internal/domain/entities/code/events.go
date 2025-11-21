@@ -11,7 +11,7 @@ const (
 	MergedCodes commands.Action = "MergedCodes"
 )
 
-type CreatedCodePayload = CreateCodeData
+type CreatedCodePayload = CodeData
 type UpdatedCodePayload = UpdateCodeData
 type DeletedCodePayload = commands.EmptyPayload
 type MergedCodesPayload = MergeCodesData

@@ -3,8 +3,14 @@ package code
 // Todo: Make some back and forth (perhaps stage?) to get this to be great before you actually start coding
 // Eg min number of entries etc.
 // Probably require some fields etc
+
 type Code struct {
-	ID        string `json:"id" validate:"required"`
+	ID      string `json:"id" validate:"required"`
+	Healthy bool   `json:"healthy"`
+	CodeData
+}
+
+type CodeData struct {
 	ProjectID string `json:"project_id" validate:"required"`
 
 	// eg emotion:anxiety, theme:power-dynamics
@@ -36,8 +42,7 @@ type Code struct {
 	CounterExamples []string `json:"counter_examples"`
 
 	// Analyst notes: Your evolving thoughts, connections to theory, frequency observations
-	Notes   string `json:"notes"`
-	Healthy bool   `json:"healthy"`
+	Notes string `json:"notes"`
 }
 
 func (c Code) GetID() string {

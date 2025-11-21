@@ -9,6 +9,10 @@ import (
 	"testing"
 )
 
+func buildCode(id string, overrides code.CodeData) code.Code {
+	return code.BuildTestCode(id, overrides)
+}
+
 func createTestProject(id, name, description string) *Project {
 	return &Project{
 		ID:          id,
@@ -67,27 +71,13 @@ func TestProjectReducer(t *testing.T) {
 	)
 
 	codeChildTests := reducer_helpers.AggregateChildMapTests(reducer_helpers.AggregateChildMapTestConfig[Project, code.Code]{
-		CreatedEvent: newCodeEvent("code-1", code.CreatedCode, &code.CreatedCodePayload{ProjectID: "project-1", Slug: "test-code", Color: "red-500", Definition: "A test code"}),
-		UpdatedEvent: newCodeEvent("code-1", code.UpdatedCode, &code.UpdateCodePayload{Slug: "new-slug"}),
-		DeletedEvent: newCodeEvent("code-1", code.DeletedCode, nil),
-		EntityAfterCreate: code.Code{
-			ID:         "code-1",
-			ProjectID:  "project-1",
-			Slug:       "test-code",
-			Color:      "red-500",
-			Definition: "A test code",
-			Healthy:    true,
-		},
-		EntityAfterUpdate: code.Code{
-			ID:         "code-1",
-			ProjectID:  "project-1",
-			Slug:       "new-slug",
-			Color:      "red-500",
-			Definition: "A test code",
-			Healthy:    true,
-		},
-		CreateParent: createEmptyProject,
-		GetMap:       func(p *Project) map[string]code.Code { return p.Codes },
+		CreatedEvent:      newCodeEvent("code-1", code.CreatedCode, &code.CreatedCodePayload{ProjectID: "project-1", Slug: "test-code", Color: "red-500", Definition: "A test code"}),
+		UpdatedEvent:      newCodeEvent("code-1", code.UpdatedCode, &code.UpdateCodePayload{Slug: "new-slug"}),
+		DeletedEvent:      newCodeEvent("code-1", code.DeletedCode, nil),
+		EntityAfterCreate: buildCode("code-1", code.CodeData{Slug: "test-code", Color: "red-500", Definition: "A test code"}),
+		EntityAfterUpdate: buildCode("code-1", code.CodeData{Slug: "new-slug", Color: "red-500", Definition: "A test code"}),
+		CreateParent:      createEmptyProject,
+		GetMap:            func(p *Project) map[string]code.Code { return p.Codes },
 	})
 
 	fileChildTests := reducer_helpers.AggregateChildMapTests(reducer_helpers.AggregateChildMapTestConfig[Project, file.File]{

@@ -21,17 +21,9 @@ var Reducer = projection.WithHealthCheck(
 
 func CreatedCodeReducer(_ *Code, message *commands.AnyMessage, payload *code.CreatedCodePayload) *Code {
 	return &code.Code{
-		ID:                message.AggregateID,
-		ProjectID:         payload.ProjectID,
-		Slug:              payload.Slug,
-		Color:             payload.Color,
-		Definition:        payload.Definition,
-		InclusionCriteria: payload.InclusionCriteria,
-		ExclusionCriteria: payload.ExclusionCriteria,
-		Examples:          payload.Examples,
-		CounterExamples:   payload.CounterExamples,
-		Notes:             payload.Notes,
-		Healthy:           true,
+		ID:       message.AggregateID,
+		Healthy:  true,
+		CodeData: *payload,
 	}
 }
 

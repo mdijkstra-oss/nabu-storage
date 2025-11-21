@@ -13,7 +13,7 @@ const (
 	MergeCodes commands.Action = "MergeCodes"
 )
 
-type CreateCodePayload = CreateCodeData
+type CreateCodePayload = CodeData
 type UpdateCodePayload = UpdateCodeData
 type DeleteCodePayload = commands.EmptyPayload
 type MergeCodesPayload = MergeCodesData
