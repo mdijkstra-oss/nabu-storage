@@ -88,46 +88,58 @@ func TestGeneratePatchRoundTrip(t *testing.T) {
 		{
 			Name: "Simple field update",
 			Before: &project.Project{
-				ID:          "proj-1",
-				Name:        "Old Name",
-				Description: "Old Description",
-				Healthy:     true,
+				ID:      "proj-1",
+				Healthy: true,
+				ProjectData: project.ProjectData{
+					Name:        "Old Name",
+					Description: "Old Description",
+				},
 			},
 			After: &project.Project{
-				ID:          "proj-1",
-				Name:        "New Name",
-				Description: "Old Description",
-				Healthy:     true,
+				ID:      "proj-1",
+				Healthy: true,
+				ProjectData: project.ProjectData{
+					Name:        "New Name",
+					Description: "Old Description",
+				},
 			},
 		},
 		{
 			Name: "Multiple field changes",
 			Before: &project.Project{
-				ID:          "proj-1",
-				Name:        "Project A",
-				Description: "First version",
-				Healthy:     true,
+				ID:      "proj-1",
+				Healthy: true,
+				ProjectData: project.ProjectData{
+					Name:        "Project A",
+					Description: "First version",
+				},
 			},
 			After: &project.Project{
-				ID:          "proj-1",
-				Name:        "Project B",
-				Description: "Second version",
-				Healthy:     true,
+				ID:      "proj-1",
+				Healthy: true,
+				ProjectData: project.ProjectData{
+					Name:        "Project B",
+					Description: "Second version",
+				},
 			},
 		},
 		{
 			Name: "Health status change",
 			Before: &project.Project{
-				ID:          "proj-1",
-				Name:        "Test",
-				Description: "Test",
-				Healthy:     true,
+				ID:      "proj-1",
+				Healthy: true,
+				ProjectData: project.ProjectData{
+					Name:        "Test",
+					Description: "Test",
+				},
 			},
 			After: &project.Project{
-				ID:          "proj-1",
-				Name:        "Test",
-				Description: "Test",
-				Healthy:     false,
+				ID:      "proj-1",
+				Healthy: false,
+				ProjectData: project.ProjectData{
+					Name:        "Test",
+					Description: "Test",
+				},
 			},
 		},
 	}

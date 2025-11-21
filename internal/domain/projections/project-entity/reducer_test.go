@@ -15,14 +15,11 @@ func buildCode(id string, overrides code.CodeData) code.Code {
 }
 
 func createTestProject(id, name, description string) *Project {
-	return &Project{
-		ID:          id,
+	p := project.BuildTestProject(id, project.ProjectData{
 		Name:        name,
 		Description: description,
-		Codes:       make(map[string]code.Code),
-		Files:       make(map[string]file.File),
-		Healthy:     true,
-	}
+	})
+	return &p
 }
 
 func createEmptyProject() *Project {
@@ -32,9 +29,12 @@ func createEmptyProject() *Project {
 func TestProjectReducer(t *testing.T) {
 	tests := []reducer_helpers.ReducerTestCase[*Project]{
 		{
-			Name:     "CreatedProject initializes empty maps",
-			Initial:  nil,
-			Event:    newProjectEvent("project-1", project.CreatedProject, &project.CreatedProjectPayload{Name: "Research", Description: "Research project"}),
+			Name:    "CreatedProject initializes empty maps",
+			Initial: nil,
+			Event: newProjectEvent("project-1", project.CreatedProject, &project.CreatedProjectPayload{
+				Name:        "Research",
+				Description: "Research project",
+			}),
 			Expected: createTestProject("project-1", "Research", "Research project"),
 		},
 		{

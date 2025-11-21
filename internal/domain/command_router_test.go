@@ -19,7 +19,10 @@ var (
 var setupCommands = []*commands.AnyMessage{
 	commands.ToAny(commands.NewDomainEvent[project.CreatedProjectPayload, any](
 		project.CreatedProject,
-		project.CreatedProjectPayload{Name: "Healthy Project", Description: "Test project"},
+		project.CreatedProjectPayload{
+			Name:        "Healthy Project",
+			Description: "Test project",
+		},
 		project.EntityName,
 		healthyProjectID,
 		nil,
@@ -67,7 +70,10 @@ func TestCommandRouter(t *testing.T) {
 			ExpectErr: "",
 			ExpectEvent: commands.ToAny(commands.NewDomainEvent[project.CreatedProjectPayload, any](
 				project.CreatedProject,
-				project.CreatedProjectPayload{Name: "New Project", Description: "Test"},
+				project.CreatedProjectPayload{
+					Name:        "New Project",
+					Description: "Test",
+				},
 				project.EntityName,
 				"",
 				nil,

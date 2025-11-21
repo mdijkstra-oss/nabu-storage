@@ -22,8 +22,8 @@ func TestDecidePatch(t *testing.T) {
 		{
 			Name: "Inactive project returns none",
 			Input: decidePatchInput{
-				Before:   &project.Project{ID: "p1", Name: "Old"},
-				After:    &project.Project{ID: "p1", Name: "New"},
+				Before:   func() *project.Project { p := project.BuildTestProject("p1", project.ProjectData{Name: "Old"}); return &p }(),
+				After:    func() *project.Project { p := project.BuildTestProject("p1", project.ProjectData{Name: "New"}); return &p }(),
 				IsActive: false,
 			},
 			Expected: ActionTypeNone,
@@ -31,7 +31,7 @@ func TestDecidePatch(t *testing.T) {
 		{
 			Name: "After is nil returns none",
 			Input: decidePatchInput{
-				Before:   &project.Project{ID: "p1", Name: "Old"},
+				Before:   func() *project.Project { p := project.BuildTestProject("p1", project.ProjectData{Name: "Old"}); return &p }(),
 				After:    nil,
 				IsActive: true,
 			},
@@ -41,7 +41,7 @@ func TestDecidePatch(t *testing.T) {
 			Name: "Before nil and after exists returns snapshot",
 			Input: decidePatchInput{
 				Before:   nil,
-				After:    &project.Project{ID: "p1", Name: "New", Description: "Test"},
+				After:    func() *project.Project { p := project.BuildTestProject("p1", project.ProjectData{Name: "New", Description: "Test"}); return &p }(),
 				IsActive: true,
 			},
 			Expected: ActionTypeSnapshot,
@@ -49,8 +49,8 @@ func TestDecidePatch(t *testing.T) {
 		{
 			Name: "Before and after both exist returns patch",
 			Input: decidePatchInput{
-				Before:   &project.Project{ID: "p1", Name: "Old", Description: "Old desc"},
-				After:    &project.Project{ID: "p1", Name: "New", Description: "Old desc"},
+				Before:   func() *project.Project { p := project.BuildTestProject("p1", project.ProjectData{Name: "Old", Description: "Old desc"}); return &p }(),
+				After:    func() *project.Project { p := project.BuildTestProject("p1", project.ProjectData{Name: "New", Description: "Old desc"}); return &p }(),
 				IsActive: true,
 			},
 			Expected: ActionTypePatch,
@@ -58,8 +58,8 @@ func TestDecidePatch(t *testing.T) {
 		{
 			Name: "No changes still returns patch with empty diff",
 			Input: decidePatchInput{
-				Before:   &project.Project{ID: "p1", Name: "Same", Description: "Same"},
-				After:    &project.Project{ID: "p1", Name: "Same", Description: "Same"},
+				Before:   func() *project.Project { p := project.BuildTestProject("p1", project.ProjectData{Name: "Same", Description: "Same"}); return &p }(),
+				After:    func() *project.Project { p := project.BuildTestProject("p1", project.ProjectData{Name: "Same", Description: "Same"}); return &p }(),
 				IsActive: true,
 			},
 			Expected: ActionTypePatch,
@@ -83,7 +83,7 @@ func TestDecidePatch(t *testing.T) {
 }
 
 func TestDecidePatchSnapshotContent(t *testing.T) {
-	proj := &project.Project{ID: "p1", Name: "Test", Description: "Snapshot test"}
+	proj := func() *project.Project { p := project.BuildTestProject("p1", project.ProjectData{Name: "Test", Description: "Snapshot test"}); return &p }()
 	action, err := DecidePatch(nil, proj, true)
 
 	th.AssertError(t, err, "", "error")
@@ -92,8 +92,8 @@ func TestDecidePatchSnapshotContent(t *testing.T) {
 }
 
 func TestDecidePatchPatchContent(t *testing.T) {
-	before := &project.Project{ID: "p1", Name: "Old", Description: "Test"}
-	after := &project.Project{ID: "p1", Name: "New", Description: "Test"}
+	before := func() *project.Project { p := project.BuildTestProject("p1", project.ProjectData{Name: "Old", Description: "Test"}); return &p }()
+	after := func() *project.Project { p := project.BuildTestProject("p1", project.ProjectData{Name: "New", Description: "Test"}); return &p }()
 
 	action, err := DecidePatch(before, after, true)
 

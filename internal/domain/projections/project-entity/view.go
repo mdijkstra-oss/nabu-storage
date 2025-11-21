@@ -9,12 +9,11 @@ import (
 type Project = project.Project
 
 type ProjectView struct {
-	ID          string                         `json:"id"`
-	Name        string                         `json:"name"`
-	Description string                         `json:"description"`
-	Codes       map[string]code.Code           `json:"codes"`
-	Files       map[string]fileview.FileSummary `json:"files"`
-	Healthy     bool                           `json:"healthy"`
+	ID      string `json:"id"`
+	Healthy bool   `json:"healthy"`
+	project.ProjectData
+	Codes map[string]code.Code            `json:"codes"`
+	Files map[string]fileview.FileSummary `json:"files"`
 }
 
 func (pv ProjectView) GetID() string {
@@ -29,10 +28,9 @@ func ToView(p project.Project) ProjectView {
 
 	return ProjectView{
 		ID:          p.ID,
-		Name:        p.Name,
-		Description: p.Description,
+		Healthy:     p.Healthy,
+		ProjectData: p.ProjectData,
 		Codes:       p.Codes,
 		Files:       fileSummaries,
-		Healthy:     p.Healthy,
 	}
 }

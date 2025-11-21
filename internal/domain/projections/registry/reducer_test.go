@@ -15,7 +15,10 @@ func TestRegistryReducer(t *testing.T) {
 		{
 			Name:    "CreatedProject adds project to registry",
 			Initial: nil,
-			Event:   newProjectEvent("project-1", project.CreatedProject, &project.CreatedProjectPayload{Name: "Test Project", Description: "A test project"}),
+			Event: newProjectEvent("project-1", project.CreatedProject, &project.CreatedProjectPayload{
+				Name:        "Test Project",
+				Description: "A test project",
+			}),
 			Expected: registryWith(
 				projectWith("project-1", "Test Project", "A test project", nil, nil),
 			),
@@ -105,7 +108,13 @@ func projectWith(id, name, desc string, codes map[string]code.Code, files map[st
 		if files == nil {
 			files = make(map[string]file.File)
 		}
-		r.Projects[id] = project.Project{ID: id, Name: name, Description: desc, Codes: codes, Files: files, Healthy: true}
+		r.Projects[id] = project.Project{
+			ID:          id,
+			Healthy:     true,
+			ProjectData: project.ProjectData{Name: name, Description: desc},
+			Codes:       codes,
+			Files:       files,
+		}
 	}
 }
 

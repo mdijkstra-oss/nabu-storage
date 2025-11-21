@@ -32,11 +32,10 @@ var Reducer = projection.WithHealthCheck(
 func CreatedProjectReducer(_ *Project, message *commands.AnyMessage, payload *project.CreatedProjectPayload) *Project {
 	return &Project{
 		ID:          message.AggregateID,
-		Name:        payload.Name,
-		Description: payload.Description,
+		Healthy:     true,
+		ProjectData: *payload,
 		Codes:       make(map[string]code.Code),
 		Files:       make(map[string]file.File),
-		Healthy:     true,
 	}
 }
 

@@ -48,7 +48,9 @@ func TestPersistence(t *testing.T) {
 		{
 			Name: "Single event persists and loads",
 			Input: []*commands.AnyMessage{
-				domain_helpers.NewDomainEvent(project.EntityName, "project-1", project.CreatedProject, project.CreatedProjectPayload{Name: "Test"}),
+				domain_helpers.NewDomainEvent(project.EntityName, "project-1", project.CreatedProject, project.CreatedProjectPayload{
+					Name: "Test",
+				}),
 			},
 			Expected: []FileContent{
 				{
@@ -61,8 +63,12 @@ func TestPersistence(t *testing.T) {
 		{
 			Name: "Multiple events for same aggregate append to same file",
 			Input: []*commands.AnyMessage{
-				domain_helpers.NewDomainEvent(project.EntityName, "project-1", project.CreatedProject, project.CreatedProjectPayload{Name: "Test"}),
-				domain_helpers.NewDomainEvent(project.EntityName, "project-1", "UpdatedProject", project.CreatedProjectPayload{Name: "Updated"}),
+				domain_helpers.NewDomainEvent(project.EntityName, "project-1", project.CreatedProject, project.CreatedProjectPayload{
+					Name: "Test",
+				}),
+				domain_helpers.NewDomainEvent(project.EntityName, "project-1", "UpdatedProject", project.CreatedProjectPayload{
+					Name: "Updated",
+				}),
 			},
 			Expected: []FileContent{
 				{
@@ -75,8 +81,12 @@ func TestPersistence(t *testing.T) {
 		{
 			Name: "Multiple aggregates create separate files",
 			Input: []*commands.AnyMessage{
-				domain_helpers.NewDomainEvent(project.EntityName, "project-1", project.CreatedProject, project.CreatedProjectPayload{Name: "Test 1"}),
-				domain_helpers.NewDomainEvent(project.EntityName, "project-2", project.CreatedProject, project.CreatedProjectPayload{Name: "Test 2"}),
+				domain_helpers.NewDomainEvent(project.EntityName, "project-1", project.CreatedProject, project.CreatedProjectPayload{
+					Name: "Test 1",
+				}),
+				domain_helpers.NewDomainEvent(project.EntityName, "project-2", project.CreatedProject, project.CreatedProjectPayload{
+					Name: "Test 2",
+				}),
 			},
 			Expected: []FileContent{
 				{Path: "Project/project-1.jsonl", Contains: []string{`"aggregateId":"project-1"`, `"name":"Test 1"`, `"version":1`}},
@@ -87,7 +97,9 @@ func TestPersistence(t *testing.T) {
 		{
 			Name: "Multiple aggregate types create separate directories",
 			Input: []*commands.AnyMessage{
-				domain_helpers.NewDomainEvent(project.EntityName, "project-1", project.CreatedProject, project.CreatedProjectPayload{Name: "Test"}),
+				domain_helpers.NewDomainEvent(project.EntityName, "project-1", project.CreatedProject, project.CreatedProjectPayload{
+					Name: "Test",
+				}),
 				domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.CreatedFile, file.CreatedFilePayload{
 					FileData: file.FileData{ProjectID: "project-1", Name: "test.md", Type: file.FileTypeSource, Locked: true},
 				}),
@@ -101,7 +113,9 @@ func TestPersistence(t *testing.T) {
 		{
 			Name: "Many events persist and load correctly",
 			Input: []*commands.AnyMessage{
-				domain_helpers.NewDomainEvent(project.EntityName, "project-1", project.CreatedProject, project.CreatedProjectPayload{Name: "Test"}),
+				domain_helpers.NewDomainEvent(project.EntityName, "project-1", project.CreatedProject, project.CreatedProjectPayload{
+					Name: "Test",
+				}),
 				domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.CreatedFile, file.CreatedFilePayload{
 					FileData: file.FileData{ProjectID: "project-1", Name: "test1.md", Type: file.FileTypeSource, Locked: true},
 				}),
@@ -109,7 +123,9 @@ func TestPersistence(t *testing.T) {
 					FileData: file.FileData{ProjectID: "project-1", Name: "test2.md", Type: file.FileTypeSource, Locked: true},
 				}),
 				domain_helpers.NewDomainEvent(file.EntityName, "file-1", "UpdatedFile", nil),
-				domain_helpers.NewDomainEvent(project.EntityName, "project-2", project.CreatedProject, project.CreatedProjectPayload{Name: "Test 2"}),
+				domain_helpers.NewDomainEvent(project.EntityName, "project-2", project.CreatedProject, project.CreatedProjectPayload{
+					Name: "Test 2",
+				}),
 			},
 			Expected: []FileContent{
 				{Path: "File/file-1.jsonl", Contains: []string{`"action":"CreatedFile"`, `"action":"UpdatedFile"`, `"aggregateId":"file-1"`, `"version":1`}},

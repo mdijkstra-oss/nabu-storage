@@ -9,9 +9,16 @@ import (
 func NewRouter(_ *registry.RegistryState) dispatch.CommandRouter {
 	return dispatch.CombineRouters(
 		dispatch.LimitOnEntity(project.EntityName,
-			dispatch.ToCreateEntityEvent[project.CreateProjectPayload, project.CreatedProjectPayload](project.CreateProject, project.CreatedProject),
+			dispatch.ToCreateEntityEvent[project.CreateProjectPayload, project.CreatedProjectPayload](project.CreateProject, project.CreatedProject, createProjectFromPayload),
 			dispatch.ToUpdateEntityEvent[project.UpdateProjectPayload, project.UpdatedProjectPayload](project.UpdateProject, project.UpdatedProject),
 		),
 		dispatch.ToEmptyDomainEvent(project.DeleteProject, project.DeletedProject),
 	)
+}
+
+func createProjectFromPayload(payload *project.CreateProjectPayload) project.CreatedProjectPayload {
+	return project.ProjectData{
+		Name:        payload.Name,
+		Description: payload.Description,
+	}
 }
