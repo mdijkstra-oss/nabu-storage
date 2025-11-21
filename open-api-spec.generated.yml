@@ -303,6 +303,19 @@ paths:
                     message: "validation failed"
                     fields:
                       slug: "already in use"
+                arrayValidationSingle:
+                  summary: Array item validation error (single failure)
+                  value:
+                    message: "validation failed: sections[0] minimum 3 words required: \"short\""
+                    fields:
+                      sections[0]: "minimum 3 words required: \"short\""
+                arrayValidationMultiple:
+                  summary: Array item validation errors (multiple failures)
+                  value:
+                    message: "validation failed: sections[0] text not found in chunk: \"missing text\", sections[2] minimum 3 words required: \"no\""
+                    fields:
+                      sections[0]: "text not found in chunk: \"missing text\""
+                      sections[2]: "minimum 3 words required: \"no\""
         '404':
           description: Referenced entity not found
           content:
@@ -835,7 +848,36 @@ components:
           type: object
           additionalProperties:
             type: string
-          description: Field-level validation errors (field name → validation tag)
+          description: |
+            Field-level validation errors (field name → validation tag).
+            For array items, field names use bracket notation: field[index]
+      examples:
+        singleField:
+          summary: Single field error
+          value:
+            message: "validation failed: Name is required"
+            fields:
+              Name: "required"
+        multipleFields:
+          summary: Multiple field errors
+          value:
+            message: "validation failed: Color is required, Definition is required"
+            fields:
+              Color: "required"
+              Definition: "required"
+        arrayItemSingle:
+          summary: Array validation error (single item)
+          value:
+            message: "validation failed: sections[0] minimum 3 words required: \"short\""
+            fields:
+              sections[0]: "minimum 3 words required: \"short\""
+        arrayItemMultiple:
+          summary: Array validation errors (multiple items)
+          value:
+            message: "validation failed: sections[0] text not found in chunk: \"missing text\", sections[2] minimum 3 words required: \"no\""
+            fields:
+              sections[0]: "text not found in chunk: \"missing text\""
+              sections[2]: "minimum 3 words required: \"no\""
 
     BatchResponse:
       type: object
@@ -1620,6 +1662,10 @@ x-command-reference:
       payload: AddCodeSectionsPayload
       aggregateId: file UUID
       event: AddedCodeSections
+      validation:
+        - Text must exist in the chunk (fuzzy matched, normalized)
+        - Text must contain at least 3 words
+        - Array validation errors use format sections[index]
       example: |
         {
           "type": "Command",
@@ -1650,6 +1696,10 @@ x-command-reference:
       payload: UpdateCodeSectionsPayload
       aggregateId: file UUID
       event: UpdatedCodeSections
+      validation:
+        - If text is provided, it must exist in the chunk (fuzzy matched, normalized)
+        - If text is provided, it must contain at least 3 words
+        - Array validation errors use format sections[index]
       note: Only include fields to update (text and/or reason)
       example: |
         {
