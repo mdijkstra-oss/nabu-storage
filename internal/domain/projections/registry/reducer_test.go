@@ -32,7 +32,7 @@ func TestRegistryReducer(t *testing.T) {
 		{
 			Name:    "CreatedFile adds file to project and updates lookup",
 			Initial: registryWith(emptyProject("project-1", "Test Project")),
-			Event:   newFileEvent("file-1", file.CreatedFile, &file.CreatedFilePayload{CreateFilePayload: file.CreateFilePayload{ProjectID: "project-1", Name: "test.md"}, Type: file.FileTypeSource, Chunks: []file.Chunk{}}),
+			Event:   newFileEvent("file-1", file.CreatedFile, &file.CreatedFilePayload{FileData: file.FileData{ProjectID: "project-1", Name: "test.md", Type: file.FileTypeSource}, Chunks: []file.Chunk{}}),
 			Expected: registryWith(
 				projectWith("project-1", "Test Project", "", nil, map[string]file.File{"file-1": testFile("file-1", "project-1", "test.md")}),
 				withLookup("File:file-1", "project-1"),
@@ -125,10 +125,10 @@ func testCode(id, projectID, slug string) code.Code {
 }
 
 func testFile(id, projectID, name string) file.File {
-	return file.File{
-		BaseFile: file.BaseFile{ID: id, ProjectID: projectID, Name: name, Healthy: true, Attributes: file.Attributes{Type: file.FileTypeSource}},
-		Chunks:   []file.Chunk{},
-	}
+	return file.BuildTestFile(id, file.FileData{
+		ProjectID: projectID,
+		Name:      name,
+	})
 }
 
 func clearFileTimestamps(reg *Registry) *Registry {
@@ -137,7 +137,7 @@ func clearFileTimestamps(reg *Registry) *Registry {
 	}
 	for projID, proj := range reg.Projects {
 		for fileID, f := range proj.Files {
-			f.Time = file.Attributes{}.Time
+			f.Time = th.DefaultTestTime()
 			proj.Files[fileID] = f
 		}
 		reg.Projects[projID] = proj
@@ -185,9 +185,8 @@ func TestResolveProjectID(t *testing.T) {
 			Input: resolveProjectIDInput{
 				Setup: func(rs *RegistryState) {},
 				Event: newFileEvent("file-1", file.CreatedFile, &file.CreatedFilePayload{
-					CreateFilePayload: file.CreateFilePayload{ProjectID: "proj-456", Name: "test.md"},
-					Type:              file.FileTypeSource,
-					Chunks:            []file.Chunk{},
+					FileData: file.FileData{ProjectID: "proj-456", Name: "test.md", Type: file.FileTypeSource},
+					Chunks:   []file.Chunk{},
 				}),
 			},
 			Expected: "proj-456",
@@ -214,9 +213,8 @@ func TestResolveProjectID(t *testing.T) {
 						Description: "Test",
 					}))
 					rs.ApplyEvent(newFileEvent("file-99", file.CreatedFile, &file.CreatedFilePayload{
-						CreateFilePayload: file.CreateFilePayload{ProjectID: "proj-100", Name: "existing.md"},
-						Type:              file.FileTypeSource,
-						Chunks:            []file.Chunk{},
+						FileData: file.FileData{ProjectID: "proj-100", Name: "existing.md", Type: file.FileTypeSource},
+						Chunks:   []file.Chunk{},
 					}))
 				},
 				Event: &commands.AnyMessage{

@@ -15,23 +15,20 @@ func float64Ptr(f float64) *float64 {
 }
 
 func TestByChunk(t *testing.T) {
-	file1 := file.File{
-		BaseFile: file.BaseFile{
-			ID:        "file-1",
-			ProjectID: "project-1",
-			Name:      "test.txt",
-		},
-		Chunks: []file.Chunk{
-			{ID: "1", Content: "Climate change impacts", Codes: []file.CodedSection{
-				{CodeSlug: "topic:climate", CodeID: "code-1", ID: "s1", Text: "Climate change"},
-			}},
-			{ID: "2", Content: "Economic policies affect", Codes: []file.CodedSection{
-				{CodeSlug: "topic:economy", CodeID: "code-2", ID: "s1", Text: "Economic"},
-			}},
-			{ID: "3", Content: "Climate patterns shift", Codes: []file.CodedSection{
-				{CodeSlug: "topic:climate", CodeID: "code-3", ID: "s1", Text: "Climate"},
-			}},
-		},
+	file1 := file.BuildTestFile("file-1", file.FileData{
+		ProjectID: "project-1",
+		Name:      "test.txt",
+	})
+	file1.Chunks = []file.Chunk{
+		{ID: "1", Content: "Climate change impacts", Codes: []file.CodedSection{
+			{CodeSlug: "topic:climate", CodeID: "code-1", ID: "s1", Text: "Climate change"},
+		}},
+		{ID: "2", Content: "Economic policies affect", Codes: []file.CodedSection{
+			{CodeSlug: "topic:economy", CodeID: "code-2", ID: "s1", Text: "Economic"},
+		}},
+		{ID: "3", Content: "Climate patterns shift", Codes: []file.CodedSection{
+			{CodeSlug: "topic:climate", CodeID: "code-3", ID: "s1", Text: "Climate"},
+		}},
 	}
 
 	tests := []struct {

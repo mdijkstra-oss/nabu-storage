@@ -25,14 +25,13 @@ func NewRouter(_ *registry.RegistryState) dispatch.CommandRouter {
 
 func createFileFromPayload(payload *file.CreateFilePayload) file.CreatedFilePayload {
 	return file.CreatedFilePayload{
-		CreateFilePayload: file.CreateFilePayload{
+		FileData: file.FileData{
 			ProjectID:   payload.ProjectID,
 			Name:        payload.Name,
 			Description: payload.Description,
-			Content:     payload.Content,
+			Type:        file.FileTypeSource,
+			Locked:      true,
 		},
-		Type:   file.FileTypeSource,
-		Locked: true,
 		Chunks: createFileChunks(payload.Content),
 	}
 }

@@ -39,13 +39,12 @@ var setupCommands = []*commands.AnyMessage{
 	commands.ToAny(commands.NewDomainEvent[file.CreatedFilePayload, any](
 		file.CreatedFile,
 		file.CreatedFilePayload{
-			CreateFilePayload: file.CreateFilePayload{
+			FileData: file.FileData{
 				ProjectID: healthyProjectID,
 				Name:      "Existing File",
-				Content:   "Test content",
+				Type:      file.FileTypeSource,
+				Locked:    true,
 			},
-			Type:   file.FileTypeSource,
-			Locked: true,
 			Chunks: []file.Chunk{{ID: "1", Content: "Test content"}},
 		},
 		file.EntityName,
@@ -170,13 +169,12 @@ func TestCommandRouter(t *testing.T) {
 			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.CreatedFilePayload, any](
 				file.CreatedFile,
 				file.CreatedFilePayload{
-					CreateFilePayload: file.CreateFilePayload{
+					FileData: file.FileData{
 						ProjectID: healthyProjectID,
 						Name:      "New File",
-						Content:   "Content",
+						Type:      file.FileTypeSource,
+						Locked:    true,
 					},
-					Type:   file.FileTypeSource,
-					Locked: true,
 					Chunks: []file.Chunk{{ID: "1", Content: "Content\n", Codes: []file.CodedSection{}}},
 				},
 				file.EntityName,

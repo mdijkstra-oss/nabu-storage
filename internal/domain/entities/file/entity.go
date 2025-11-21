@@ -3,7 +3,9 @@ package file
 import "time"
 
 type File struct {
-	BaseFile
+	ID      string `json:"id"`
+	Healthy bool   `json:"healthy"`
+	FileData
 	Chunks []Chunk `json:"chunks"`
 }
 
@@ -33,22 +35,16 @@ const (
 	FileTypeContext  FileType = "context"  // LLM working memory (AI + user)
 )
 
-type BaseFile struct {
-	ID          string `json:"id"`
-	ProjectID   string `json:"project_id" validate:"required"`
-	Name        string `json:"name" validate:"required,max=200" normalize:"trim"`
-	Description string `json:"description" validate:"max=2000" normalize:"trim"`
-	Healthy     bool   `json:"healthy"`
-	Attributes
-}
-
-type Attributes struct {
-	Title    string    `json:"title" validate:"required,min=1,max=200"`
-	Summary  string    `json:"summary" validate:"max=1500"` // todo: halfpage
-	Time     time.Time `json:"time" validate:"omitempty,lte"`
-	Type     FileType  `json:"type" validate:"omitempty,oneof=codebook source memo context"`
-	Original string    `json:"original"` // original file (eg pdf converted into File format)
-	Locked   bool      `json:"locked"`   // whether file is read-only
+type FileData struct {
+	ProjectID   string    `json:"project_id" validate:"required"`
+	Name        string    `json:"name" validate:"required,max=200" normalize:"trim"` // filename
+	Description string    `json:"description" validate:"max=2000" normalize:"trim"`
+	Title       string    `json:"title" validate:"omitempty,min=1,max=200"` // pretty name perhaps from context
+	Summary     string    `json:"summary" validate:"max=1500"`              // todo: halfpage
+	Time        time.Time `json:"time" validate:"omitempty,lte"`
+	Type        FileType  `json:"type" validate:"omitempty,oneof=codebook source memo context"`
+	Original    string    `json:"original"` // original file (eg pdf converted into File format)
+	Locked      bool      `json:"locked"`   // whether file is read-only
 }
 
 type CodedSection struct {

@@ -3,6 +3,7 @@ package test_helpers
 import (
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -164,4 +165,8 @@ func RunFunctionTestsWithError[T any, R any, M any](t *testing.T, tests []struct
 			}
 		})
 	}
+}
+
+func DefaultTestTime() time.Time {
+	return time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC)
 }

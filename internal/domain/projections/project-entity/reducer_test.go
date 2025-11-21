@@ -5,6 +5,7 @@ import (
 	"hermes-relay/internal/domain/entities/code"
 	"hermes-relay/internal/domain/entities/file"
 	"hermes-relay/internal/domain/entities/project"
+	th "hermes-relay/internal/lib/test-helpers"
 	"hermes-relay/internal/lib/test-helpers/reducer-helpers"
 	"testing"
 )
@@ -82,37 +83,21 @@ func TestProjectReducer(t *testing.T) {
 
 	fileChildTests := reducer_helpers.AggregateChildMapTests(reducer_helpers.AggregateChildMapTestConfig[Project, file.File]{
 		CreatedEvent: newFileEvent("file-1", file.CreatedFile, &file.CreatedFilePayload{
-			CreateFilePayload: file.CreateFilePayload{ProjectID: "project-1", Name: "test-file.txt", Description: "A test file"},
-			Type:              file.FileTypeSource,
-			Locked:            false,
-			Chunks:            []file.Chunk{},
-		}),
-		UpdatedEvent: newFileEvent("file-1", file.UpdatedFile, &file.UpdatedFilePayload{Name: "new-name.txt", Description: "Updated"}),
-		DeletedEvent: newFileEvent("file-1", file.DeletedFile, nil),
-		EntityAfterCreate: file.File{
-			BaseFile: file.BaseFile{
-				ID:          "file-1",
+			FileData: file.FileData{
 				ProjectID:   "project-1",
 				Name:        "test-file.txt",
 				Description: "A test file",
-				Healthy:     true,
-				Attributes:  file.Attributes{Type: file.FileTypeSource, Locked: false},
+				Type:        file.FileTypeSource,
+				Locked:      false,
 			},
 			Chunks: []file.Chunk{},
-		},
-		EntityAfterUpdate: file.File{
-			BaseFile: file.BaseFile{
-				ID:          "file-1",
-				ProjectID:   "project-1",
-				Name:        "new-name.txt",
-				Description: "Updated",
-				Healthy:     true,
-				Attributes:  file.Attributes{Type: file.FileTypeSource, Locked: false},
-			},
-			Chunks: []file.Chunk{},
-		},
-		CreateParent: createEmptyProject,
-		GetMap:       func(p *Project) map[string]file.File { return p.Files },
+		}),
+		UpdatedEvent:      newFileEvent("file-1", file.UpdatedFile, &file.UpdatedFilePayload{Name: "new-name.txt", Description: "Updated"}),
+		DeletedEvent:      newFileEvent("file-1", file.DeletedFile, nil),
+		EntityAfterCreate: file.BuildTestFile("file-1", file.FileData{ProjectID: "project-1", Name: "test-file.txt", Description: "A test file"}),
+		EntityAfterUpdate: file.BuildTestFile("file-1", file.FileData{ProjectID: "project-1", Name: "new-name.txt", Description: "Updated"}),
+		CreateParent:      createEmptyProject,
+		GetMap:            func(p *Project) map[string]file.File { return p.Files },
 	})
 
 	combinedTests := append(tests, deletedEntityTests...)
@@ -139,7 +124,7 @@ func clearFileTimestamps(proj *Project) *Project {
 		return nil
 	}
 	for id, f := range proj.Files {
-		f.Time = file.Attributes{}.Time
+		f.Time = th.DefaultTestTime()
 		proj.Files[id] = f
 	}
 	return proj

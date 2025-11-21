@@ -30,22 +30,15 @@ var Reducer = projection.WithHealthCheck(
 )
 
 func CreatedFileReducer(_ *File, message *commands.AnyMessage, payload *file.CreatedFilePayload) *File {
+	fileData := payload.FileData
+	if fileData.Time.IsZero() {
+		fileData.Time = time.Now() // Todo: get from somewhere? eg upload system I suppose
+	}
 	return &File{
-		BaseFile: file.BaseFile{
-			ID:          message.AggregateID,
-			ProjectID:   payload.ProjectID,
-			Name:        payload.Name,
-			Description: payload.Description,
-			Healthy:     true,
-			Attributes: file.Attributes{
-				Title:   "",
-				Summary: "",
-				Time:    time.Now(), // Todo: get from somewhere? eg upload system I suppose
-				Type:    payload.Type,
-				Locked:  payload.Locked,
-			},
-		},
-		Chunks: payload.Chunks,
+		ID:       message.AggregateID,
+		Healthy:  true,
+		FileData: fileData,
+		Chunks:   payload.Chunks,
 	}
 }
 
