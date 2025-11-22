@@ -107,9 +107,10 @@ func RemovedCodeSectionsReducer(current *File, _ *commands.AnyMessage, payload *
 }
 
 func ClearedCodingReducer(current *File, message *commands.AnyMessage, payload any) *File {
-	for i := range current.Chunks {
-		current.Chunks[i].Codes = []file.CodedSection{}
-	}
+	current.Chunks = utils.Map(current.Chunks, func(chunk file.Chunk) file.Chunk {
+		chunk.Codes = []file.CodedSection{}
+		return chunk
+	})
 	return current
 }
 

@@ -34,12 +34,9 @@ func (p *InMemoryPublisher) Subscribe(router CommandRouter) func() {
 	return func() {
 		p.mu.Lock()
 		defer p.mu.Unlock()
-		for i, sub := range p.subscribers {
-			if sub.id == id {
-				p.subscribers = append(p.subscribers[:i], p.subscribers[i+1:]...)
-				break
-			}
-		}
+		p.subscribers = utils.Filter(p.subscribers, func(sub subscription) bool {
+			return sub.id != id
+		})
 	}
 }
 
