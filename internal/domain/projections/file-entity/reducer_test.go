@@ -1,6 +1,7 @@
 package fileview
 
 import (
+	"fmt"
 	"hermes-relay/internal/domain/entities/code"
 	"hermes-relay/internal/domain/entities/file"
 	th "hermes-relay/internal/lib/test-helpers"
@@ -112,7 +113,7 @@ func TestFileReducer(t *testing.T) {
 					ID:      "1",
 					Content: "Climate change impacts global warming.\n",
 					Codes: []file.CodedSection{
-						{ID: "generated-id", CodeID: "code-1", CodeSlug: "topic:climate", Text: "Climate change impacts", Reason: "Climate ref"},
+						{ID: "generated-id-1", CodeID: "code-1", CodeSlug: "topic:climate", Text: "Climate change impacts", Reason: "Climate ref"},
 					},
 				},
 			}),
@@ -168,6 +169,91 @@ func TestFileReducer(t *testing.T) {
 					Content: "Climate change impacts global warming.\n",
 					Codes: []file.CodedSection{
 						{ID: "section-2", CodeID: "code-2", CodeSlug: "topic:temperature", Text: "impacts global warming"},
+					},
+				},
+			}),
+		},
+		{
+			Name: "RemovedCodeSections removes middle section with same code",
+			Initial: buildFile("file-1", file.FileData{}, []file.Chunk{
+				{
+					ID:      "1",
+					Content: "Climate change impacts global warming and causes temperature rise.\n",
+					Codes: []file.CodedSection{
+						{ID: "section-1", CodeID: "code-1", CodeSlug: "topic:climate", Text: "Climate change impacts"},
+						{ID: "section-2", CodeID: "code-1", CodeSlug: "topic:climate", Text: "impacts global warming"},
+						{ID: "section-3", CodeID: "code-1", CodeSlug: "topic:climate", Text: "causes temperature rise"},
+					},
+				},
+			}),
+			Event: domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.RemovedCodeSections, &file.RemoveCodeSectionsPayload{
+				ChunkID:    "1",
+				SectionIDs: []string{"section-2"},
+			}),
+			Expected: buildFile("file-1", file.FileData{}, []file.Chunk{
+				{
+					ID:      "1",
+					Content: "Climate change impacts global warming and causes temperature rise.\n",
+					Codes: []file.CodedSection{
+						{ID: "section-1", CodeID: "code-1", CodeSlug: "topic:climate", Text: "Climate change impacts"},
+						{ID: "section-3", CodeID: "code-1", CodeSlug: "topic:climate", Text: "causes temperature rise"},
+					},
+				},
+			}),
+		},
+		{
+			Name: "RemovedCodeSections removes last section with same code",
+			Initial: buildFile("file-1", file.FileData{}, []file.Chunk{
+				{
+					ID:      "1",
+					Content: "Climate change impacts global warming and causes temperature rise.\n",
+					Codes: []file.CodedSection{
+						{ID: "section-1", CodeID: "code-1", CodeSlug: "topic:climate", Text: "Climate change impacts"},
+						{ID: "section-2", CodeID: "code-1", CodeSlug: "topic:climate", Text: "impacts global warming"},
+						{ID: "section-3", CodeID: "code-1", CodeSlug: "topic:climate", Text: "causes temperature rise"},
+					},
+				},
+			}),
+			Event: domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.RemovedCodeSections, &file.RemoveCodeSectionsPayload{
+				ChunkID:    "1",
+				SectionIDs: []string{"section-3"},
+			}),
+			Expected: buildFile("file-1", file.FileData{}, []file.Chunk{
+				{
+					ID:      "1",
+					Content: "Climate change impacts global warming and causes temperature rise.\n",
+					Codes: []file.CodedSection{
+						{ID: "section-1", CodeID: "code-1", CodeSlug: "topic:climate", Text: "Climate change impacts"},
+						{ID: "section-2", CodeID: "code-1", CodeSlug: "topic:climate", Text: "impacts global warming"},
+					},
+				},
+			}),
+		},
+		{
+			Name: "RemovedCodeSections removes multiple specific sections",
+			Initial: buildFile("file-1", file.FileData{}, []file.Chunk{
+				{
+					ID:      "1",
+					Content: "Climate change impacts global warming and causes temperature rise.\n",
+					Codes: []file.CodedSection{
+						{ID: "section-1", CodeID: "code-1", CodeSlug: "topic:climate", Text: "Climate change impacts"},
+						{ID: "section-2", CodeID: "code-1", CodeSlug: "topic:climate", Text: "impacts global warming"},
+						{ID: "section-3", CodeID: "code-2", CodeSlug: "topic:temperature", Text: "global warming"},
+						{ID: "section-4", CodeID: "code-1", CodeSlug: "topic:climate", Text: "causes temperature rise"},
+					},
+				},
+			}),
+			Event: domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.RemovedCodeSections, &file.RemoveCodeSectionsPayload{
+				ChunkID:    "1",
+				SectionIDs: []string{"section-2", "section-4"},
+			}),
+			Expected: buildFile("file-1", file.FileData{}, []file.Chunk{
+				{
+					ID:      "1",
+					Content: "Climate change impacts global warming and causes temperature rise.\n",
+					Codes: []file.CodedSection{
+						{ID: "section-1", CodeID: "code-1", CodeSlug: "topic:climate", Text: "Climate change impacts"},
+						{ID: "section-3", CodeID: "code-2", CodeSlug: "topic:temperature", Text: "global warming"},
 					},
 				},
 			}),
@@ -279,10 +365,22 @@ func TestFileReducer(t *testing.T) {
 	normalize := func(f *File) *File {
 		if f != nil {
 			f.Time = testTime
+			counter := 0
 			for i := range f.Chunks {
 				for j := range f.Chunks[i].Codes {
-					if f.Chunks[i].Codes[j].ID != "" && f.Chunks[i].Codes[j].ID != "section-1" && f.Chunks[i].Codes[j].ID != "section-2" {
-						f.Chunks[i].Codes[j].ID = "generated-id"
+					id := f.Chunks[i].Codes[j].ID
+					var keepID bool
+					if id == "" {
+						keepID = true
+					} else if len(id) >= 9 && id[:8] == "section-" && id[8] >= '0' && id[8] <= '9' {
+						keepID = true
+					} else if len(id) >= 14 && id[:13] == "generated-id-" {
+						keepID = true
+					}
+
+					if !keepID {
+						counter++
+						f.Chunks[i].Codes[j].ID = fmt.Sprintf("generated-id-%d", counter)
 					}
 				}
 			}
