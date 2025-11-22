@@ -7,11 +7,11 @@ setup:
 
 .PHONY: start
 start:
-	go run cmd/main.go
+	HERMES_DEV=true go run cmd/main.go
 
 .PHONY: dev
 dev:
-	watchexec -e go -r make start
+	HERMES_DEV=true watchexec -e go -r make start
 
 .PHONY: test
 test:
