@@ -6,6 +6,8 @@ import (
 	"hermes-relay/internal/lib/test-helpers"
 	"hermes-relay/internal/lib/test-helpers/domain-helpers"
 	"hermes-relay/internal/lib/utils"
+	"os"
+	"reflect"
 	"testing"
 )
 
@@ -41,8 +43,10 @@ func RunReducerTests[T any](t *testing.T, tests []ReducerTestCase[T], reducer fu
 		}
 	})
 
+	wrappedReducer := wrapReducerWithImmutabilityCheck(reducer)
+
 	test_helpers.RunFunctionTests(t, genericTests, func(input reducerInput[T]) T {
-		return reducer(input.initial, input.event)
+		return wrappedReducer(input.initial, input.event)
 	}, mapFunc...)
 }
 
@@ -139,5 +143,40 @@ func AggregateChildMapTests[Parent any, Entity any](
 			Event:    config.DeletedEvent,
 			Expected: createWithMap(make(map[string]Entity)),
 		},
+	}
+}
+
+func wrapReducerWithImmutabilityCheck[T any](reducer func(T, *commands.AnyMessage) T) func(T, *commands.AnyMessage) T {
+	if os.Getenv("HERMES_DEV") != "true" {
+		return reducer
+	}
+
+	return func(current T, event *commands.AnyMessage) T {
+		result := reducer(current, event)
+
+		currentVal := reflect.ValueOf(current)
+		resultVal := reflect.ValueOf(result)
+
+		if !currentVal.IsValid() || !resultVal.IsValid() {
+			return result
+		}
+
+		if currentVal.Kind() != reflect.Ptr || resultVal.Kind() != reflect.Ptr {
+			return result
+		}
+
+		if currentVal.IsNil() || resultVal.IsNil() {
+			return result
+		}
+
+		if currentVal.Pointer() == resultVal.Pointer() {
+			return result
+		}
+
+		if projection.HasSharedState(current, result) {
+			panic("IMMUTABILITY VIOLATION in test: reducer shares memory between before/after")
+		}
+
+		return result
 	}
 }

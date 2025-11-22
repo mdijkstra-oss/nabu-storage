@@ -171,6 +171,8 @@ func ApplyPartialUpdate[T any](current T, updates any) T {
 	resultPtr := reflect.ValueOf(&result)
 	resultValue := resultPtr.Elem()
 
+	DeepCopyFields(resultValue)
+
 	updatesType := updatesValue.Type()
 	for i := 0; i < updatesValue.NumField(); i++ {
 		updateField := updatesValue.Field(i)
@@ -185,4 +187,44 @@ func ApplyPartialUpdate[T any](current T, updates any) T {
 	}
 
 	return result
+}
+
+func DeepCopyFields(v reflect.Value) {
+	if v.Kind() == reflect.Ptr {
+		if !v.IsNil() {
+			DeepCopyFields(v.Elem())
+		}
+		return
+	}
+
+	if v.Kind() != reflect.Struct {
+		return
+	}
+
+	for i := 0; i < v.NumField(); i++ {
+		field := v.Field(i)
+		if !field.CanSet() {
+			continue
+		}
+
+		switch field.Kind() {
+		case reflect.Slice:
+			if !field.IsNil() {
+				newSlice := reflect.MakeSlice(field.Type(), field.Len(), field.Len())
+				reflect.Copy(newSlice, field)
+				field.Set(newSlice)
+			}
+		case reflect.Map:
+			if !field.IsNil() {
+				newMap := reflect.MakeMap(field.Type())
+				iter := field.MapRange()
+				for iter.Next() {
+					newMap.SetMapIndex(iter.Key(), iter.Value())
+				}
+				field.Set(newMap)
+			}
+		case reflect.Struct:
+			DeepCopyFields(field)
+		}
+	}
 }

@@ -7,6 +7,6 @@ type Registry struct {
 	EntityToProject map[string]string
 }
 
-func (r *Registry) GetID() string {
+func (r Registry) GetID() string {
 	return "singleton"
 }
