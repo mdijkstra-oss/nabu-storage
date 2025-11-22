@@ -189,33 +189,79 @@ func ApplyPartialUpdate[T any](current T, updates any) T {
 	return result
 }
 
-func DeepCopyFields(v reflect.Value) {
-	if v.Kind() == reflect.Ptr {
+type StructFieldVisitor func(field reflect.StructField, value reflect.Value) error
+
+func WalkReflectValue(v reflect.Value, visitor func(reflect.Value) error) error {
+	switch v.Kind() {
+	case reflect.Ptr:
 		if !v.IsNil() {
-			DeepCopyFields(v.Elem())
+			return WalkReflectValue(v.Elem(), visitor)
 		}
-		return
-	}
-
-	if v.Kind() != reflect.Struct {
-		return
-	}
-
-	for i := 0; i < v.NumField(); i++ {
-		field := v.Field(i)
-		if !field.CanSet() {
-			continue
+	case reflect.Struct:
+		for i := 0; i < v.NumField(); i++ {
+			field := v.Field(i)
+			if field.CanSet() {
+				if err := visitor(field); err != nil {
+					return err
+				}
+				if err := WalkReflectValue(field, visitor); err != nil {
+					return err
+				}
+			}
 		}
+	case reflect.Slice, reflect.Array:
+		for i := 0; i < v.Len(); i++ {
+			if err := visitor(v.Index(i)); err != nil {
+				return err
+			}
+			if err := WalkReflectValue(v.Index(i), visitor); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
 
+func WalkStructFields(v reflect.Value, visitor StructFieldVisitor) error {
+	switch v.Kind() {
+	case reflect.Ptr:
+		if !v.IsNil() {
+			return WalkStructFields(v.Elem(), visitor)
+		}
+	case reflect.Struct:
+		typ := v.Type()
+		for i := 0; i < v.NumField(); i++ {
+			field := v.Field(i)
+			if field.CanSet() {
+				if err := visitor(typ.Field(i), field); err != nil {
+					return err
+				}
+				if err := WalkStructFields(field, visitor); err != nil {
+					return err
+				}
+			}
+		}
+	case reflect.Slice, reflect.Array:
+		for i := 0; i < v.Len(); i++ {
+			if err := WalkStructFields(v.Index(i), visitor); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func DeepCopyFields(v reflect.Value) {
+	_ = WalkReflectValue(v, func(field reflect.Value) error {
 		switch field.Kind() {
 		case reflect.Slice:
-			if !field.IsNil() {
+			if !field.IsNil() && field.CanSet() {
 				newSlice := reflect.MakeSlice(field.Type(), field.Len(), field.Len())
 				reflect.Copy(newSlice, field)
 				field.Set(newSlice)
 			}
 		case reflect.Map:
-			if !field.IsNil() {
+			if !field.IsNil() && field.CanSet() {
 				newMap := reflect.MakeMap(field.Type())
 				iter := field.MapRange()
 				for iter.Next() {
@@ -223,8 +269,7 @@ func DeepCopyFields(v reflect.Value) {
 				}
 				field.Set(newMap)
 			}
-		case reflect.Struct:
-			DeepCopyFields(field)
 		}
-	}
+		return nil
+	})
 }
