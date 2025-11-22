@@ -25,3 +25,19 @@ func BuildTestFile(id string, overrides FileData) File {
 		Chunks:   []Chunk{},
 	}
 }
+
+func BuildTestChunk(id, content string, codes []CodedSection) Chunk {
+	return Chunk{
+		ID:      id,
+		Content: content,
+		Codes:   codes,
+	}
+}
+
+func BuildTestCodedSection(id, codeID, text string) CodedSection {
+	return CodedSection{
+		ID:     id,
+		CodeID: codeID,
+		Text:   text,
+	}
+}

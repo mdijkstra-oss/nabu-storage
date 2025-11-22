@@ -19,10 +19,20 @@ var Reducer = projection.WithHealthCheck(
 			projection.For(project.DeletedProject, projection.DeletedEntity[Project]),
 			projection.ApplyChildReducerToMap(
 				func(p *Project) map[string]code.Code { return p.Codes },
+				func(p *Project, codes map[string]code.Code) *Project {
+					updated := *p
+					updated.Codes = codes
+					return &updated
+				},
 				codeview.Reducer,
 			),
 			projection.ApplyChildReducerToMap(
 				func(p *Project) map[string]file.File { return p.Files },
+				func(p *Project, files map[string]file.File) *Project {
+					updated := *p
+					updated.Files = files
+					return &updated
+				},
 				fileview.Reducer,
 			),
 		),

@@ -56,13 +56,13 @@ func TestDecidePatch(t *testing.T) {
 			Expected: ActionTypePatch,
 		},
 		{
-			Name: "No changes still returns patch with empty diff",
+			Name: "No changes returns none",
 			Input: decidePatchInput{
 				Before:   func() *project.Project { p := project.BuildTestProject("p1", project.ProjectData{Name: "Same", Description: "Same"}); return &p }(),
 				After:    func() *project.Project { p := project.BuildTestProject("p1", project.ProjectData{Name: "Same", Description: "Same"}); return &p }(),
 				IsActive: true,
 			},
-			Expected: ActionTypePatch,
+			Expected: ActionTypeNone,
 		},
 		{
 			Name: "Both before and after nil returns none",

@@ -1,6 +1,7 @@
 package patches
 
 import (
+	"bytes"
 	"hermes-relay/internal/cqrs/dispatch"
 	"hermes-relay/internal/domain/entities/project"
 	"hermes-relay/internal/lib/utils"
@@ -35,6 +36,10 @@ func DecidePatch(before, after *project.Project, isActive bool) (PatchAction, er
 	patch, err := GeneratePatch(before, after)
 	if err != nil {
 		return PatchAction{Type: ActionTypeNone}, err
+	}
+
+	if bytes.Equal(patch, []byte("null")) {
+		return PatchAction{Type: ActionTypeNone}, nil
 	}
 
 	return PatchAction{Type: ActionTypePatch, Patch: patch}, nil
