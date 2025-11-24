@@ -178,7 +178,7 @@ func appendEventToFile(filePath string, event *commands.AnyMessage) error {
 		return fmt.Errorf("failed to lock file: %w", err)
 	}
 	defer func() {
-		_ = syscall.Flock(int(file.Fd()), syscall.LOCK_UN)
+		utils.ShouldWork(syscall.Flock(int(file.Fd()), syscall.LOCK_UN))
 	}()
 
 	encoder := json.NewEncoder(file)
