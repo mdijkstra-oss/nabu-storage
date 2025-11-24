@@ -3,6 +3,7 @@ package handlers
 import (
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/domain/entities/code"
+	"hermes-relay/internal/lib/test-helpers/domain-helpers"
 	"hermes-relay/internal/lib/utils"
 	rh "hermes-relay/internal/lib/test-helpers/router-helpers"
 	"testing"
@@ -22,6 +23,7 @@ var cmds = []*commands.AnyMessage{
 		map[string]any{"name": "Test Project"},
 		"Project",
 		testProjectID,
+		domain_helpers.TestActor(),
 		nil,
 	)),
 	commands.ToAny(commands.NewDomainEvent[code.CreatedCodePayload, any](
@@ -34,6 +36,7 @@ var cmds = []*commands.AnyMessage{
 		},
 		code.EntityName,
 		testCodeID1,
+		domain_helpers.TestActor(),
 		nil,
 	)),
 	commands.ToAny(commands.NewDomainEvent[code.CreatedCodePayload, any](
@@ -46,6 +49,7 @@ var cmds = []*commands.AnyMessage{
 		},
 		code.EntityName,
 		testCodeID2,
+		domain_helpers.TestActor(),
 		nil,
 	)),
 }
@@ -59,46 +63,46 @@ func TestCodeRouter(t *testing.T) {
 				Slug:      "topic:economy",
 				Color:     "green-500",
 				Definition: "Economic topics",
-			}, code.EntityName, "", nil)),
+			}, code.EntityName, "", domain_helpers.TestActor(), nil)),
 			ExpectErr: "",
 			ExpectEvent: commands.ToAny(commands.NewDomainEvent[code.CreatedCodePayload, any](code.CreatedCode, code.CreatedCodePayload{
 				ProjectID: testProjectID,
 				Slug:      "topic:economy",
 				Color:     "green-500",
 				Definition: "Economic topics",
-			}, code.EntityName, "", nil)),
+			}, code.EntityName, "", domain_helpers.TestActor(), nil)),
 		},
 		{
 			Name: "UpdateCode with both fields for existing code",
 			Input: commands.ToAny(commands.NewCommand[code.UpdateCodePayload, any](code.UpdateCode, code.UpdateCodePayload{
 				Color:     "emerald-600",
 				Definition: "Updated climate coverage",
-			}, code.EntityName, testCodeID1, nil)),
+			}, code.EntityName, testCodeID1, domain_helpers.TestActor(), nil)),
 			ExpectErr: "",
 			ExpectEvent: commands.ToAny(commands.NewDomainEvent[code.UpdatedCodePayload, any](code.UpdatedCode, code.UpdatedCodePayload{
 				Color:     "emerald-600",
 				Definition: "Updated climate coverage",
-			}, code.EntityName, testCodeID1, nil)),
+			}, code.EntityName, testCodeID1, domain_helpers.TestActor(), nil)),
 		},
 		{
 			Name: "UpdateCode for non-existent code fails",
 			Input: commands.ToAny(commands.NewCommand[code.UpdateCodePayload, any](code.UpdateCode, code.UpdateCodePayload{
 				Color: "red-500",
-			}, code.EntityName, "code-nonexistent", nil)),
+			}, code.EntityName, "code-nonexistent", domain_helpers.TestActor(), nil)),
 			ExpectErr: "validation failed: ProjectID not found",
 		},
 		{
 			Name: "DeleteCode",
-			Input: commands.ToAny(commands.NewCommand[code.DeleteCodePayload, any](code.DeleteCode, code.DeleteCodePayload{}, code.EntityName, testDeleteCodeID, nil)),
+			Input: commands.ToAny(commands.NewCommand[code.DeleteCodePayload, any](code.DeleteCode, code.DeleteCodePayload{}, code.EntityName, testDeleteCodeID, domain_helpers.TestActor(), nil)),
 			ExpectErr:   "",
-			ExpectEvent: commands.ToAny(commands.NewDomainEvent[any, any](code.DeletedCode, nil, code.EntityName, testDeleteCodeID, nil)),
+			ExpectEvent: commands.ToAny(commands.NewDomainEvent[any, any](code.DeletedCode, nil, code.EntityName, testDeleteCodeID, domain_helpers.TestActor(), nil)),
 		},
 		{
 			Name: "CreateCode with missing Color and Definition",
 			Input: commands.ToAny(commands.NewCommand[code.CreateCodePayload, any](code.CreateCode, code.CreateCodePayload{
 				ProjectID: testProjectID,
 				Slug:      "topic:incomplete",
-			}, code.EntityName, "", nil)),
+			}, code.EntityName, "", domain_helpers.TestActor(), nil)),
 			ExpectErr: "validation failed: Color is required, Definition is required",
 		},
 		{
@@ -108,7 +112,7 @@ func TestCodeRouter(t *testing.T) {
 				Slug:      "topicclimate",
 				Color:     "blue-500",
 				Definition: "Invalid format",
-			}, code.EntityName, "", nil)),
+			}, code.EntityName, "", domain_helpers.TestActor(), nil)),
 			ExpectErr: "validation failed: Slug must match code slug format (lowercase with colon and optional dashes)",
 		},
 		{
@@ -118,7 +122,7 @@ func TestCodeRouter(t *testing.T) {
 				Slug:      "Topic:climate",
 				Color:     "blue-500",
 				Definition: "Invalid format",
-			}, code.EntityName, "", nil)),
+			}, code.EntityName, "", domain_helpers.TestActor(), nil)),
 			ExpectErr: "validation failed: Slug must match code slug format (lowercase with colon and optional dashes)",
 		},
 		{
@@ -128,7 +132,7 @@ func TestCodeRouter(t *testing.T) {
 				Slug:      "topic:",
 				Color:     "blue-500",
 				Definition: "Invalid format",
-			}, code.EntityName, "", nil)),
+			}, code.EntityName, "", domain_helpers.TestActor(), nil)),
 			ExpectErr: "validation failed: Slug must match code slug format (lowercase with colon and optional dashes)",
 		},
 		{
@@ -138,7 +142,7 @@ func TestCodeRouter(t *testing.T) {
 				Slug:      "topic:-climate",
 				Color:     "blue-500",
 				Definition: "Invalid format",
-			}, code.EntityName, "", nil)),
+			}, code.EntityName, "", domain_helpers.TestActor(), nil)),
 			ExpectErr: "validation failed: Slug must match code slug format (lowercase with colon and optional dashes)",
 		},
 		{
@@ -148,7 +152,7 @@ func TestCodeRouter(t *testing.T) {
 				Slug:      "topic:test",
 				Color:     "blue-500",
 				Definition: "Test",
-			}, "DifferentEntity", "", nil)),
+			}, "DifferentEntity", "", domain_helpers.TestActor(), nil)),
 			ExpectErr:   "",
 			ExpectEvent: nil,
 		},
@@ -159,7 +163,7 @@ func TestCodeRouter(t *testing.T) {
 				Slug:      "topic:test",
 				Color:     "blue-500",
 				Definition: "Test",
-			}, code.EntityName, "test-aggregate-id", nil)),
+			}, code.EntityName, "test-aggregate-id", domain_helpers.TestActor(), nil)),
 			ExpectErr:   "",
 			ExpectEvent: nil,
 		},
@@ -170,7 +174,7 @@ func TestCodeRouter(t *testing.T) {
 				Slug:      "topic:climate",
 				Color:     "blue-500",
 				Definition: "Duplicate slug",
-			}, code.EntityName, "", nil)),
+			}, code.EntityName, "", domain_helpers.TestActor(), nil)),
 			ExpectErr: "validation failed: slug already in use",
 		},
 		{
@@ -178,19 +182,19 @@ func TestCodeRouter(t *testing.T) {
 			Input: commands.ToAny(commands.NewCommand[code.MergeCodesPayload, any](code.MergeCodes, code.MergeCodesPayload{
 				SourceID: testCodeID1,
 				TargetID: testCodeID2,
-			}, code.EntityName, testCodeID1, nil)),
+			}, code.EntityName, testCodeID1, domain_helpers.TestActor(), nil)),
 			ExpectErr: "",
 			ExpectEvent: commands.ToAny(commands.NewDomainEvent[code.MergedCodesPayload, any](code.MergedCodes, code.MergedCodesPayload{
 				SourceID: testCodeID1,
 				TargetID: testCodeID2,
-			}, code.EntityName, testCodeID1, nil)),
+			}, code.EntityName, testCodeID1, domain_helpers.TestActor(), nil)),
 		},
 		{
 			Name: "MergeCodes with non-existent source fails",
 			Input: commands.ToAny(commands.NewCommand[code.MergeCodesPayload, any](code.MergeCodes, code.MergeCodesPayload{
 				SourceID: testNonexistentID,
 				TargetID: testCodeID2,
-			}, code.EntityName, testCodeID2, nil)),
+			}, code.EntityName, testCodeID2, domain_helpers.TestActor(), nil)),
 			ExpectErr: "validation failed: source_id not found",
 		},
 		{
@@ -198,7 +202,7 @@ func TestCodeRouter(t *testing.T) {
 			Input: commands.ToAny(commands.NewCommand[code.MergeCodesPayload, any](code.MergeCodes, code.MergeCodesPayload{
 				SourceID: testCodeID1,
 				TargetID: testNonexistentID,
-			}, code.EntityName, testCodeID1, nil)),
+			}, code.EntityName, testCodeID1, domain_helpers.TestActor(), nil)),
 			ExpectErr: "validation failed: target_id not found",
 		},
 		{
@@ -206,7 +210,7 @@ func TestCodeRouter(t *testing.T) {
 			Input: commands.ToAny(commands.NewCommand[code.MergeCodesPayload, any](code.MergeCodes, code.MergeCodesPayload{
 				SourceID: testCodeID1,
 				TargetID: testCodeID1,
-			}, code.EntityName, testCodeID1, nil)),
+			}, code.EntityName, testCodeID1, domain_helpers.TestActor(), nil)),
 			ExpectErr: "validation failed: source_id cannot merge with itself",
 		},
 	}

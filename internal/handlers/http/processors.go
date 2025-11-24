@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/cqrs/dispatch"
 	"hermes-relay/internal/lib/utils"
@@ -39,6 +40,10 @@ func processSingle(request Request, publish dispatch.PublishFunc, acceptedOnly b
 		return errorOutput(http.StatusBadRequest, errors.New("message type not allowed"))
 	}
 
+	if err := ensureActor(&msg); err != nil {
+		return errorOutput(http.StatusBadRequest, err)
+	}
+
 	msg.Timestamp = time.Now()
 	result, err := publish(&msg)
 	if err != nil {
@@ -66,6 +71,14 @@ func processBatch(request Request, publish dispatch.PublishFunc, acceptedOnly bo
 				Index:   i,
 				Success: false,
 				Error:   "message type not allowed",
+			}
+		}
+
+		if err := ensureActor(&msg); err != nil {
+			return batchResult{
+				Index:   i,
+				Success: false,
+				Error:   err.Error(),
 			}
 		}
 
@@ -112,3 +125,33 @@ func processBatch(request Request, publish dispatch.PublishFunc, acceptedOnly bo
 		Body:       body,
 	}
 }
+
+func ensureActor(msg *commands.AnyMessage) error {
+	if msg.Actor.UserID == "" {
+		msg.Actor.UserID = "patient-zero"
+	}
+
+	if msg.Actor.ActorType == "" {
+		msg.Actor.ActorType = commands.ActorTypeHuman
+	}
+
+	validTypes := []commands.ActorType{
+		commands.ActorTypeHuman,
+		commands.ActorTypeLLM,
+		commands.ActorTypeSystem,
+	}
+
+	if !slices.Contains(validTypes, msg.Actor.ActorType) {
+		return fmt.Errorf("invalid actor type: %s", msg.Actor.ActorType)
+	}
+
+	return nil
+}
+
+// Todo: Reject client-provided Actor fields when auth is implemented
+// Once proper authentication exists:
+// - Extract UserID from auth context (JWT, session, etc)
+// - Reject any client-provided Actor.UserID that doesn't match authenticated user
+// - Only allow ActorType override for specific privileged users (e.g., system accounts)
+// - Validate that client cannot impersonate other users or claim system/LLM actor types
+// This ensures audit trail integrity and prevents actor spoofing

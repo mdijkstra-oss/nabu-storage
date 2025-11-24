@@ -152,11 +152,13 @@ func getOrCreateProjectID(publish dispatch.PublishFunc) string {
 		}
 	}
 
+	actor := commands.Actor{UserID: "seed", ActorType: commands.ActorTypeSystem}
 	msg := commands.ToAny(commands.NewCommand[project.CreateProjectPayload, any](
 		project.CreateProject,
 		project.CreateProjectPayload{Name: "COVID Project"},
 		project.EntityName,
 		utils.NewID(),
+		actor,
 		nil,
 	))
 

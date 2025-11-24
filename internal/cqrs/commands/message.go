@@ -12,6 +12,19 @@ type MessageType string
 
 type AggregateType string
 
+type ActorType string
+
+const (
+	ActorTypeHuman  ActorType = "human"
+	ActorTypeLLM    ActorType = "llm"
+	ActorTypeSystem ActorType = "system"
+)
+
+type Actor struct {
+	UserID    string    `json:"userId"`
+	ActorType ActorType `json:"actorType"`
+}
+
 // Errors can be part of entity story! Eg oh no, at this point in time I could not parse file
 // So set uploaded file to state 'broken' or something so that can be reflected in client too!
 const (
@@ -37,6 +50,7 @@ type Message[T any] struct {
 	AggregateType AggregateType `json:"aggregateType,omitempty"`
 	Payload       T             `json:"payload,omitempty"`
 
+	Actor       Actor     `json:"actor"`
 	CausationID string    `json:"causationId,omitempty"`
 	Timestamp   time.Time //`json:"timestamp" validate:"required"`
 
@@ -94,13 +108,15 @@ func (m Message[T]) LogValue() slog.Value {
 		slog.String("action", string(m.Action)),
 		slog.String("type", string(m.Type)),
 		slog.String("aggregateId", m.AggregateID),
+		slog.String("actorUserId", m.Actor.UserID),
+		slog.String("actorType", string(m.Actor.ActorType)),
 		slog.String("causationId", m.CausationID),
 		slog.Time("timestamp", m.Timestamp),
 		slog.Int("version", m.Version),
 	)
 }
 
-func NewMessage[T, C any](mType MessageType, action Action, payload T, aggregateType AggregateType, aggregateID string, cause *Message[C]) *Message[T] {
+func NewMessage[T, C any](mType MessageType, action Action, payload T, aggregateType AggregateType, aggregateID string, actor Actor, cause *Message[C]) *Message[T] {
 	var causationID = ""
 	if cause != nil {
 		causationID = cause.ID
@@ -113,22 +129,23 @@ func NewMessage[T, C any](mType MessageType, action Action, payload T, aggregate
 		AggregateID:   aggregateID,
 		AggregateType: aggregateType,
 		Payload:       payload,
+		Actor:         actor,
 		CausationID:   causationID,
 		Timestamp:     time.Now(),
 		Version:       1,
 	}
 }
 
-func NewCommand[T, P any](action Action, payload T, aggregateType AggregateType, aggregateID string, cause *Message[P]) *Message[T] {
-	return NewMessage(Command, action, payload, aggregateType, aggregateID, cause)
+func NewCommand[T, P any](action Action, payload T, aggregateType AggregateType, aggregateID string, actor Actor, cause *Message[P]) *Message[T] {
+	return NewMessage(Command, action, payload, aggregateType, aggregateID, actor, cause)
 }
 
-func NewDomainEvent[T, P any](action Action, payload T, aggregateType AggregateType, aggregateID string, cause *Message[P]) *Message[T] {
-	return NewMessage(DomainEvent, action, payload, aggregateType, aggregateID, cause)
+func NewDomainEvent[T, P any](action Action, payload T, aggregateType AggregateType, aggregateID string, actor Actor, cause *Message[P]) *Message[T] {
+	return NewMessage(DomainEvent, action, payload, aggregateType, aggregateID, actor, cause)
 }
 
-func NewSystemEvent[T, P any](action Action, payload T, aggregateType AggregateType, aggregateID string, cause *Message[P]) *Message[T] {
-	return NewMessage(SystemEvent, action, payload, aggregateType, aggregateID, cause)
+func NewSystemEvent[T, P any](action Action, payload T, aggregateType AggregateType, aggregateID string, actor Actor, cause *Message[P]) *Message[T] {
+	return NewMessage(SystemEvent, action, payload, aggregateType, aggregateID, actor, cause)
 }
 
 func ToDomainEvent[T any](message *Message[T], event Action, payload ...T) *Message[T] {
@@ -145,6 +162,7 @@ func ToDomainEvent[T any](message *Message[T], event Action, payload ...T) *Mess
 		p,
 		message.AggregateType,
 		message.AggregateID,
+		message.Actor,
 		message,
 	)
 }
@@ -164,6 +182,7 @@ func ToAny[P any](m *Message[P]) *AnyMessage {
 		Type:          m.Type,
 		AggregateID:   m.AggregateID,
 		AggregateType: m.AggregateType,
+		Actor:         m.Actor,
 		CausationID:   m.CausationID,
 		Timestamp:     m.Timestamp,
 		Payload:       m.Payload,

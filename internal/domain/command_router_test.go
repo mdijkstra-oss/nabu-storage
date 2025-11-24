@@ -5,6 +5,7 @@ import (
 	"hermes-relay/internal/domain/entities/code"
 	"hermes-relay/internal/domain/entities/file"
 	"hermes-relay/internal/domain/entities/project"
+	"hermes-relay/internal/lib/test-helpers/domain-helpers"
 	rh "hermes-relay/internal/lib/test-helpers/router-helpers"
 	"hermes-relay/internal/lib/utils"
 	"testing"
@@ -25,6 +26,7 @@ var setupCommands = []*commands.AnyMessage{
 		},
 		project.EntityName,
 		healthyProjectID,
+		domain_helpers.TestActor(),
 		nil,
 	)),
 	commands.ToAny(commands.NewDomainEvent[code.CreatedCodePayload, any](
@@ -37,6 +39,7 @@ var setupCommands = []*commands.AnyMessage{
 		},
 		code.EntityName,
 		healthyCodeID,
+		domain_helpers.TestActor(),
 		nil,
 	)),
 	commands.ToAny(commands.NewDomainEvent[file.CreatedFilePayload, any](
@@ -52,6 +55,7 @@ var setupCommands = []*commands.AnyMessage{
 		},
 		file.EntityName,
 		healthyFileID,
+		domain_helpers.TestActor(),
 		nil,
 	)),
 }
@@ -65,6 +69,7 @@ func TestCommandRouter(t *testing.T) {
 				project.CreateProjectPayload{Name: "New Project", Description: "Test"},
 				project.EntityName,
 				"",
+				domain_helpers.TestActor(),
 				nil,
 			)),
 			ExpectErr: "",
@@ -76,6 +81,7 @@ func TestCommandRouter(t *testing.T) {
 				},
 				project.EntityName,
 				"",
+				domain_helpers.TestActor(),
 				nil,
 			)),
 		},
@@ -86,6 +92,7 @@ func TestCommandRouter(t *testing.T) {
 				project.CreateProjectPayload{Name: "", Description: "Test"},
 				project.EntityName,
 				"",
+				domain_helpers.TestActor(),
 				nil,
 			)),
 			ExpectErr: "validation failed: Name is required",
@@ -102,6 +109,7 @@ func TestCommandRouter(t *testing.T) {
 				},
 				code.EntityName,
 				"",
+				domain_helpers.TestActor(),
 				nil,
 			)),
 			ExpectErr: "",
@@ -115,6 +123,7 @@ func TestCommandRouter(t *testing.T) {
 				},
 				code.EntityName,
 				"",
+				domain_helpers.TestActor(),
 				nil,
 			)),
 		},
@@ -130,6 +139,7 @@ func TestCommandRouter(t *testing.T) {
 				},
 				code.EntityName,
 				"",
+				domain_helpers.TestActor(),
 				nil,
 			)),
 			ExpectErr: "validation failed: ProjectID not found",
@@ -144,6 +154,7 @@ func TestCommandRouter(t *testing.T) {
 				},
 				code.EntityName,
 				healthyCodeID,
+				domain_helpers.TestActor(),
 				nil,
 			)),
 			ExpectErr: "",
@@ -155,6 +166,7 @@ func TestCommandRouter(t *testing.T) {
 				},
 				code.EntityName,
 				healthyCodeID,
+				domain_helpers.TestActor(),
 				nil,
 			)),
 		},
@@ -169,6 +181,7 @@ func TestCommandRouter(t *testing.T) {
 				},
 				file.EntityName,
 				"",
+				domain_helpers.TestActor(),
 				nil,
 			)),
 			ExpectErr: "",
@@ -185,6 +198,7 @@ func TestCommandRouter(t *testing.T) {
 				},
 				file.EntityName,
 				"",
+				domain_helpers.TestActor(),
 				nil,
 			)),
 		},
@@ -198,6 +212,7 @@ func TestCommandRouter(t *testing.T) {
 				},
 				file.EntityName,
 				healthyFileID,
+				domain_helpers.TestActor(),
 				nil,
 			)),
 			ExpectErr: "",
@@ -209,6 +224,7 @@ func TestCommandRouter(t *testing.T) {
 				},
 				file.EntityName,
 				healthyFileID,
+				domain_helpers.TestActor(),
 				nil,
 			)),
 		},
@@ -224,6 +240,7 @@ func TestCommandRouter(t *testing.T) {
 				},
 				code.EntityName,
 				"",
+				domain_helpers.TestActor(),
 				nil,
 			)),
 			ExpectErr: "validation failed: Slug must match code slug format (lowercase with colon and optional dashes)",
@@ -240,6 +257,7 @@ func TestCommandRouter(t *testing.T) {
 				},
 				code.EntityName,
 				"",
+				domain_helpers.TestActor(),
 				nil,
 			)),
 			ExpectErr: "validation failed: slug already in use",

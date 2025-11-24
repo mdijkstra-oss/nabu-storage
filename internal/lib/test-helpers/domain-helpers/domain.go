@@ -9,15 +9,18 @@ import (
 	"hermes-relay/internal/lib/utils"
 )
 
-// Todo: drop this I think, this function exists in domain code itself
+func TestActor() commands.Actor {
+	return commands.Actor{UserID: "test-user", ActorType: commands.ActorTypeSystem}
+}
+
 func NewDomainEvent(entityName commands.AggregateType, aggregateID string, action commands.Action, payload any) *commands.AnyMessage {
-	return commands.ToAny(commands.NewDomainEvent(action, payload, entityName, aggregateID, (*commands.AnyMessage)(nil)))
+	return commands.ToAny(commands.NewDomainEvent(action, payload, entityName, aggregateID, TestActor(), (*commands.AnyMessage)(nil)))
 }
 
 func AssertMessage(t *testing.T, got, want *commands.AnyMessage, msg string, extraOpts ...cmp.Option) {
 	t.Helper()
 	ignoreOpts := []test_helpers.IgnoreFieldsOption{
-		{Type: commands.AnyMessage{}, Fields: []string{"ID", "Timestamp", "CausationID", "AggregateID"}},
+		{Type: commands.AnyMessage{}, Fields: []string{"ID", "Timestamp", "CausationID", "AggregateID", "Actor"}},
 	}
 	defaultOpts := test_helpers.ToCmpOptions(ignoreOpts)
 	opts := append(defaultOpts, extraOpts...)

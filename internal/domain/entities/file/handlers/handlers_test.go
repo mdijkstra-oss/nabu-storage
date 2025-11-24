@@ -5,6 +5,7 @@ import (
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/domain/entities/file"
 	th "hermes-relay/internal/lib/test-helpers"
+	"hermes-relay/internal/lib/test-helpers/domain-helpers"
 	rh "hermes-relay/internal/lib/test-helpers/router-helpers"
 	"hermes-relay/internal/lib/utils"
 	"strings"
@@ -28,6 +29,7 @@ var cmds = []*commands.AnyMessage{
 		map[string]any{"name": "Test Project"},
 		"Project",
 		testProjectID,
+		domain_helpers.TestActor(),
 		nil,
 	)),
 	commands.ToAny(commands.NewDomainEvent[file.CreatedFilePayload, any](
@@ -45,6 +47,7 @@ var cmds = []*commands.AnyMessage{
 		},
 		file.EntityName,
 		testFileID1,
+		domain_helpers.TestActor(),
 		nil,
 	)),
 }
@@ -61,7 +64,7 @@ func TestFileRouter(t *testing.T) {
 				ProjectID: testProjectID,
 				Name:      "test-file.txt",
 				Content:   "Test content",
-			}, file.EntityName, "", nil)),
+			}, file.EntityName, "", domain_helpers.TestActor(), nil)),
 			ExpectErr: "",
 			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.CreatedFilePayload, any](file.CreatedFile, file.CreatedFilePayload{
 				FileData: file.FileData{
@@ -73,7 +76,7 @@ func TestFileRouter(t *testing.T) {
 				Chunks: []file.Chunk{
 					{ID: "1", Content: "Test content\n", Codes: []file.CodedSection{}},
 				},
-			}, file.EntityName, "", nil)),
+			}, file.EntityName, "", domain_helpers.TestActor(), nil)),
 		},
 		{
 			Name: "CreateFile with minimal required fields",
@@ -81,7 +84,7 @@ func TestFileRouter(t *testing.T) {
 				ProjectID: testProjectID,
 				Name:      "minimal.txt",
 				Content:   "Content",
-			}, file.EntityName, "", nil)),
+			}, file.EntityName, "", domain_helpers.TestActor(), nil)),
 			ExpectErr: "",
 			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.CreatedFilePayload, any](file.CreatedFile, file.CreatedFilePayload{
 				FileData: file.FileData{
@@ -93,7 +96,7 @@ func TestFileRouter(t *testing.T) {
 				Chunks: []file.Chunk{
 					{ID: "1", Content: "Content\n", Codes: []file.CodedSection{}},
 				},
-			}, file.EntityName, "", nil)),
+			}, file.EntityName, "", domain_helpers.TestActor(), nil)),
 		},
 		{
 			Name: "AddCodeSections with valid payload",
@@ -102,14 +105,14 @@ func TestFileRouter(t *testing.T) {
 				Sections: []file.AddSectionOp{
 					{CodeID: testCodeID1, CodeSlug: "topic:test", Text: "Some text to code", Reason: "Test reason"},
 				},
-			}, file.EntityName, testFileID1, nil)),
+			}, file.EntityName, testFileID1, domain_helpers.TestActor(), nil)),
 			ExpectErr: "",
 			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.AddedCodeSectionsPayload, any](file.AddedCodeSections, file.AddedCodeSectionsPayload{
 				ChunkID: "chunk-1",
 				Sections: []file.AddedSection{
 					{ID: "generated-id", CodeID: testCodeID1, CodeSlug: "topic:test", Text: "Some text to code", Reason: "Test reason"},
 				},
-			}, file.EntityName, testFileID1, nil)),
+			}, file.EntityName, testFileID1, domain_helpers.TestActor(), nil)),
 			IgnoreFields: ignoreGeneratedIDs,
 		},
 		{
@@ -119,76 +122,76 @@ func TestFileRouter(t *testing.T) {
 				Sections: []file.UpdateSectionOp{
 					{ID: testCodeID1, Text: "Some text to code", Reason: "Updated reason"},
 				},
-			}, file.EntityName, testFileID1, nil)),
+			}, file.EntityName, testFileID1, domain_helpers.TestActor(), nil)),
 			ExpectErr: "",
 			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.UpdateCodeSectionsPayload, any](file.UpdatedCodeSections, file.UpdateCodeSectionsPayload{
 				ChunkID: "chunk-1",
 				Sections: []file.UpdateSectionOp{
 					{ID: testCodeID1, Text: "Some text to code", Reason: "Updated reason"},
 				},
-			}, file.EntityName, testFileID1, nil)),
+			}, file.EntityName, testFileID1, domain_helpers.TestActor(), nil)),
 		},
 		{
 			Name: "RemoveCodeSections with valid payload",
 			Input: commands.ToAny(commands.NewCommand[file.RemoveCodeSectionsPayload, any](file.RemoveCodeSections, file.RemoveCodeSectionsPayload{
 				ChunkID:    "chunk-1",
 				SectionIDs: []string{testCodeID1, testCodeID2},
-			}, file.EntityName, testFileRemoveID, nil)),
+			}, file.EntityName, testFileRemoveID, domain_helpers.TestActor(), nil)),
 			ExpectErr: "",
 			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.RemoveCodeSectionsPayload, any](file.RemovedCodeSections, file.RemoveCodeSectionsPayload{
 				ChunkID:    "chunk-1",
 				SectionIDs: []string{testCodeID1, testCodeID2},
-			}, file.EntityName, testFileRemoveID, nil)),
+			}, file.EntityName, testFileRemoveID, domain_helpers.TestActor(), nil)),
 		},
 		{
 			Name:        "ClearCoding",
-			Input:       commands.ToAny(commands.NewCommand[any, any](file.ClearCoding, nil, file.EntityName, testFileClearID, nil)),
+			Input:       commands.ToAny(commands.NewCommand[any, any](file.ClearCoding, nil, file.EntityName, testFileClearID, domain_helpers.TestActor(), nil)),
 			ExpectErr:   "",
-			ExpectEvent: commands.ToAny(commands.NewDomainEvent[any, any](file.ClearedCoding, nil, file.EntityName, testFileClearID, nil)),
+			ExpectEvent: commands.ToAny(commands.NewDomainEvent[any, any](file.ClearedCoding, nil, file.EntityName, testFileClearID, domain_helpers.TestActor(), nil)),
 		},
 		{
 			Name: "UpdateFile with valid payload",
 			Input: commands.ToAny(commands.NewCommand[file.UpdateFilePayload, any](file.UpdateFile, file.UpdateFilePayload{
 				Name:        "updated-file.txt",
 				Description: "Updated description",
-			}, file.EntityName, testFileID1, nil)),
+			}, file.EntityName, testFileID1, domain_helpers.TestActor(), nil)),
 			ExpectErr: "",
 			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.UpdatedFilePayload, any](file.UpdatedFile, file.UpdatedFilePayload{
 				Name:        "updated-file.txt",
 				Description: "Updated description",
-			}, file.EntityName, testFileID1, nil)),
+			}, file.EntityName, testFileID1, domain_helpers.TestActor(), nil)),
 		},
 		{
 			Name: "UpdateFile with empty description",
 			Input: commands.ToAny(commands.NewCommand[file.UpdateFilePayload, any](file.UpdateFile, file.UpdateFilePayload{
 				Name:        "minimal.txt",
 				Description: "",
-			}, file.EntityName, testFileID2, nil)),
+			}, file.EntityName, testFileID2, domain_helpers.TestActor(), nil)),
 			ExpectErr: "",
 			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.UpdatedFilePayload, any](file.UpdatedFile, file.UpdatedFilePayload{
 				Name:        "minimal.txt",
 				Description: "",
-			}, file.EntityName, testFileID2, nil)),
+			}, file.EntityName, testFileID2, domain_helpers.TestActor(), nil)),
 		},
 		{
 			Name: "UpdateFile with missing Name",
 			Input: commands.ToAny(commands.NewCommand[file.UpdateFilePayload, any](file.UpdateFile, file.UpdateFilePayload{
 				Description: "Some description",
-			}, file.EntityName, testFileID3, nil)),
+			}, file.EntityName, testFileID3, domain_helpers.TestActor(), nil)),
 			ExpectErr: "validation failed: Name is required",
 		},
 		{
 			Name:        "DeleteFile with valid aggregate ChunkID",
-			Input:       commands.ToAny(commands.NewCommand[file.DeleteFilePayload, any](file.DeleteFile, file.DeleteFilePayload{}, file.EntityName, testFileID1, nil)),
+			Input:       commands.ToAny(commands.NewCommand[file.DeleteFilePayload, any](file.DeleteFile, file.DeleteFilePayload{}, file.EntityName, testFileID1, domain_helpers.TestActor(), nil)),
 			ExpectErr:   "",
-			ExpectEvent: commands.ToAny(commands.NewDomainEvent[any, any](file.DeletedFile, nil, file.EntityName, testFileID1, nil)),
+			ExpectEvent: commands.ToAny(commands.NewDomainEvent[any, any](file.DeletedFile, nil, file.EntityName, testFileID1, domain_helpers.TestActor(), nil)),
 		},
 		{
 			Name: "CreateFile with missing Name",
 			Input: commands.ToAny(commands.NewCommand[file.CreateFilePayload, any](file.CreateFile, file.CreateFilePayload{
 				ProjectID: testProjectID,
 				Content:   "Content",
-			}, file.EntityName, "", nil)),
+			}, file.EntityName, "", domain_helpers.TestActor(), nil)),
 			ExpectErr: "validation failed: Name is required",
 		},
 		{
@@ -196,7 +199,7 @@ func TestFileRouter(t *testing.T) {
 			Input: commands.ToAny(commands.NewCommand[file.CreateFilePayload, any](file.CreateFile, file.CreateFilePayload{
 				Name:    "file.txt",
 				Content: "Content",
-			}, file.EntityName, "", nil)),
+			}, file.EntityName, "", domain_helpers.TestActor(), nil)),
 			ExpectErr: "validation failed: ProjectID is required",
 		},
 		{
@@ -204,7 +207,7 @@ func TestFileRouter(t *testing.T) {
 			Input: commands.ToAny(commands.NewCommand[file.AddCodeSectionsPayload, any](file.AddCodeSections, file.AddCodeSectionsPayload{
 				ChunkID:  "chunk-1",
 				Sections: []file.AddSectionOp{},
-			}, file.EntityName, testFileID1, nil)),
+			}, file.EntityName, testFileID1, domain_helpers.TestActor(), nil)),
 			ExpectErr: "validation failed: Sections must be at least 1 characters",
 		},
 		{
@@ -214,7 +217,7 @@ func TestFileRouter(t *testing.T) {
 				Sections: []file.AddSectionOp{
 					{Text: "Some text"},
 				},
-			}, file.EntityName, testFileID1, nil)),
+			}, file.EntityName, testFileID1, domain_helpers.TestActor(), nil)),
 			ExpectErr: "validation failed: CodeSlug is required, CodeID is required",
 		},
 		{
@@ -224,7 +227,7 @@ func TestFileRouter(t *testing.T) {
 				Sections: []file.AddSectionOp{
 					{CodeSlug: "topicclimate", Text: "Some text"},
 				},
-			}, file.EntityName, testFileID1, nil)),
+			}, file.EntityName, testFileID1, domain_helpers.TestActor(), nil)),
 			ExpectErr: "validation failed: CodeSlug must match code slug format (lowercase with colon and optional dashes), CodeID is required",
 		},
 		{
@@ -234,7 +237,7 @@ func TestFileRouter(t *testing.T) {
 				Sections: []file.UpdateSectionOp{
 					{Text: "Updated text"},
 				},
-			}, file.EntityName, testFileID1, nil)),
+			}, file.EntityName, testFileID1, domain_helpers.TestActor(), nil)),
 			ExpectErr: "validation failed: ID is required",
 		},
 		{
@@ -242,7 +245,7 @@ func TestFileRouter(t *testing.T) {
 			Input: commands.ToAny(commands.NewCommand[file.RemoveCodeSectionsPayload, any](file.RemoveCodeSections, file.RemoveCodeSectionsPayload{
 				ChunkID:    "chunk-1",
 				SectionIDs: []string{},
-			}, file.EntityName, testFileID1, nil)),
+			}, file.EntityName, testFileID1, domain_helpers.TestActor(), nil)),
 			ExpectErr: "validation failed: SectionIDs must be at least 1 characters",
 		},
 		{
@@ -251,7 +254,7 @@ func TestFileRouter(t *testing.T) {
 				ProjectID: testProjectID,
 				Name:      "test.txt",
 				Content:   "Test",
-			}, "DifferentEntity", "", nil)),
+			}, "DifferentEntity", "", domain_helpers.TestActor(), nil)),
 			ExpectErr:   "",
 			ExpectEvent: nil,
 		},
@@ -261,7 +264,7 @@ func TestFileRouter(t *testing.T) {
 				ProjectID: testProjectID,
 				Name:      "test.txt",
 				Content:   "Test",
-			}, file.EntityName, "test-aggregate-id", nil)),
+			}, file.EntityName, "test-aggregate-id", domain_helpers.TestActor(), nil)),
 			ExpectErr:   "",
 			ExpectEvent: nil,
 		},
@@ -290,6 +293,7 @@ func TestFileCreationChunking(t *testing.T) {
 			},
 			file.EntityName,
 			"",
+			domain_helpers.TestActor(),
 			nil,
 		)
 

@@ -22,10 +22,12 @@ func TestProcessCommand(t *testing.T) {
 			name: "valid command returns 200",
 			body: `{"type":"Command","action":"UpdateDocument","payload":{}}`,
 			publish: func(msg *commands.AnyMessage) (*commands.AnyMessage, error) {
+				th.AssertEqualSimple(t, "patient-zero", msg.Actor.UserID)
+				th.AssertEqualSimple(t, commands.ActorTypeHuman, msg.Actor.ActorType)
 				return &commands.AnyMessage{Action: "DocumentUpdated"}, nil
 			},
 			expectStatus: http.StatusOK,
-			expectBody:   `{"action":"DocumentUpdated","type":"","Timestamp":"0001-01-01T00:00:00Z"}`,
+			expectBody:   `{"action":"DocumentUpdated","type":"","actor":{"userId":"","actorType":""},"Timestamp":"0001-01-01T00:00:00Z"}`,
 		},
 		{
 			name: "created action returns 201",
@@ -34,7 +36,7 @@ func TestProcessCommand(t *testing.T) {
 				return &commands.AnyMessage{Action: "DocumentCreated"}, nil
 			},
 			expectStatus: http.StatusCreated,
-			expectBody:   `{"action":"DocumentCreated","type":"","Timestamp":"0001-01-01T00:00:00Z"}`,
+			expectBody:   `{"action":"DocumentCreated","type":"","actor":{"userId":"","actorType":""},"Timestamp":"0001-01-01T00:00:00Z"}`,
 		},
 		{
 			name:         "invalid json returns 400",
@@ -90,6 +92,46 @@ func TestProcessCommand(t *testing.T) {
 			},
 			expectStatus: http.StatusInternalServerError,
 			expectBody:   `{"message":"something went wrong"}`,
+		},
+		{
+			name: "provided actor type is validated and preserved",
+			body: `{"type":"Command","action":"UpdateDocument","payload":{},"actor":{"userId":"claude","actorType":"llm"}}`,
+			publish: func(msg *commands.AnyMessage) (*commands.AnyMessage, error) {
+				th.AssertEqualSimple(t, "claude", msg.Actor.UserID)
+				th.AssertEqualSimple(t, commands.ActorTypeLLM, msg.Actor.ActorType)
+				return &commands.AnyMessage{Action: "DocumentUpdated"}, nil
+			},
+			expectStatus: http.StatusOK,
+			expectBody:   `{"action":"DocumentUpdated","type":"","actor":{"userId":"","actorType":""},"Timestamp":"0001-01-01T00:00:00Z"}`,
+		},
+		{
+			name:         "invalid actor type returns 400",
+			body:         `{"type":"Command","action":"UpdateDocument","payload":{},"actor":{"actorType":"robot"}}`,
+			publish:      nil,
+			expectStatus: http.StatusBadRequest,
+			expectBody:   `{"message":"invalid actor type: robot"}`,
+		},
+		{
+			name: "missing actor type defaults to human",
+			body: `{"type":"Command","action":"UpdateDocument","payload":{},"actor":{"userId":"specific-user"}}`,
+			publish: func(msg *commands.AnyMessage) (*commands.AnyMessage, error) {
+				th.AssertEqualSimple(t, "specific-user", msg.Actor.UserID)
+				th.AssertEqualSimple(t, commands.ActorTypeHuman, msg.Actor.ActorType)
+				return &commands.AnyMessage{Action: "DocumentUpdated"}, nil
+			},
+			expectStatus: http.StatusOK,
+			expectBody:   `{"action":"DocumentUpdated","type":"","actor":{"userId":"","actorType":""},"Timestamp":"0001-01-01T00:00:00Z"}`,
+		},
+		{
+			name: "missing userId defaults to patient-zero",
+			body: `{"type":"Command","action":"UpdateDocument","payload":{},"actor":{"actorType":"llm"}}`,
+			publish: func(msg *commands.AnyMessage) (*commands.AnyMessage, error) {
+				th.AssertEqualSimple(t, "patient-zero", msg.Actor.UserID)
+				th.AssertEqualSimple(t, commands.ActorTypeLLM, msg.Actor.ActorType)
+				return &commands.AnyMessage{Action: "DocumentUpdated"}, nil
+			},
+			expectStatus: http.StatusOK,
+			expectBody:   `{"action":"DocumentUpdated","type":"","actor":{"userId":"","actorType":""},"Timestamp":"0001-01-01T00:00:00Z"}`,
 		},
 	}
 

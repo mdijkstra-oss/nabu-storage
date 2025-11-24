@@ -46,6 +46,7 @@ func (p SnapshotEventPayload) GetData() any {
 }
 
 func NewPatchEvent(projectID string, patch []byte) *commands.AnyMessage {
+	actor := commands.Actor{UserID: "system", ActorType: commands.ActorTypeSystem}
 	return commands.ToAny(commands.NewSystemEvent[PatchEventPayload, any](
 		ProjectPatched,
 		PatchEventPayload{
@@ -54,11 +55,13 @@ func NewPatchEvent(projectID string, patch []byte) *commands.AnyMessage {
 		},
 		PatchesAggregate,
 		projectID,
+		actor,
 		nil,
 	))
 }
 
 func NewSnapshotEvent(projectID string, snapshot any) *commands.AnyMessage {
+	actor := commands.Actor{UserID: "system", ActorType: commands.ActorTypeSystem}
 	return commands.ToAny(commands.NewSystemEvent[SnapshotEventPayload, any](
 		ProjectSnapshot,
 		SnapshotEventPayload{
@@ -67,6 +70,7 @@ func NewSnapshotEvent(projectID string, snapshot any) *commands.AnyMessage {
 		},
 		PatchesAggregate,
 		projectID,
+		actor,
 		nil,
 	))
 }

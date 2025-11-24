@@ -125,5 +125,5 @@ func TestCodeReducer(t *testing.T) {
 }
 
 func newCodeEvent(aggregateID string, action commands.Action, payload any) *commands.AnyMessage {
-	return commands.ToAny(commands.NewDomainEvent(action, payload, code.EntityName, aggregateID, (*commands.AnyMessage)(nil)))
+	return commands.ToAny(commands.NewDomainEvent(action, payload, code.EntityName, aggregateID, commands.Actor{UserID: "test-user", ActorType: commands.ActorTypeSystem}, (*commands.AnyMessage)(nil)))
 }

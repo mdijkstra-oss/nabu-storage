@@ -3,6 +3,7 @@ package dispatch
 import (
 	"errors"
 	"hermes-relay/internal/cqrs/commands"
+	"hermes-relay/internal/lib/test-helpers/domain-helpers"
 	"hermes-relay/internal/lib/utils"
 	"sync"
 	"testing"
@@ -10,8 +11,8 @@ import (
 
 func TestPublisher(t *testing.T) {
 	testID := utils.NewID()
-	testMsg := commands.ToAny(commands.NewCommand[any, any]("TestAction", nil, "TestEntity", testID, nil))
-	testEvent := commands.ToAny(commands.NewDomainEvent[any, any]("TestEvent", nil, "TestEntity", testID, nil))
+	testMsg := commands.ToAny(commands.NewCommand[any, any]("TestAction", nil, "TestEntity", testID, domain_helpers.TestActor(), nil))
+	testEvent := commands.ToAny(commands.NewDomainEvent[any, any]("TestEvent", nil, "TestEntity", testID, domain_helpers.TestActor(), nil))
 	invalidMsg := &commands.AnyMessage{Type: "", Action: ""}
 
 	emptyRouter := func(msg *commands.AnyMessage, _ PublishFunc) (*commands.AnyMessage, error) {
@@ -65,23 +66,23 @@ func TestPublisher(t *testing.T) {
 			Name: "Publish returns first non-nil result from multiple subscribers",
 			Subscribers: []CommandRouter{
 				emptyRouter,
-				returnEventOnCommand(commands.ToAny(commands.NewDomainEvent[any, any]("FirstEvent", nil, "TestEntity", testID, nil))),
-				returnEventOnCommand(commands.ToAny(commands.NewDomainEvent[any, any]("SecondEvent", nil, "TestEntity", testID, nil))),
+				returnEventOnCommand(commands.ToAny(commands.NewDomainEvent[any, any]("FirstEvent", nil, "TestEntity", testID, domain_helpers.TestActor(), nil))),
+				returnEventOnCommand(commands.ToAny(commands.NewDomainEvent[any, any]("SecondEvent", nil, "TestEntity", testID, domain_helpers.TestActor(), nil))),
 			},
 			Input:       testMsg,
 			ExpectErr:   "",
-			ExpectEvent: commands.ToAny(commands.NewDomainEvent[any, any]("FirstEvent", nil, "TestEntity", testID, nil)),
+			ExpectEvent: commands.ToAny(commands.NewDomainEvent[any, any]("FirstEvent", nil, "TestEntity", testID, domain_helpers.TestActor(), nil)),
 			ExpectPublished: []*commands.AnyMessage{
 				testMsg,
-				commands.ToAny(commands.NewDomainEvent[any, any]("FirstEvent", nil, "TestEntity", testID, nil)),
-				commands.ToAny(commands.NewDomainEvent[any, any]("SecondEvent", nil, "TestEntity", testID, nil)),
+				commands.ToAny(commands.NewDomainEvent[any, any]("FirstEvent", nil, "TestEntity", testID, domain_helpers.TestActor(), nil)),
+				commands.ToAny(commands.NewDomainEvent[any, any]("SecondEvent", nil, "TestEntity", testID, domain_helpers.TestActor(), nil)),
 			},
 		},
 		{
 			Name: "Publish calls all subscribers even after getting result",
 			Subscribers: []CommandRouter{
 				returnEventOnCommand(testEvent),
-				returnEventOnCommand(commands.ToAny(commands.NewDomainEvent[any, any]("SecondEvent", nil, "TestEntity", testID, nil))),
+				returnEventOnCommand(commands.ToAny(commands.NewDomainEvent[any, any]("SecondEvent", nil, "TestEntity", testID, domain_helpers.TestActor(), nil))),
 			},
 			Input:       testMsg,
 			ExpectErr:   "",
@@ -89,7 +90,7 @@ func TestPublisher(t *testing.T) {
 			ExpectPublished: []*commands.AnyMessage{
 				testMsg,
 				testEvent,
-				commands.ToAny(commands.NewDomainEvent[any, any]("SecondEvent", nil, "TestEntity", testID, nil)),
+				commands.ToAny(commands.NewDomainEvent[any, any]("SecondEvent", nil, "TestEntity", testID, domain_helpers.TestActor(), nil)),
 			},
 		},
 		{
@@ -115,7 +116,7 @@ func TestPublisher(t *testing.T) {
 
 func TestUnsubscribe(t *testing.T) {
 	testID := utils.NewID()
-	testMsg := commands.ToAny(commands.NewCommand[any, any]("TestAction", nil, "TestEntity", testID, nil))
+	testMsg := commands.ToAny(commands.NewCommand[any, any]("TestAction", nil, "TestEntity", testID, domain_helpers.TestActor(), nil))
 
 	t.Run("Unsubscribe only removes specific subscriber", func(t *testing.T) {
 		publisher := NewInMemoryPublisher()
@@ -178,7 +179,7 @@ func runConcurrent(count int, fn func()) {
 
 func TestConcurrency(t *testing.T) {
 	testID := utils.NewID()
-	testMsg := commands.ToAny(commands.NewCommand[any, any]("TestAction", nil, "TestEntity", testID, nil))
+	testMsg := commands.ToAny(commands.NewCommand[any, any]("TestAction", nil, "TestEntity", testID, domain_helpers.TestActor(), nil))
 
 	t.Run("Concurrent subscribe", func(t *testing.T) {
 		publisher := NewInMemoryPublisher()

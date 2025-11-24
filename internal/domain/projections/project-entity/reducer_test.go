@@ -108,15 +108,15 @@ func TestProjectReducer(t *testing.T) {
 }
 
 func newProjectEvent(aggregateID string, action commands.Action, payload any) *commands.AnyMessage {
-	return commands.ToAny(commands.NewDomainEvent[any, any](action, payload, project.EntityName, aggregateID, nil))
+	return commands.ToAny(commands.NewDomainEvent[any, any](action, payload, project.EntityName, aggregateID, commands.Actor{UserID: "test-user", ActorType: commands.ActorTypeSystem}, nil))
 }
 
 func newCodeEvent(aggregateID string, action commands.Action, payload any) *commands.AnyMessage {
-	return commands.ToAny(commands.NewDomainEvent[any, any](action, payload, code.EntityName, aggregateID, nil))
+	return commands.ToAny(commands.NewDomainEvent[any, any](action, payload, code.EntityName, aggregateID, commands.Actor{UserID: "test-user", ActorType: commands.ActorTypeSystem}, nil))
 }
 
 func newFileEvent(aggregateID string, action commands.Action, payload any) *commands.AnyMessage {
-	return commands.ToAny(commands.NewDomainEvent[any, any](action, payload, file.EntityName, aggregateID, nil))
+	return commands.ToAny(commands.NewDomainEvent[any, any](action, payload, file.EntityName, aggregateID, commands.Actor{UserID: "test-user", ActorType: commands.ActorTypeSystem}, nil))
 }
 
 func clearFileTimestamps(proj *Project) *Project {
