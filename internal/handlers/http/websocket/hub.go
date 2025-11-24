@@ -6,6 +6,12 @@ import (
 	"sync"
 )
 
+// Todo: Add tests for Hub
+// - Concurrent Register/Unregister
+// - Broadcast to multiple connections
+// - Connection cleanup on write errors
+// - IsActive with multiple projects
+
 type Hub struct {
 	connections map[string]map[*websocket.Conn]bool
 	mu          sync.RWMutex

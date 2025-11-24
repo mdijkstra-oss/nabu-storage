@@ -12,6 +12,12 @@ import (
 	"net/http"
 )
 
+// Todo: Add tests for Handler
+// - Websocket upgrade with missing projectID
+// - Initial snapshot sent on connection
+// - Event forwarding filters by projectID
+// - Connection cleanup on close
+
 type Message struct {
 	Type      string `json:"type"`
 	ProjectID string `json:"projectId"`
