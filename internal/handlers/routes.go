@@ -3,6 +3,7 @@ package handlers
 import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 	"hermes-relay/internal/cqrs/dispatch"
 	"hermes-relay/internal/cqrs/projection"
 	codeview "hermes-relay/internal/domain/projections/code-entity"
@@ -21,7 +22,7 @@ func SetupHTTPHandlers(r chi.Router, publisher *dispatch.InMemoryPublisher, regi
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.RequestID)
 	r.Use(middleware.StripSlashes)
-	r.Use(corsMiddleware(corsOrigins))
+	r.Use(buildCorsHandler(corsOrigins))
 	r.Use(http.WithHeaders(http.DefaultHeaders))
 
 	r.Post("/commands", http.CommandHandler(publisher.Publish))
@@ -62,36 +63,14 @@ func SetupHTTPHandlers(r chi.Router, publisher *dispatch.InMemoryPublisher, regi
 	}))
 }
 
-func corsMiddleware(allowedOrigins []string) func(net.Handler) net.Handler {
-	return func(next net.Handler) net.Handler {
-		return net.HandlerFunc(func(w net.ResponseWriter, r *net.Request) {
-			origin := r.Header.Get("Origin")
-
-			if origin != "" && isOriginAllowed(origin, allowedOrigins) {
-				w.Header().Set("Access-Control-Allow-Origin", origin)
-				w.Header().Set("Access-Control-Allow-Credentials", "true")
-			} else if len(allowedOrigins) == 0 {
-				w.Header().Set("Access-Control-Allow-Origin", "*")
-			}
-
-			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-			w.Header().Set("Access-Control-Allow-Headers", "*")
-
-			if r.Method == "OPTIONS" {
-				w.WriteHeader(net.StatusOK)
-				return
-			}
-
-			next.ServeHTTP(w, r)
-		})
+func buildCorsHandler(allowedOrigins []string) func(net.Handler) net.Handler {
+	if len(allowedOrigins) == 0 {
+		allowedOrigins = []string{"*"}
 	}
-}
 
-func isOriginAllowed(origin string, allowedOrigins []string) bool {
-	for _, allowed := range allowedOrigins {
-		if origin == allowed {
-			return true
-		}
-	}
-	return false
+	return cors.Handler(cors.Options{
+		AllowedOrigins: allowedOrigins,
+		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders: []string{"*"},
+	})
 }
