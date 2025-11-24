@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"github.com/go-chi/chi/v5"
 	"hermes-relay/internal/bootstrap"
+	"hermes-relay/internal/config"
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/cqrs/dispatch"
 	"hermes-relay/internal/cqrs/persistence"
@@ -15,8 +17,8 @@ import (
 )
 
 func main() {
-	// Todo: Change to env var
-	bootstrap.SetupLogger(slog.LevelDebug)
+	cfg := config.Load()
+	bootstrap.SetupLogger(cfg.LogLevel)
 
 	var publisher = dispatch.NewInMemoryPublisher()
 	hub := websocket.NewHub()
@@ -24,8 +26,8 @@ func main() {
 	registry := bootstrap.SetupRegistry(publisher, hub)
 
 	// All except views / projections must be after replay ⚠️
-	slog.Info("Initializing command persistence")
-	disk := persistence.New()
+	slog.Info("Initializing command persistence", "dir", cfg.PersistenceDir)
+	disk := persistence.NewDiskPersistence(cfg.PersistenceDir)
 	utils.MustNotError(disk.ReplayAllEvents(publisher))
 
 	bootstrap.SetupCommandHandlers(publisher, registry)
@@ -34,7 +36,9 @@ func main() {
 
 	slog.Info("Initializing http endpoints")
 	r := chi.NewRouter()
-	handlers.SetupHTTPHandlers(r, publisher, registry, hub)
+	handlers.SetupHTTPHandlers(r, publisher, registry, hub, cfg.CorsOrigins)
 
-	log.Fatal(net.ListenAndServe(":8080", r))
+	addr := fmt.Sprintf(":%s", cfg.Port)
+	slog.Info("Server starting", "port", cfg.Port, "cors_origins", cfg.CorsOrigins)
+	log.Fatal(net.ListenAndServe(addr, r))
 }

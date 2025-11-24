@@ -16,12 +16,12 @@ import (
 	net "net/http"
 )
 
-func SetupHTTPHandlers(r chi.Router, publisher *dispatch.InMemoryPublisher, registryState *registry.RegistryState, hub *websocket.Hub) {
-	r.Use(middleware.Logger) // Todo: log level
+func SetupHTTPHandlers(r chi.Router, publisher *dispatch.InMemoryPublisher, registryState *registry.RegistryState, hub *websocket.Hub, corsOrigins []string) {
+	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.RequestID)
 	r.Use(middleware.StripSlashes)
-	r.Use(CORS)
+	r.Use(corsMiddleware(corsOrigins))
 	r.Use(http.WithHeaders(http.DefaultHeaders))
 
 	r.Post("/commands", http.CommandHandler(publisher.Publish))
@@ -62,15 +62,36 @@ func SetupHTTPHandlers(r chi.Router, publisher *dispatch.InMemoryPublisher, regi
 	}))
 }
 
-func CORS(next net.Handler) net.Handler {
-	return net.HandlerFunc(func(w net.ResponseWriter, r *net.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "*")
-		if r.Method == "OPTIONS" {
-			w.WriteHeader(net.StatusOK)
-			return
+func corsMiddleware(allowedOrigins []string) func(net.Handler) net.Handler {
+	return func(next net.Handler) net.Handler {
+		return net.HandlerFunc(func(w net.ResponseWriter, r *net.Request) {
+			origin := r.Header.Get("Origin")
+
+			if origin != "" && isOriginAllowed(origin, allowedOrigins) {
+				w.Header().Set("Access-Control-Allow-Origin", origin)
+				w.Header().Set("Access-Control-Allow-Credentials", "true")
+			} else if len(allowedOrigins) == 0 {
+				w.Header().Set("Access-Control-Allow-Origin", "*")
+			}
+
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "*")
+
+			if r.Method == "OPTIONS" {
+				w.WriteHeader(net.StatusOK)
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func isOriginAllowed(origin string, allowedOrigins []string) bool {
+	for _, allowed := range allowedOrigins {
+		if origin == allowed {
+			return true
 		}
-		next.ServeHTTP(w, r)
-	})
+	}
+	return false
 }
