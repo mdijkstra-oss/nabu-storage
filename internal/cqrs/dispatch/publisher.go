@@ -45,6 +45,13 @@ func (p *InMemoryPublisher) Publish(event *commands.AnyMessage) (*commands.AnyMe
 		return nil, err
 	}
 
+	// Todo: Persistence happens BEFORE state changes
+	// Current issue: subscribers (projections) run and update state before persistence subscriber.
+	// If persistence fails, state is already changed. Need to either:
+	// 1. Make persistence first subscriber (but then can't persist derived events from handlers)
+	// 2. Pure event sourcing: validate → persist → then apply to projections
+	// 3. Two-phase: prepare all changes, persist, then commit to projections
+
 	p.mu.RLock()
 	subscribers := p.subscribers
 	p.mu.RUnlock()

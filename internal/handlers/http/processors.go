@@ -44,6 +44,7 @@ func processSingle(request Request, publish dispatch.PublishFunc, acceptedOnly b
 		return errorOutput(http.StatusBadRequest, err)
 	}
 
+	msg.ID = utils.NewID()
 	msg.Timestamp = time.Now()
 	result, err := publish(&msg)
 	if err != nil {
@@ -82,6 +83,7 @@ func processBatch(request Request, publish dispatch.PublishFunc, acceptedOnly bo
 			}
 		}
 
+		msg.ID = utils.NewID()
 		msg.Timestamp = now
 		result, err := publish(&msg)
 
@@ -127,9 +129,7 @@ func processBatch(request Request, publish dispatch.PublishFunc, acceptedOnly bo
 }
 
 func ensureActor(msg *commands.AnyMessage) error {
-	if msg.Actor.UserID == "" {
-		msg.Actor.UserID = "patient-zero"
-	}
+	msg.Actor.UserID = "patient-zero"
 
 	if msg.Actor.ActorType == "" {
 		msg.Actor.ActorType = commands.ActorTypeHuman

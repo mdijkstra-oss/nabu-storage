@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"syscall"
 )
 
 type DiskPersistence struct {
@@ -162,20 +163,24 @@ func readEventsFromFile(filePath string) ([]commands.AnyMessage, error) {
 
 // appendEventToFile appends a single event to a JSONL file
 func appendEventToFile(filePath string, event *commands.AnyMessage) error {
-	// Ensure directory exists
 	dir := filepath.Dir(filePath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return fmt.Errorf("failed to create directory: %w", err)
 	}
 
-	// Open file for appending (create if doesn't exist)
 	file, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return fmt.Errorf("failed to open file: %w", err)
 	}
 	defer file.Close()
 
-	// Encode event as JSON and write with newline
+	if err := syscall.Flock(int(file.Fd()), syscall.LOCK_EX); err != nil {
+		return fmt.Errorf("failed to lock file: %w", err)
+	}
+	defer func() {
+		_ = syscall.Flock(int(file.Fd()), syscall.LOCK_UN)
+	}()
+
 	encoder := json.NewEncoder(file)
 	if err := encoder.Encode(event); err != nil {
 		return fmt.Errorf("failed to encode event: %w", err)

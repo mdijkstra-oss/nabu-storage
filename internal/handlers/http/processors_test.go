@@ -97,7 +97,7 @@ func TestProcessCommand(t *testing.T) {
 			name: "provided actor type is validated and preserved",
 			body: `{"type":"Command","action":"UpdateDocument","payload":{},"actor":{"userId":"claude","actorType":"llm"}}`,
 			publish: func(msg *commands.AnyMessage) (*commands.AnyMessage, error) {
-				th.AssertEqualSimple(t, "claude", msg.Actor.UserID)
+				th.AssertEqualSimple(t, "patient-zero", msg.Actor.UserID)
 				th.AssertEqualSimple(t, commands.ActorTypeLLM, msg.Actor.ActorType)
 				return &commands.AnyMessage{Action: "DocumentUpdated"}, nil
 			},
@@ -115,7 +115,7 @@ func TestProcessCommand(t *testing.T) {
 			name: "missing actor type defaults to human",
 			body: `{"type":"Command","action":"UpdateDocument","payload":{},"actor":{"userId":"specific-user"}}`,
 			publish: func(msg *commands.AnyMessage) (*commands.AnyMessage, error) {
-				th.AssertEqualSimple(t, "specific-user", msg.Actor.UserID)
+				th.AssertEqualSimple(t, "patient-zero", msg.Actor.UserID)
 				th.AssertEqualSimple(t, commands.ActorTypeHuman, msg.Actor.ActorType)
 				return &commands.AnyMessage{Action: "DocumentUpdated"}, nil
 			},

@@ -44,7 +44,7 @@ type Message[T any] struct {
 	ID string `json:"id,omitempty"`
 
 	Action Action      `json:"action" validate:"required"`
-	Type   MessageType `json:"type"` // todo validate etc
+	Type   MessageType `json:"type" validate:"oneof=Command DomainEvent SystemEvent"`
 
 	AggregateID   string        `json:"aggregateId,omitempty"`
 	AggregateType AggregateType `json:"aggregateType,omitempty"`

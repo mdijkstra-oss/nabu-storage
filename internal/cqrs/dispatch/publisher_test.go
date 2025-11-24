@@ -13,7 +13,7 @@ func TestPublisher(t *testing.T) {
 	testID := utils.NewID()
 	testMsg := commands.ToAny(commands.NewCommand[any, any]("TestAction", nil, "TestEntity", testID, domain_helpers.TestActor(), nil))
 	testEvent := commands.ToAny(commands.NewDomainEvent[any, any]("TestEvent", nil, "TestEntity", testID, domain_helpers.TestActor(), nil))
-	invalidMsg := &commands.AnyMessage{Type: "", Action: ""}
+	invalidMsg := &commands.AnyMessage{Type: commands.Command, Action: ""}
 
 	emptyRouter := func(msg *commands.AnyMessage, _ PublishFunc) (*commands.AnyMessage, error) {
 		return nil, nil
