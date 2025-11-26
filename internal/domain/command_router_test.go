@@ -34,7 +34,7 @@ var setupCommands = []*commands.AnyMessage{
 		code.CreatedCodePayload{
 			ProjectID:  healthyProjectID,
 			Slug:       "topic:existing-code",
-			Color:      "green-500",
+			Color:      "green",
 			Definition: "Existing code",
 		},
 		code.EntityName,
@@ -104,7 +104,7 @@ func TestCommandRouter(t *testing.T) {
 				code.CreateCodePayload{
 					ProjectID:  healthyProjectID,
 					Slug:       "topic:new-code",
-					Color:      "blue-500",
+					Color:      "blue",
 					Definition: "Test code",
 				},
 				code.EntityName,
@@ -118,7 +118,7 @@ func TestCommandRouter(t *testing.T) {
 				code.CreatedCodePayload{
 					ProjectID:  healthyProjectID,
 					Slug:       "topic:new-code",
-					Color:      "blue-500",
+					Color:      "blue",
 					Definition: "Test code",
 				},
 				code.EntityName,
@@ -134,7 +134,7 @@ func TestCommandRouter(t *testing.T) {
 				code.CreateCodePayload{
 					ProjectID:  utils.NewID(),
 					Slug:       "topic:orphan",
-					Color:      "gray-500",
+					Color:      "gray",
 					Definition: "No parent",
 				},
 				code.EntityName,
@@ -149,7 +149,7 @@ func TestCommandRouter(t *testing.T) {
 			Input: commands.ToAny(commands.NewCommand[code.UpdateCodePayload, any](
 				code.UpdateCode,
 				code.UpdateCodePayload{
-					Color:      "emerald-600",
+					Color:      "teal",
 					Definition: "Updated",
 				},
 				code.EntityName,
@@ -161,7 +161,7 @@ func TestCommandRouter(t *testing.T) {
 			ExpectEvent: commands.ToAny(commands.NewDomainEvent[code.UpdatedCodePayload, any](
 				code.UpdatedCode,
 				code.UpdatedCodePayload{
-					Color:      "emerald-600",
+					Color:      "teal",
 					Definition: "Updated",
 				},
 				code.EntityName,
@@ -235,7 +235,7 @@ func TestCommandRouter(t *testing.T) {
 				code.CreateCodePayload{
 					ProjectID:  healthyProjectID,
 					Slug:       "invalid-slug",
-					Color:      "blue-500",
+					Color:      "blue",
 					Definition: "Bad slug",
 				},
 				code.EntityName,
@@ -252,7 +252,7 @@ func TestCommandRouter(t *testing.T) {
 				code.CreateCodePayload{
 					ProjectID:  healthyProjectID,
 					Slug:       "topic:existing-code",
-					Color:      "blue-500",
+					Color:      "blue",
 					Definition: "Duplicate",
 				},
 				code.EntityName,

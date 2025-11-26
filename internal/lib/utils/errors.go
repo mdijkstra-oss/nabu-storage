@@ -51,6 +51,8 @@ func formatFieldError(fe validator.FieldError) string {
 		return field + " must be at most " + param + " characters"
 	case "code_slug":
 		return field + " must match code slug format (lowercase with colon and optional dashes)"
+	case "radix_color":
+		return field + " must be a valid Radix color"
 	case "lte":
 		return field + " must not be in the future"
 	case "gtfield":

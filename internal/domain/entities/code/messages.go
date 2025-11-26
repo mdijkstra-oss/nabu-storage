@@ -2,7 +2,7 @@ package code
 
 type UpdateCodeData struct {
 	Slug              string   `json:"slug" validate:"omitempty,code_slug" normalize:"trim,lowercase"`
-	Color             string   `json:"color,omitempty" validate:"omitempty" normalize:"trim,lowercase"`
+	Color             string   `json:"color,omitempty" validate:"omitempty,radix_color" normalize:"trim,lowercase"`
 	Definition        string   `json:"definition,omitempty"`
 	InclusionCriteria string   `json:"inclusion_criteria,omitempty"`
 	ExclusionCriteria string   `json:"exclusion_criteria,omitempty"`

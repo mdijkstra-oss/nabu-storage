@@ -25,7 +25,7 @@ func TestCodeReducer(t *testing.T) {
 			Event: newCodeEvent("code-1", code.CreatedCode, &code.CreatedCodePayload{
 				ProjectID: "project-1",
 				Slug:      "topic:climate",
-				Color:     "green-500",
+				Color:     "green",
 				Definition: "Climate topics",
 			}),
 			Expected: buildCode("code-1", code.CodeData{}),
@@ -34,9 +34,9 @@ func TestCodeReducer(t *testing.T) {
 			Name:    "UpdatedCode changes color only",
 			Initial: buildCode("code-1", code.CodeData{}),
 			Event: newCodeEvent("code-1", code.UpdatedCode, &code.UpdatedCodePayload{
-				Color: "emerald-600",
+				Color: "teal",
 			}),
-			Expected: buildCode("code-1", code.CodeData{Color: "emerald-600"}),
+			Expected: buildCode("code-1", code.CodeData{Color: "teal"}),
 		},
 		{
 			Name:    "UpdatedCode changes definition only",
@@ -50,25 +50,25 @@ func TestCodeReducer(t *testing.T) {
 			Name:    "UpdatedCode changes both fields",
 			Initial: buildCode("code-1", code.CodeData{}),
 			Event: newCodeEvent("code-1", code.UpdatedCode, &code.UpdatedCodePayload{
-				Color:     "teal-500",
+				Color:     "cyan",
 				Definition: "Environmental coverage",
 			}),
-			Expected: buildCode("code-1", code.CodeData{Color: "teal-500", Definition: "Environmental coverage"}),
+			Expected: buildCode("code-1", code.CodeData{Color: "cyan", Definition: "Environmental coverage"}),
 		},
 		{
 			Name:    "UpdatedCode with empty strings preserves current values",
-			Initial: buildCode("code-1", code.CodeData{Color: "teal-500", Definition: "Environmental coverage"}),
+			Initial: buildCode("code-1", code.CodeData{Color: "cyan", Definition: "Environmental coverage"}),
 			Event: newCodeEvent("code-1", code.UpdatedCode, &code.UpdatedCodePayload{
 				Color:     "",
 				Definition: "",
 			}),
-			Expected: buildCode("code-1", code.CodeData{Color: "teal-500", Definition: "Environmental coverage"}),
+			Expected: buildCode("code-1", code.CodeData{Color: "cyan", Definition: "Environmental coverage"}),
 		},
 		{
 			Name: "UpdatedCode with all empty fields preserves all current values",
 			Initial: buildCode("code-1", code.CodeData{
 				Slug:              "emotion:anxiety",
-				Color:             "amber-600",
+				Color:             "amber",
 				Definition:        "Expressions of worry or fear about future events",
 				InclusionCriteria: "Clear statements of worry, fear, or concern",
 				ExclusionCriteria: "General stress without specific worry",
@@ -88,7 +88,7 @@ func TestCodeReducer(t *testing.T) {
 			}),
 			Expected: buildCode("code-1", code.CodeData{
 				Slug:              "emotion:anxiety",
-				Color:             "amber-600",
+				Color:             "amber",
 				Definition:        "Expressions of worry or fear about future events",
 				InclusionCriteria: "Clear statements of worry, fear, or concern",
 				ExclusionCriteria: "General stress without specific worry",
@@ -105,9 +105,9 @@ func TestCodeReducer(t *testing.T) {
 		},
 		{
 			Name:    "MergedCodes keeps target code unchanged",
-			Initial: buildCode("code-2", code.CodeData{Slug: "topic:temperature", Color: "red-500", Definition: "Temperature topics"}),
+			Initial: buildCode("code-2", code.CodeData{Slug: "topic:temperature", Color: "red", Definition: "Temperature topics"}),
 			Event:   newCodeEvent("code-2", code.MergedCodes, &code.MergedCodesPayload{SourceID: "code-1", TargetID: "code-2"}),
-			Expected: buildCode("code-2", code.CodeData{Slug: "topic:temperature", Color: "red-500", Definition: "Temperature topics"}),
+			Expected: buildCode("code-2", code.CodeData{Slug: "topic:temperature", Color: "red", Definition: "Temperature topics"}),
 		},
 	}
 

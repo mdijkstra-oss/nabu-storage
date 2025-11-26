@@ -16,10 +16,10 @@ type CodeData struct {
 	// eg emotion:anxiety, theme:power-dynamics
 	Slug string `json:"slug" validate:"required,min=3,max=100,code_slug" normalize:"trim,lowercase"`
 
-	// Radix colors: gray, mauve, slate, sage, olive, sand, tomato, red, ruby, crimson, pink, plum, purple, violet, iris, indigo, blue, cyan, teal, jade, green, grass, lime, mint, sky, yellow, amber, orange, brown, bronze, gold
-	// Color steps 6-10 (inclusive): (lower=less prominent, higher=more prominent)
-	// format [color]-[step]
-	Color string `json:"color" validate:"required" normalize:"trim,lowercase"`
+	// Radix base color: gray, mauve, slate, sage, olive, sand, tomato, red, ruby, crimson, pink, plum,
+	// purple, violet, iris, indigo, blue, cyan, teal, jade, green, grass, bronze, gold, brown, orange,
+	// amber, yellow, lime, mint, sky
+	Color string `json:"color" validate:"required,radix_color" normalize:"trim,lowercase"`
 
 	// Core definition: What does this code mean? What concept/theme/pattern does it capture?
 	// Be specific and explicit. 1-2 paragraphs max.

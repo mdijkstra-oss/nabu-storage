@@ -72,11 +72,11 @@ func TestProjectReducer(t *testing.T) {
 	)
 
 	codeChildTests := reducer_helpers.AggregateChildMapTests(reducer_helpers.AggregateChildMapTestConfig[Project, code.Code]{
-		CreatedEvent:      newCodeEvent("code-1", code.CreatedCode, &code.CreatedCodePayload{ProjectID: "project-1", Slug: "test-code", Color: "red-500", Definition: "A test code"}),
+		CreatedEvent:      newCodeEvent("code-1", code.CreatedCode, &code.CreatedCodePayload{ProjectID: "project-1", Slug: "test-code", Color: "red", Definition: "A test code"}),
 		UpdatedEvent:      newCodeEvent("code-1", code.UpdatedCode, &code.UpdateCodePayload{Slug: "new-slug"}),
 		DeletedEvent:      newCodeEvent("code-1", code.DeletedCode, nil),
-		EntityAfterCreate: buildCode("code-1", code.CodeData{Slug: "test-code", Color: "red-500", Definition: "A test code"}),
-		EntityAfterUpdate: buildCode("code-1", code.CodeData{Slug: "new-slug", Color: "red-500", Definition: "A test code"}),
+		EntityAfterCreate: buildCode("code-1", code.CodeData{Slug: "test-code", Color: "red", Definition: "A test code"}),
+		EntityAfterUpdate: buildCode("code-1", code.CodeData{Slug: "new-slug", Color: "red", Definition: "A test code"}),
 		CreateParent:      createEmptyProject,
 		GetMap:            func(p *Project) map[string]code.Code { return p.Codes },
 	})

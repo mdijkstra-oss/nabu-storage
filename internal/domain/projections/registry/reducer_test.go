@@ -26,7 +26,7 @@ func TestRegistryReducer(t *testing.T) {
 		{
 			Name:    "CreatedCode adds code to project and updates lookup",
 			Initial: registryWith(emptyProject("project-1", "Test Project")),
-			Event:   newCodeEvent("code-1", code.CreatedCode, &code.CreatedCodePayload{ProjectID: "project-1", Slug: "test-code", Color: "blue-500", Definition: "Test code"}),
+			Event:   newCodeEvent("code-1", code.CreatedCode, &code.CreatedCodePayload{ProjectID: "project-1", Slug: "test-code", Color: "blue", Definition: "Test code"}),
 			Expected: registryWith(
 				projectWith("project-1", "Test Project", "", map[string]code.Code{"code-1": testCode("code-1", "project-1", "test-code")}, nil),
 				withLookup("Code:code-1", "project-1"),
@@ -74,7 +74,7 @@ func TestRegistryReducer(t *testing.T) {
 				emptyProject("project-1", "Project 1"),
 				emptyProject("project-2", "Project 2"),
 			),
-			Event: newCodeEvent("code-1", code.CreatedCode, &code.CreatedCodePayload{ProjectID: "project-1", Slug: "test-code", Color: "blue-500", Definition: "Test code"}),
+			Event: newCodeEvent("code-1", code.CreatedCode, &code.CreatedCodePayload{ProjectID: "project-1", Slug: "test-code", Color: "blue", Definition: "Test code"}),
 			Expected: registryWith(
 				projectWith("project-1", "Project 1", "", map[string]code.Code{"code-1": testCode("code-1", "project-1", "test-code")}, nil),
 				emptyProject("project-2", "Project 2"),
@@ -128,7 +128,7 @@ func testCode(id, projectID, slug string) code.Code {
 	return code.BuildTestCode(id, code.CodeData{
 		ProjectID:  projectID,
 		Slug:       slug,
-		Color:      "blue-500",
+		Color:      "blue",
 		Definition: "Test code",
 	})
 }
@@ -207,7 +207,7 @@ func TestResolveProjectID(t *testing.T) {
 				Event: newCodeEvent("code-1", code.CreatedCode, &code.CreatedCodePayload{
 					ProjectID:  "proj-789",
 					Slug:       "test-code",
-					Color:      "blue-500",
+					Color:      "blue",
 					Definition: "Test",
 				}),
 			},
@@ -244,7 +244,7 @@ func TestResolveProjectID(t *testing.T) {
 					rs.ApplyEvent(newCodeEvent("code-88", code.CreatedCode, &code.CreatedCodePayload{
 						ProjectID:  "proj-200",
 						Slug:       "test-code",
-						Color:      "red-500",
+						Color:      "red",
 						Definition: "Test",
 					}))
 				},

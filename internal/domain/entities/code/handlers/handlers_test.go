@@ -31,7 +31,7 @@ var cmds = []*commands.AnyMessage{
 		code.CreatedCodePayload{
 			ProjectID: testProjectID,
 			Slug:      "topic:climate",
-			Color:     "blue-500",
+			Color:     "blue",
 			Definition: "Climate topics",
 		},
 		code.EntityName,
@@ -44,7 +44,7 @@ var cmds = []*commands.AnyMessage{
 		code.CreatedCodePayload{
 			ProjectID: testProjectID,
 			Slug:      "topic:health",
-			Color:     "green-500",
+			Color:     "green",
 			Definition: "Health topics",
 		},
 		code.EntityName,
@@ -61,33 +61,33 @@ func TestCodeRouter(t *testing.T) {
 			Input: commands.ToAny(commands.NewCommand[code.CreateCodePayload, any](code.CreateCode, code.CreateCodePayload{
 				ProjectID: testProjectID,
 				Slug:      "topic:economy",
-				Color:     "green-500",
+				Color:     "green",
 				Definition: "Economic topics",
 			}, code.EntityName, "", domain_helpers.TestActor(), nil)),
 			ExpectErr: "",
 			ExpectEvent: commands.ToAny(commands.NewDomainEvent[code.CreatedCodePayload, any](code.CreatedCode, code.CreatedCodePayload{
 				ProjectID: testProjectID,
 				Slug:      "topic:economy",
-				Color:     "green-500",
+				Color:     "green",
 				Definition: "Economic topics",
 			}, code.EntityName, "", domain_helpers.TestActor(), nil)),
 		},
 		{
 			Name: "UpdateCode with both fields for existing code",
 			Input: commands.ToAny(commands.NewCommand[code.UpdateCodePayload, any](code.UpdateCode, code.UpdateCodePayload{
-				Color:     "emerald-600",
+				Color:     "teal",
 				Definition: "Updated climate coverage",
 			}, code.EntityName, testCodeID1, domain_helpers.TestActor(), nil)),
 			ExpectErr: "",
 			ExpectEvent: commands.ToAny(commands.NewDomainEvent[code.UpdatedCodePayload, any](code.UpdatedCode, code.UpdatedCodePayload{
-				Color:     "emerald-600",
+				Color:     "teal",
 				Definition: "Updated climate coverage",
 			}, code.EntityName, testCodeID1, domain_helpers.TestActor(), nil)),
 		},
 		{
 			Name: "UpdateCode for non-existent code fails",
 			Input: commands.ToAny(commands.NewCommand[code.UpdateCodePayload, any](code.UpdateCode, code.UpdateCodePayload{
-				Color: "red-500",
+				Color: "red",
 			}, code.EntityName, "code-nonexistent", domain_helpers.TestActor(), nil)),
 			ExpectErr: "validation failed: ProjectID not found",
 		},
@@ -106,11 +106,31 @@ func TestCodeRouter(t *testing.T) {
 			ExpectErr: "validation failed: Color is required, Definition is required",
 		},
 		{
+			Name: "CreateCode with invalid color (not a radix color)",
+			Input: commands.ToAny(commands.NewCommand[code.CreateCodePayload, any](code.CreateCode, code.CreateCodePayload{
+				ProjectID:  testProjectID,
+				Slug:       "topic:invalid-color",
+				Color:      "emerald",
+				Definition: "Invalid color",
+			}, code.EntityName, "", domain_helpers.TestActor(), nil)),
+			ExpectErr: "validation failed: Color must be a valid Radix color",
+		},
+		{
+			Name: "CreateCode with invalid color (has number suffix)",
+			Input: commands.ToAny(commands.NewCommand[code.CreateCodePayload, any](code.CreateCode, code.CreateCodePayload{
+				ProjectID:  testProjectID,
+				Slug:       "topic:invalid-color-suffix",
+				Color:      "blue-500",
+				Definition: "Invalid color format",
+			}, code.EntityName, "", domain_helpers.TestActor(), nil)),
+			ExpectErr: "validation failed: Color must be a valid Radix color",
+		},
+		{
 			Name: "CreateCode with invalid slug (no colon)",
 			Input: commands.ToAny(commands.NewCommand[code.CreateCodePayload, any](code.CreateCode, code.CreateCodePayload{
 				ProjectID: testProjectID,
 				Slug:      "topicclimate",
-				Color:     "blue-500",
+				Color:     "blue",
 				Definition: "Invalid format",
 			}, code.EntityName, "", domain_helpers.TestActor(), nil)),
 			ExpectErr: "validation failed: Slug must match code slug format (lowercase with colon and optional dashes)",
@@ -120,7 +140,7 @@ func TestCodeRouter(t *testing.T) {
 			Input: commands.ToAny(commands.NewCommand[code.CreateCodePayload, any](code.CreateCode, code.CreateCodePayload{
 				ProjectID: testProjectID,
 				Slug:      "Topic:climate",
-				Color:     "blue-500",
+				Color:     "blue",
 				Definition: "Invalid format",
 			}, code.EntityName, "", domain_helpers.TestActor(), nil)),
 			ExpectErr: "validation failed: Slug must match code slug format (lowercase with colon and optional dashes)",
@@ -130,7 +150,7 @@ func TestCodeRouter(t *testing.T) {
 			Input: commands.ToAny(commands.NewCommand[code.CreateCodePayload, any](code.CreateCode, code.CreateCodePayload{
 				ProjectID: testProjectID,
 				Slug:      "topic:",
-				Color:     "blue-500",
+				Color:     "blue",
 				Definition: "Invalid format",
 			}, code.EntityName, "", domain_helpers.TestActor(), nil)),
 			ExpectErr: "validation failed: Slug must match code slug format (lowercase with colon and optional dashes)",
@@ -140,7 +160,7 @@ func TestCodeRouter(t *testing.T) {
 			Input: commands.ToAny(commands.NewCommand[code.CreateCodePayload, any](code.CreateCode, code.CreateCodePayload{
 				ProjectID: testProjectID,
 				Slug:      "topic:-climate",
-				Color:     "blue-500",
+				Color:     "blue",
 				Definition: "Invalid format",
 			}, code.EntityName, "", domain_helpers.TestActor(), nil)),
 			ExpectErr: "validation failed: Slug must match code slug format (lowercase with colon and optional dashes)",
@@ -150,7 +170,7 @@ func TestCodeRouter(t *testing.T) {
 			Input: commands.ToAny(commands.NewCommand[code.CreateCodePayload, any](code.CreateCode, code.CreateCodePayload{
 				ProjectID: testProjectID,
 				Slug:      "topic:test",
-				Color:     "blue-500",
+				Color:     "blue",
 				Definition: "Test",
 			}, "DifferentEntity", "", domain_helpers.TestActor(), nil)),
 			ExpectErr:   "",
@@ -161,7 +181,7 @@ func TestCodeRouter(t *testing.T) {
 			Input: commands.ToAny(commands.NewCommand[code.CreateCodePayload, any]("DifferentAction", code.CreateCodePayload{
 				ProjectID: testProjectID,
 				Slug:      "topic:test",
-				Color:     "blue-500",
+				Color:     "blue",
 				Definition: "Test",
 			}, code.EntityName, "test-aggregate-id", domain_helpers.TestActor(), nil)),
 			ExpectErr:   "",
@@ -172,7 +192,7 @@ func TestCodeRouter(t *testing.T) {
 			Input: commands.ToAny(commands.NewCommand[code.CreateCodePayload, any](code.CreateCode, code.CreateCodePayload{
 				ProjectID: testProjectID,
 				Slug:      "topic:climate",
-				Color:     "blue-500",
+				Color:     "blue",
 				Definition: "Duplicate slug",
 			}, code.EntityName, "", domain_helpers.TestActor(), nil)),
 			ExpectErr: "validation failed: slug already in use",
