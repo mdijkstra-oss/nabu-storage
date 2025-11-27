@@ -48,8 +48,8 @@ paths:
                 value:
                   type: Command
                   action: CreateProject
-                  aggregateType: Project
-                  aggregateId: ""
+                  aggregate_type: Project
+                  aggregate_id: ""
                   payload:
                     name: Healthcare Patient Experience Study
                     description: Qualitative analysis of patient interviews regarding hospital experiences
@@ -58,8 +58,8 @@ paths:
                 value:
                   type: Command
                   action: UpdateProject
-                  aggregateType: Project
-                  aggregateId: "550e8400-e29b-41d4-a716-446655440000"
+                  aggregate_type: Project
+                  aggregate_id: "550e8400-e29b-41d4-a716-446655440000"
                   payload:
                     name: Healthcare Patient Experience Study - Updated
                     description: Updated qualitative analysis of patient interviews
@@ -68,8 +68,8 @@ paths:
                 value:
                   type: Command
                   action: CreateCode
-                  aggregateType: Code
-                  aggregateId: ""
+                  aggregate_type: Code
+                  aggregate_id: ""
                   payload:
                     project_id: "550e8400-e29b-41d4-a716-446655440000"
                     slug: "emotion:anxiety"
@@ -90,8 +90,8 @@ paths:
                 value:
                   type: Command
                   action: UpdateCode
-                  aggregateType: Code
-                  aggregateId: "660e8400-e29b-41d4-a716-446655440001"
+                  aggregate_type: Code
+                  aggregate_id: "660e8400-e29b-41d4-a716-446655440001"
                   payload:
                     color: "orange"
                     definition: "Updated to focus specifically on pre-procedure anxiety, excluding post-treatment concerns"
@@ -100,8 +100,8 @@ paths:
                 value:
                   type: Command
                   action: CreateFile
-                  aggregateType: File
-                  aggregateId: ""
+                  aggregate_type: File
+                  aggregate_id: ""
                   payload:
                     project_id: "550e8400-e29b-41d4-a716-446655440000"
                     name: "Interview with Patient P07"
@@ -112,8 +112,8 @@ paths:
                 value:
                   type: Command
                   action: AddCodeSections
-                  aggregateType: File
-                  aggregateId: "770e8400-e29b-41d4-a716-446655440002"
+                  aggregate_type: File
+                  aggregate_id: "770e8400-e29b-41d4-a716-446655440002"
                   payload:
                     chunk_id: "1"
                     sections:
@@ -126,8 +126,8 @@ paths:
                 value:
                   type: Command
                   action: UpdateCodeSections
-                  aggregateType: File
-                  aggregateId: "770e8400-e29b-41d4-a716-446655440002"
+                  aggregate_type: File
+                  aggregate_id: "770e8400-e29b-41d4-a716-446655440002"
                   payload:
                     chunk_id: "1"
                     sections:
@@ -138,8 +138,8 @@ paths:
                 value:
                   type: Command
                   action: RemoveCodeSections
-                  aggregateType: File
-                  aggregateId: "770e8400-e29b-41d4-a716-446655440002"
+                  aggregate_type: File
+                  aggregate_id: "770e8400-e29b-41d4-a716-446655440002"
                   payload:
                     chunk_id: "1"
                     section_ids:
@@ -150,8 +150,8 @@ paths:
                 value:
                   - type: Command
                     action: CreateCode
-                    aggregateType: Code
-                    aggregateId: ""
+                    aggregate_type: Code
+                    aggregate_id: ""
                     payload:
                       project_id: "550e8400-e29b-41d4-a716-446655440000"
                       slug: "usability:friction-point"
@@ -163,8 +163,8 @@ paths:
                         - "This button doesn't do what I expected it to do"
                   - type: Command
                     action: CreateCode
-                    aggregateType: Code
-                    aggregateId: ""
+                    aggregate_type: Code
+                    aggregate_id: ""
                     payload:
                       project_id: "550e8400-e29b-41d4-a716-446655440000"
                       slug: "theme:accessibility"
@@ -186,12 +186,12 @@ paths:
                     id: "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
                     type: DomainEvent
                     action: CreatedProject
-                    aggregateType: Project
-                    aggregateId: "550e8400-e29b-41d4-a716-446655440000"
+                    aggregate_type: Project
+                    aggregate_id: "550e8400-e29b-41d4-a716-446655440000"
                     actor:
-                      userId: "user-123"
-                      actorType: human
-                    causationId: "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e"
+                      user_id: "user-123"
+                      actor_type: human
+                    causation_id: "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e"
                     timestamp: "2025-01-15T10:30:00Z"
                     version: 1
                     payload:
@@ -210,12 +210,12 @@ paths:
                           id: "c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f"
                           type: DomainEvent
                           action: CreatedCode
-                          aggregateType: Code
-                          aggregateId: "660e8400-e29b-41d4-a716-446655440001"
+                          aggregate_type: Code
+                          aggregate_id: "660e8400-e29b-41d4-a716-446655440001"
                           actor:
-                            userId: "user-123"
-                            actorType: human
-                          causationId: "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a"
+                            user_id: "user-123"
+                            actor_type: human
+                          causation_id: "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a"
                           timestamp: "2025-01-15T10:30:00Z"
                           version: 1
                           payload:
@@ -229,12 +229,12 @@ paths:
                           id: "e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b"
                           type: DomainEvent
                           action: CreatedCode
-                          aggregateType: Code
-                          aggregateId: "770e8400-e29b-41d4-a716-446655440002"
+                          aggregate_type: Code
+                          aggregate_id: "770e8400-e29b-41d4-a716-446655440002"
                           actor:
-                            userId: "user-123"
-                            actorType: human
-                          causationId: "f6a7b8c9-d0e1-4f2a-3b4c-5d6e7f8a9b0c"
+                            user_id: "user-123"
+                            actor_type: human
+                          causation_id: "f6a7b8c9-d0e1-4f2a-3b4c-5d6e7f8a9b0c"
                           timestamp: "2025-01-15T10:30:00Z"
                           version: 1
                           payload:
@@ -261,11 +261,11 @@ paths:
                       id: "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
                       type: DomainEvent
                       action: CreatedCode
-                      aggregateType: Code
-                      aggregateId: "660e8400-e29b-41d4-a716-446655440001"
+                      aggregate_type: Code
+                      aggregate_id: "660e8400-e29b-41d4-a716-446655440001"
                       actor:
-                        userId: "user-123"
-                        actorType: human
+                        user_id: "user-123"
+                        actor_type: human
                       timestamp: "2025-01-15T10:30:00Z"
                       version: 1
                   - index: 1
@@ -277,11 +277,11 @@ paths:
                       id: "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e"
                       type: DomainEvent
                       action: CreatedCode
-                      aggregateType: Code
-                      aggregateId: "770e8400-e29b-41d4-a716-446655440002"
+                      aggregate_type: Code
+                      aggregate_id: "770e8400-e29b-41d4-a716-446655440002"
                       actor:
-                        userId: "user-123"
-                        actorType: human
+                        user_id: "user-123"
+                        actor_type: human
                       timestamp: "2025-01-15T10:30:00Z"
                       version: 1
         '400':
@@ -370,7 +370,7 @@ paths:
         ```json
         {
           "type": "snapshot",
-          "projectId": "550e8400-e29b-41d4-a716-446655440000",
+          "project_id": "550e8400-e29b-41d4-a716-446655440000",
           "data": { ...full project object... }
         }
         ```
@@ -379,7 +379,7 @@ paths:
         ```json
         {
           "type": "patch",
-          "projectId": "550e8400-e29b-41d4-a716-446655440000",
+          "project_id": "550e8400-e29b-41d4-a716-446655440000",
           "data": [
             {"op": "add", "path": "/codes/660e8400-...", "value": {...}},
             {"op": "replace", "path": "/files/770e8400-.../name", "value": "Updated Name"}
@@ -591,7 +591,7 @@ paths:
           schema:
             type: string
             format: uuid
-        - name: chunkId
+        - name: chunk_id
           in: query
           description: Specific chunk to retrieve (1-based index)
           schema:
@@ -805,10 +805,10 @@ components:
     Actor:
       type: object
       properties:
-        userId:
+        user_id:
           type: string
           description: User identifier (set by server based on authentication)
-        actorType:
+        actor_type:
           $ref: '#/components/schemas/ActorType'
       description: |
         Actor information for audit trail. Server sets userId from authentication.
@@ -840,10 +840,10 @@ components:
         action:
           type: string
           description: Action name (e.g., CreateProject, UpdateCode)
-        aggregateType:
+        aggregate_type:
           type: string
           description: Entity type (Project, Code, File) - capitalized
-        aggregateId:
+        aggregate_id:
           type: string
           description: |
             Entity ID - use empty string "" for CREATE operations,
@@ -853,7 +853,7 @@ components:
           description: Command-specific payload (see command reference)
         actor:
           $ref: '#/components/schemas/Actor'
-        causationId:
+        causation_id:
           type: string
           format: uuid
           description: ID of the message that caused this message
@@ -1221,6 +1221,9 @@ components:
           type: string
           maxLength: 1500
           description: Reasoning for this code application
+        last_actor:
+          $ref: '#/components/schemas/Actor'
+          description: Actor who last modified this coded section
 
     ChunkResult:
       type: object
@@ -1500,14 +1503,14 @@ x-command-reference:
     CreateProject:
       description: Create a new research project
       payload: CreateProjectPayload
-      aggregateId: empty string for create
+      aggregate_id: empty string for create
       event: CreatedProject
       example: |
         {
           "type": "Command",
           "action": "CreateProject",
-          "aggregateType": "Project",
-          "aggregateId": "",
+          "aggregate_type": "Project",
+          "aggregate_id": "",
           "payload": {
             "name": "Market Research Q1 2025",
             "description": "Quarterly market analysis and consumer sentiment tracking"
@@ -1517,14 +1520,14 @@ x-command-reference:
     UpdateProject:
       description: Update project name and description
       payload: UpdateProjectPayload
-      aggregateId: project UUID
+      aggregate_id: project UUID
       event: UpdatedProject
       example: |
         {
           "type": "Command",
           "action": "UpdateProject",
-          "aggregateType": "Project",
-          "aggregateId": "550e8400-e29b-41d4-a716-446655440000",
+          "aggregate_type": "Project",
+          "aggregate_id": "550e8400-e29b-41d4-a716-446655440000",
           "payload": {
             "name": "Market Research Q1 2025 - Updated",
             "description": "Updated quarterly market analysis"
@@ -1534,15 +1537,15 @@ x-command-reference:
     DeleteProject:
       description: Delete a project
       payload: EmptyPayload
-      aggregateId: project UUID
+      aggregate_id: project UUID
       event: DeletedProject
       note: No payload fields required
       example: |
         {
           "type": "Command",
           "action": "DeleteProject",
-          "aggregateType": "Project",
-          "aggregateId": "550e8400-e29b-41d4-a716-446655440000",
+          "aggregate_type": "Project",
+          "aggregate_id": "550e8400-e29b-41d4-a716-446655440000",
           "payload": {}
         }
 
@@ -1550,7 +1553,7 @@ x-command-reference:
     CreateCode:
       description: Create a new analytical code with structured definition
       payload: CodeData
-      aggregateId: empty string for create
+      aggregate_id: empty string for create
       event: CreatedCode
       validation:
         - Slug must be unique within project
@@ -1560,8 +1563,8 @@ x-command-reference:
         {
           "type": "Command",
           "action": "CreateCode",
-          "aggregateType": "Code",
-          "aggregateId": "",
+          "aggregate_type": "Code",
+          "aggregate_id": "",
           "payload": {
             "project_id": "550e8400-e29b-41d4-a716-446655440000",
             "slug": "speaker:mark-rutte",
@@ -1584,7 +1587,7 @@ x-command-reference:
     UpdateCode:
       description: Update code properties (any combination of fields)
       payload: UpdateCodePayload
-      aggregateId: code UUID
+      aggregate_id: code UUID
       event: UpdatedCode
       validation:
         - If updating slug, new slug must be unique
@@ -1593,8 +1596,8 @@ x-command-reference:
         {
           "type": "Command",
           "action": "UpdateCode",
-          "aggregateType": "Code",
-          "aggregateId": "660e8400-e29b-41d4-a716-446655440001",
+          "aggregate_type": "Code",
+          "aggregate_id": "660e8400-e29b-41d4-a716-446655440001",
           "payload": {
             "definition": "Updated to focus on economic policy statements only",
             "examples": [
@@ -1606,22 +1609,22 @@ x-command-reference:
     DeleteCode:
       description: Delete a code
       payload: EmptyPayload
-      aggregateId: code UUID
+      aggregate_id: code UUID
       event: DeletedCode
       note: No payload fields required
       example: |
         {
           "type": "Command",
           "action": "DeleteCode",
-          "aggregateType": "Code",
-          "aggregateId": "660e8400-e29b-41d4-a716-446655440001",
+          "aggregate_type": "Code",
+          "aggregate_id": "660e8400-e29b-41d4-a716-446655440001",
           "payload": {}
         }
 
     MergeCodes:
       description: Merge two codes (source code deleted, all its codings moved to target)
       payload: MergeCodesPayload
-      aggregateId: source code UUID
+      aggregate_id: source code UUID
       event: MergedCodes
       validation:
         - Both source and target codes must exist
@@ -1630,8 +1633,8 @@ x-command-reference:
         {
           "type": "Command",
           "action": "MergeCodes",
-          "aggregateType": "Code",
-          "aggregateId": "660e8400-e29b-41d4-a716-446655440001",
+          "aggregate_type": "Code",
+          "aggregate_id": "660e8400-e29b-41d4-a716-446655440001",
           "payload": {
             "source_id": "660e8400-e29b-41d4-a716-446655440001",
             "target_id": "770e8400-e29b-41d4-a716-446655440002"
@@ -1642,7 +1645,7 @@ x-command-reference:
     CreateFile:
       description: Create a new file (automatically chunked, defaults to type=source, locked=true)
       payload: CreateFilePayload
-      aggregateId: empty string for create
+      aggregate_id: empty string for create
       event: CreatedFile
       note: |
         File type and locked status are set automatically to "source" and true.
@@ -1651,8 +1654,8 @@ x-command-reference:
         {
           "type": "Command",
           "action": "CreateFile",
-          "aggregateType": "File",
-          "aggregateId": "",
+          "aggregate_type": "File",
+          "aggregate_id": "",
           "payload": {
             "project_id": "550e8400-e29b-41d4-a716-446655440000",
             "name": "Focus Group Session 3",
@@ -1664,14 +1667,14 @@ x-command-reference:
     UpdateFile:
       description: Update file name and/or description
       payload: UpdateFilePayload
-      aggregateId: file UUID
+      aggregate_id: file UUID
       event: UpdatedFile
       example: |
         {
           "type": "Command",
           "action": "UpdateFile",
-          "aggregateType": "File",
-          "aggregateId": "770e8400-e29b-41d4-a716-446655440002",
+          "aggregate_type": "File",
+          "aggregate_id": "770e8400-e29b-41d4-a716-446655440002",
           "payload": {
             "name": "Updated File Name",
             "description": "Updated file description"
@@ -1681,22 +1684,22 @@ x-command-reference:
     DeleteFile:
       description: Delete a file
       payload: EmptyPayload
-      aggregateId: file UUID
+      aggregate_id: file UUID
       event: DeletedFile
       note: No payload fields required
       example: |
         {
           "type": "Command",
           "action": "DeleteFile",
-          "aggregateType": "File",
-          "aggregateId": "770e8400-e29b-41d4-a716-446655440002",
+          "aggregate_type": "File",
+          "aggregate_id": "770e8400-e29b-41d4-a716-446655440002",
           "payload": {}
         }
 
     AddCodeSections:
       description: Add new code sections to a file chunk
       payload: AddCodeSectionsPayload
-      aggregateId: file UUID
+      aggregate_id: file UUID
       event: AddedCodeSections
       validation:
         - Text must exist in the chunk (fuzzy matched, normalized)
@@ -1706,8 +1709,8 @@ x-command-reference:
         {
           "type": "Command",
           "action": "AddCodeSections",
-          "aggregateType": "File",
-          "aggregateId": "770e8400-e29b-41d4-a716-446655440002",
+          "aggregate_type": "File",
+          "aggregate_id": "770e8400-e29b-41d4-a716-446655440002",
           "payload": {
             "chunk_id": "1",
             "sections": [
@@ -1730,7 +1733,7 @@ x-command-reference:
     UpdateCodeSections:
       description: Update existing code sections in a file chunk
       payload: UpdateCodeSectionsPayload
-      aggregateId: file UUID
+      aggregate_id: file UUID
       event: UpdatedCodeSections
       validation:
         - If text is provided, it must exist in the chunk (fuzzy matched, normalized)
@@ -1741,8 +1744,8 @@ x-command-reference:
         {
           "type": "Command",
           "action": "UpdateCodeSections",
-          "aggregateType": "File",
-          "aggregateId": "770e8400-e29b-41d4-a716-446655440002",
+          "aggregate_type": "File",
+          "aggregate_id": "770e8400-e29b-41d4-a716-446655440002",
           "payload": {
             "chunk_id": "1",
             "sections": [
@@ -1762,14 +1765,14 @@ x-command-reference:
     RemoveCodeSections:
       description: Remove code sections from a file chunk
       payload: RemoveCodeSectionsPayload
-      aggregateId: file UUID
+      aggregate_id: file UUID
       event: RemovedCodeSections
       example: |
         {
           "type": "Command",
           "action": "RemoveCodeSections",
-          "aggregateType": "File",
-          "aggregateId": "770e8400-e29b-41d4-a716-446655440002",
+          "aggregate_type": "File",
+          "aggregate_id": "770e8400-e29b-41d4-a716-446655440002",
           "payload": {
             "chunk_id": "1",
             "section_ids": [
@@ -1782,14 +1785,14 @@ x-command-reference:
     ClearCoding:
       description: Remove all coding from a file
       payload: EmptyPayload
-      aggregateId: file UUID
+      aggregate_id: file UUID
       event: ClearedCoding
       note: No payload fields required
       example: |
         {
           "type": "Command",
           "action": "ClearCoding",
-          "aggregateType": "File",
-          "aggregateId": "770e8400-e29b-41d4-a716-446655440002",
+          "aggregate_type": "File",
+          "aggregate_id": "770e8400-e29b-41d4-a716-446655440002",
           "payload": {}
         }

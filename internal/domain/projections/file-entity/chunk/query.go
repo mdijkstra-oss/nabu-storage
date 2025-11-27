@@ -9,7 +9,7 @@ import (
 type ChunkQuery struct {
 	ChunkFilter
 	ID      string `path:"id" validate:"required,valid_id"`
-	ChunkID string `query:"chunkId"`
+	ChunkID string `query:"chunk_id"`
 }
 
 type ChunkResult struct {

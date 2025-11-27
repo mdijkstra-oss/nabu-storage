@@ -21,8 +21,8 @@ const (
 )
 
 type Actor struct {
-	UserID    string    `json:"userId"`
-	ActorType ActorType `json:"actorType"`
+	UserID    string    `json:"user_id"`
+	ActorType ActorType `json:"actor_type"`
 }
 
 // Errors can be part of entity story! Eg oh no, at this point in time I could not parse file
@@ -46,13 +46,13 @@ type Message[T any] struct {
 	Action Action      `json:"action" validate:"required"`
 	Type   MessageType `json:"type" validate:"oneof=Command DomainEvent SystemEvent"`
 
-	AggregateID   string        `json:"aggregateId,omitempty"`
-	AggregateType AggregateType `json:"aggregateType,omitempty"`
+	AggregateID   string        `json:"aggregate_id,omitempty"`
+	AggregateType AggregateType `json:"aggregate_type,omitempty"`
 	Payload       T             `json:"payload,omitempty"`
 
 	Actor       Actor     `json:"actor"`
-	CausationID string    `json:"causationId,omitempty"`
-	Timestamp   time.Time //`json:"timestamp" validate:"required"`
+	CausationID string    `json:"causation_id,omitempty"`
+	Timestamp   time.Time `json:"timestamp"`
 
 	// Event versioning - currently always 1
 	// When event schema changes, increment version and add upcasting logic in LoadAllEvents()

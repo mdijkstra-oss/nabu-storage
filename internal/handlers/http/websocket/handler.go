@@ -20,7 +20,7 @@ import (
 
 type Message struct {
 	Type      string `json:"type"`
-	ProjectID string `json:"projectId"`
+	ProjectID string `json:"project_id"`
 	Data      any    `json:"data"`
 }
 

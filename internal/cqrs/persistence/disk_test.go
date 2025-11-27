@@ -55,7 +55,7 @@ func TestPersistence(t *testing.T) {
 			Expected: []FileContent{
 				{
 					Path:     "Project/project-1.jsonl",
-					Contains: []string{`"action":"CreatedProject"`, `"aggregateId":"project-1"`, `"payload":{"name":"Test","description":""}`, `"version":1`},
+					Contains: []string{`"action":"CreatedProject"`, `"aggregate_id":"project-1"`, `"payload":{"name":"Test","description":""}`, `"version":1`},
 				},
 			},
 			ExpectErr: "",
@@ -73,7 +73,7 @@ func TestPersistence(t *testing.T) {
 			Expected: []FileContent{
 				{
 					Path:     "Project/project-1.jsonl",
-					Contains: []string{`"action":"CreatedProject"`, `"action":"UpdatedProject"`, `"aggregateId":"project-1"`, `"version":1`},
+					Contains: []string{`"action":"CreatedProject"`, `"action":"UpdatedProject"`, `"aggregate_id":"project-1"`, `"version":1`},
 				},
 			},
 			ExpectErr: "",
@@ -89,8 +89,8 @@ func TestPersistence(t *testing.T) {
 				}),
 			},
 			Expected: []FileContent{
-				{Path: "Project/project-1.jsonl", Contains: []string{`"aggregateId":"project-1"`, `"name":"Test 1"`, `"version":1`}},
-				{Path: "Project/project-2.jsonl", Contains: []string{`"aggregateId":"project-2"`, `"name":"Test 2"`, `"version":1`}},
+				{Path: "Project/project-1.jsonl", Contains: []string{`"aggregate_id":"project-1"`, `"name":"Test 1"`, `"version":1`}},
+				{Path: "Project/project-2.jsonl", Contains: []string{`"aggregate_id":"project-2"`, `"name":"Test 2"`, `"version":1`}},
 			},
 			ExpectErr: "",
 		},
@@ -105,8 +105,8 @@ func TestPersistence(t *testing.T) {
 				}),
 			},
 			Expected: []FileContent{
-				{Path: "File/file-1.jsonl", Contains: []string{`"action":"CreatedFile"`, `"aggregateId":"file-1"`, `"aggregateType":"File"`, `"version":1`}},
-				{Path: "Project/project-1.jsonl", Contains: []string{`"aggregateId":"project-1"`, `"aggregateType":"Project"`, `"name":"Test"`, `"version":1`}},
+				{Path: "File/file-1.jsonl", Contains: []string{`"action":"CreatedFile"`, `"aggregate_id":"file-1"`, `"aggregate_type":"File"`, `"version":1`}},
+				{Path: "Project/project-1.jsonl", Contains: []string{`"aggregate_id":"project-1"`, `"aggregate_type":"Project"`, `"name":"Test"`, `"version":1`}},
 			},
 			ExpectErr: "",
 		},
@@ -128,10 +128,10 @@ func TestPersistence(t *testing.T) {
 				}),
 			},
 			Expected: []FileContent{
-				{Path: "File/file-1.jsonl", Contains: []string{`"action":"CreatedFile"`, `"action":"UpdatedFile"`, `"aggregateId":"file-1"`, `"version":1`}},
-				{Path: "File/file-2.jsonl", Contains: []string{`"action":"CreatedFile"`, `"aggregateId":"file-2"`, `"version":1`}},
-				{Path: "Project/project-1.jsonl", Contains: []string{`"aggregateId":"project-1"`, `"name":"Test"`, `"version":1`}},
-				{Path: "Project/project-2.jsonl", Contains: []string{`"aggregateId":"project-2"`, `"name":"Test 2"`, `"version":1`}},
+				{Path: "File/file-1.jsonl", Contains: []string{`"action":"CreatedFile"`, `"action":"UpdatedFile"`, `"aggregate_id":"file-1"`, `"version":1`}},
+				{Path: "File/file-2.jsonl", Contains: []string{`"action":"CreatedFile"`, `"aggregate_id":"file-2"`, `"version":1`}},
+				{Path: "Project/project-1.jsonl", Contains: []string{`"aggregate_id":"project-1"`, `"name":"Test"`, `"version":1`}},
+				{Path: "Project/project-2.jsonl", Contains: []string{`"aggregate_id":"project-2"`, `"name":"Test 2"`, `"version":1`}},
 			},
 			ExpectErr: "",
 		},
@@ -210,8 +210,8 @@ func compareEvents(t *testing.T, expected, actual *commands.AnyMessage) {
 
 	delete(expectedMap, "id")
 	delete(actualMap, "id")
-	delete(expectedMap, "Timestamp")
-	delete(actualMap, "Timestamp")
+	delete(expectedMap, "timestamp")
+	delete(actualMap, "timestamp")
 
 	expectedNorm, _ := json.Marshal(expectedMap)
 	actualNorm, _ := json.Marshal(actualMap)
