@@ -160,7 +160,9 @@ func ApplyDefaultsFromMap(dst any, sourceMap map[string]any) error {
 	return nil
 }
 
-func ApplyPartialUpdate[T any](current T, updates any) T {
+var defaultExcludeKeys = []string{"ID"}
+
+func ApplyPartialUpdate[T any](current T, updates any, excludeKeys ...string) T {
 	result := current
 
 	updatesValue := reflect.ValueOf(updates)
@@ -173,10 +175,16 @@ func ApplyPartialUpdate[T any](current T, updates any) T {
 
 	DeepCopyFields(resultValue)
 
+	excluded := toSet(append(defaultExcludeKeys, excludeKeys...))
+
 	updatesType := updatesValue.Type()
 	for i := 0; i < updatesValue.NumField(); i++ {
 		updateField := updatesValue.Field(i)
 		fieldName := updatesType.Field(i).Name
+
+		if excluded[fieldName] {
+			continue
+		}
 
 		if !updateField.IsZero() {
 			resultField := resultValue.FieldByName(fieldName)
@@ -187,6 +195,14 @@ func ApplyPartialUpdate[T any](current T, updates any) T {
 	}
 
 	return result
+}
+
+func toSet(keys []string) map[string]bool {
+	set := make(map[string]bool, len(keys))
+	for _, k := range keys {
+		set[k] = true
+	}
+	return set
 }
 
 type StructFieldVisitor func(field reflect.StructField, value reflect.Value) error

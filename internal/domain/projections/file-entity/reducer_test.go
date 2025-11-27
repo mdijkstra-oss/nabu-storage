@@ -2,6 +2,7 @@ package fileview
 
 import (
 	"fmt"
+	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/domain/entities/code"
 	"hermes-relay/internal/domain/entities/file"
 	th "hermes-relay/internal/lib/test-helpers"
@@ -9,6 +10,10 @@ import (
 	"hermes-relay/internal/lib/test-helpers/reducer-helpers"
 	"testing"
 )
+
+func testActor() commands.Actor {
+	return domain_helpers.TestActor()
+}
 
 func buildFile(id string, overrides file.FileData, chunks []file.Chunk) *File {
 	f := file.BuildTestFile(id, overrides)
@@ -94,7 +99,7 @@ func TestFileReducer(t *testing.T) {
 			Expected: nil,
 		},
 		{
-			Name: "AddedCodeSections adds sections to chunk",
+			Name: "AddedCodeSections adds sections to chunk with LastActor",
 			Initial: buildFile("file-1", file.FileData{}, []file.Chunk{
 				{
 					ID:      "1",
@@ -113,13 +118,13 @@ func TestFileReducer(t *testing.T) {
 					ID:      "1",
 					Content: "Climate change impacts global warming.\n",
 					Codes: []file.CodedSection{
-						{ID: "generated-id-1", CodeID: "code-1", CodeSlug: "topic:climate", Text: "Climate change impacts", Reason: "Climate ref"},
+						{ID: "generated-id-1", CodeID: "code-1", CodeSlug: "topic:climate", Text: "Climate change impacts", Reason: "Climate ref", LastActor: testActor()},
 					},
 				},
 			}),
 		},
 		{
-			Name: "UpdatedCodeSections updates text and reason",
+			Name: "UpdatedCodeSections updates text reason and LastActor",
 			Initial: buildFile("file-1", file.FileData{}, []file.Chunk{
 				{
 					ID:      "1",
@@ -141,7 +146,7 @@ func TestFileReducer(t *testing.T) {
 					ID:      "1",
 					Content: "Climate change impacts global warming.\n",
 					Codes: []file.CodedSection{
-						{ID: "section-1", CodeID: "code-1", CodeSlug: "topic:climate", Text: "Climate change impacts", Reason: "New reason"},
+						{ID: "section-1", CodeID: "code-1", CodeSlug: "topic:climate", Text: "Climate change impacts", Reason: "New reason", LastActor: testActor()},
 						{ID: "section-2", CodeID: "code-1", CodeSlug: "topic:climate", Text: "impacts global warming", Reason: "Old"},
 					},
 				},

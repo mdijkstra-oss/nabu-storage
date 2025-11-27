@@ -45,24 +45,37 @@ func UpdatedFileReducer(current *File, _ *commands.AnyMessage, payload *file.Upd
 	return &updated
 }
 
-func toCodedSection(section file.AddedSection) file.CodedSection {
-	return file.CodedSection(section)
+func withLastActor(section file.CodedSection, actor commands.Actor) file.CodedSection {
+	section.LastActor = actor
+	return section
 }
 
-func AddedCodeSectionsReducer(current *File, _ *commands.AnyMessage, payload *file.AddedCodeSectionsPayload) *File {
+func toCodedSection(section file.AddedSection, actor commands.Actor) file.CodedSection {
+	return withLastActor(file.CodedSection{
+		ID:       section.ID,
+		CodeSlug: section.CodeSlug,
+		CodeID:   section.CodeID,
+		Text:     section.Text,
+		Reason:   section.Reason,
+	}, actor)
+}
+
+func AddedCodeSectionsReducer(current *File, message *commands.AnyMessage, payload *file.AddedCodeSectionsPayload) *File {
 	current.Chunks = utils.Map(current.Chunks, func(chunk file.Chunk) file.Chunk {
 		if chunk.ID != payload.ChunkID {
 			return chunk
 		}
 
-		sections := utils.Map(payload.Sections, toCodedSection)
+		sections := utils.Map(payload.Sections, func(s file.AddedSection) file.CodedSection {
+			return toCodedSection(s, message.Actor)
+		})
 		chunk.Codes = append(chunk.Codes, sections...)
 		return chunk
 	})
 	return current
 }
 
-func UpdatedCodeSectionsReducer(current *File, _ *commands.AnyMessage, payload *file.UpdateCodeSectionsPayload) *File {
+func UpdatedCodeSectionsReducer(current *File, message *commands.AnyMessage, payload *file.UpdateCodeSectionsPayload) *File {
 	current.Chunks = utils.Map(current.Chunks, func(chunk file.Chunk) file.Chunk {
 		if chunk.ID != payload.ChunkID {
 			return chunk
@@ -71,13 +84,8 @@ func UpdatedCodeSectionsReducer(current *File, _ *commands.AnyMessage, payload *
 		chunk.Codes = utils.Map(chunk.Codes, func(section file.CodedSection) file.CodedSection {
 			for _, op := range payload.Sections {
 				if section.ID == op.ID {
-					if op.Text != "" {
-						section.Text = op.Text
-					}
-					if op.Reason != "" {
-						section.Reason = op.Reason
-					}
-					return section
+					updated := utils.ApplyPartialUpdate(section, op)
+					return withLastActor(updated, message.Actor)
 				}
 			}
 			return section
