@@ -1,4 +1,4 @@
-package domain
+package dispatch_test
 
 import (
 	"hermes-relay/internal/cqrs/commands"
