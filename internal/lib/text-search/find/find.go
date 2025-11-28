@@ -35,6 +35,20 @@ func extractWords(text string) []wordPosition {
 	return words
 }
 
+func expandToWordBoundaries(text string, start, end int) (int, int) {
+	for start > 0 && !isSpaceOrNBSP(rune(text[start-1])) {
+		start--
+	}
+	for end < len(text) && !isSpaceOrNBSP(rune(text[end])) {
+		end++
+	}
+	return start, end
+}
+
+func isSpaceOrNBSP(r rune) bool {
+	return unicode.IsSpace(r) || r == '\u00A0'
+}
+
 func Find(needle, chunk string) (text string, found bool) {
 	needleTokens := tokenize(needle)
 	if len(needleTokens) == 0 {
@@ -55,14 +69,8 @@ func Find(needle, chunk string) (text string, found bool) {
 		windowTokens := tokenize(windowText)
 
 		if len(windowTokens) == len(needleTokens) && tokenOverlap(needleTokens, windowTokens) >= MIN_OVERLAP && isSubsequence(needleTokens, windowTokens) {
-			for start > 0 && !unicode.IsSpace(rune(chunk[start-1])) {
-				start--
-			}
-
-			for end < len(chunk) && !unicode.IsSpace(rune(chunk[end])) {
-				end++
-			}
-
+			start, end = expandToWordBoundaries(chunk, start, end)
+			start, end = BalanceMarkdownTags(chunk, start, end)
 			return chunk[start:end], true
 		}
 	}
@@ -71,8 +79,7 @@ func Find(needle, chunk string) (text string, found bool) {
 }
 
 func tokenize(s string) []string {
-	s = strings.ReplaceAll(s, "'", "")
-	s = strings.ReplaceAll(s, "'", "")
+	s = NormalizeText(s)
 
 	var tokens []string
 	var currentWord strings.Builder

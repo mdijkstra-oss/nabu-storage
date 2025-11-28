@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestFind_Comprehensive(t *testing.T) {
+func Test_FindBase(t *testing.T) {
 	tests := []FindTestCase{
 		{"simple sentence", "The quick brown fox jumps over the lazy dog.", "quick brown fox", true, "quick brown fox"},
 		{"sentence with apostrophe", "John's dog is very friendly and loves to play.", "John's dog is very friendly", true, "John's dog is very friendly"},
