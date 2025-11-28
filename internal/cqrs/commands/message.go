@@ -228,3 +228,8 @@ func IsDeletedEvent(action Action) bool {
 }
 
 type EmptyPayload = struct{}
+
+type PartialFailures interface {
+	GetFailures() map[int]string
+	WithoutFailures() any
+}

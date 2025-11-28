@@ -35,9 +35,10 @@ func NewRouter(reg *registry.RegistryState) dispatch.CommandRouter {
 				registry.NormalizeDomain[file.UpdateCodeSectionsPayload](
 					reg,
 					normalizeUpdateSections,
-					dispatch.ToUpdateEntityEvent[file.UpdateCodeSectionsPayload, file.UpdateCodeSectionsPayload](
+					dispatch.ToUpdateEntityEvent[file.UpdateCodeSectionsPayload, file.UpdatedCodeSectionsPayload](
 						file.UpdateCodeSections,
 						file.UpdatedCodeSections,
+						toUpdatedSectionsPayload,
 					),
 				),
 			),
@@ -112,13 +113,19 @@ func normalizeAddSections(proj project.Project, payload file.AddCodeSectionsPayl
 		})
 	}
 
-	if len(failures) > 0 {
+	if len(failures) == len(payload.Sections) {
 		return file.AddCodeSectionsPayload{}, utils.ArrayItemErrors("sections", failures)
+	}
+
+	var resultFailures map[int]string
+	if len(failures) > 0 {
+		resultFailures = failures
 	}
 
 	return file.AddCodeSectionsPayload{
 		ChunkID:  payload.ChunkID,
 		Sections: normalizedSections,
+		Failures: resultFailures,
 	}, nil
 }
 
@@ -134,6 +141,7 @@ func addSectionIDs(payload *file.AddCodeSectionsPayload) file.AddedCodeSectionsP
 				Reason:   op.Reason,
 			}
 		}),
+		Failures: payload.Failures,
 	}
 }
 
@@ -164,12 +172,26 @@ func normalizeUpdateSections(proj project.Project, payload file.UpdateCodeSectio
 		normalizedSections = append(normalizedSections, normalizedOp)
 	}
 
-	if len(failures) > 0 {
+	if len(failures) == len(payload.Sections) {
 		return file.UpdateCodeSectionsPayload{}, utils.ArrayItemErrors("sections", failures)
+	}
+
+	var resultFailures map[int]string
+	if len(failures) > 0 {
+		resultFailures = failures
 	}
 
 	return file.UpdateCodeSectionsPayload{
 		ChunkID:  payload.ChunkID,
 		Sections: normalizedSections,
+		Failures: resultFailures,
 	}, nil
+}
+
+func toUpdatedSectionsPayload(payload *file.UpdateCodeSectionsPayload) file.UpdatedCodeSectionsPayload {
+	return file.UpdatedCodeSectionsPayload{
+		ChunkID:  payload.ChunkID,
+		Sections: payload.Sections,
+		Failures: payload.Failures,
+	}
 }

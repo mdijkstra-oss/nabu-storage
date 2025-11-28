@@ -33,3 +33,8 @@ type batchResponse struct {
 	SuccessCount int           `json:"success_count"`
 	FailureCount int           `json:"failure_count"`
 }
+
+type partialSuccessResponse struct {
+	Success  *commands.AnyMessage `json:"success"`
+	Failures map[int]string       `json:"failures"`
+}

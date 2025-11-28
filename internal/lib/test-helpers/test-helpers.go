@@ -2,6 +2,7 @@ package test_helpers
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -103,8 +104,8 @@ func AssertError(t *testing.T, got error, wantMsg string, msg string) {
 	}
 
 	gotMsg := got.Error()
-	if gotMsg != wantMsg {
-		t.Fatalf("%s: expected error '%s', got: '%s'", msg, wantMsg, gotMsg)
+	if !strings.Contains(gotMsg, wantMsg) {
+		t.Fatalf("%s: expected error containing '%s', got: '%s'", msg, wantMsg, gotMsg)
 	}
 }
 

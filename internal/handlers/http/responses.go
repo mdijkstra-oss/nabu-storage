@@ -19,6 +19,10 @@ func successOutput(result *commands.AnyMessage, acceptedOnly bool) Response {
 		status = http.StatusCreated
 	}
 
+	if result != nil && hasPartialFailures(result.Payload) {
+		return partialSuccessOutput(result)
+	}
+
 	var body []byte
 	if result != nil {
 		body, _ = json.Marshal(result)
@@ -28,6 +32,28 @@ func successOutput(result *commands.AnyMessage, acceptedOnly bool) Response {
 		StatusCode: status,
 		Body:       body,
 	}
+}
+
+func partialSuccessOutput(result *commands.AnyMessage) Response {
+	pf := result.Payload.(commands.PartialFailures)
+	strippedResult := *result
+	strippedResult.Payload = pf.WithoutFailures()
+	response := partialSuccessResponse{
+		Success:  &strippedResult,
+		Failures: pf.GetFailures(),
+	}
+	body, _ := json.Marshal(response)
+	return Response{
+		StatusCode: http.StatusMultiStatus,
+		Body:       body,
+	}
+}
+
+func hasPartialFailures(payload any) bool {
+	if pf, ok := payload.(commands.PartialFailures); ok {
+		return len(pf.GetFailures()) > 0
+	}
+	return false
 }
 
 func successQueryOutput(result any) Response {

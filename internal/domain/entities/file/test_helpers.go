@@ -1,6 +1,8 @@
 package file
 
 import (
+	"hermes-relay/internal/cqrs/commands"
+	"hermes-relay/internal/lib/test-helpers/domain-helpers"
 	th "hermes-relay/internal/lib/test-helpers"
 	"hermes-relay/internal/lib/utils"
 )
@@ -40,4 +42,18 @@ func BuildTestCodedSection(id, codeID, text string) CodedSection {
 		CodeID: codeID,
 		Text:   text,
 	}
+}
+
+func CreatedFileEvent(id, projectID, content string) *commands.AnyMessage {
+	return domain_helpers.NewDomainEvent(EntityName, id, CreatedFile, CreatedFilePayload{
+		FileData: FileData{
+			ProjectID: projectID,
+			Name:      "test-file.txt",
+			Type:      FileTypeSource,
+			Locked:    true,
+		},
+		Chunks: []Chunk{
+			{ID: "chunk-1", Content: content, Codes: []CodedSection{}},
+		},
+	})
 }

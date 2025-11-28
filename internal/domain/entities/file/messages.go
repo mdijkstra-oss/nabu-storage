@@ -24,16 +24,47 @@ type AddedSection struct {
 type AddCodeSectionsPayload struct {
 	ChunkID  string         `json:"chunk_id" validate:"required"`
 	Sections []AddSectionOp `json:"sections" validate:"min=1,dive"`
+	Failures map[int]string `json:"failures,omitempty"`
 }
 
 type AddedCodeSectionsPayload struct {
-	ChunkID  string          `json:"chunk_id" validate:"required"`
-	Sections []AddedSection  `json:"sections" validate:"min=1,dive"`
+	ChunkID  string         `json:"chunk_id" validate:"required"`
+	Sections []AddedSection `json:"sections" validate:"min=1,dive"`
+	Failures map[int]string `json:"failures,omitempty"`
+}
+
+func (p AddedCodeSectionsPayload) GetFailures() map[int]string {
+	return p.Failures
+}
+
+func (p AddedCodeSectionsPayload) WithoutFailures() any {
+	return AddedCodeSectionsPayload{
+		ChunkID:  p.ChunkID,
+		Sections: p.Sections,
+	}
 }
 
 type UpdateCodeSectionsPayload struct {
 	ChunkID  string            `json:"chunk_id" validate:"required"`
 	Sections []UpdateSectionOp `json:"sections" validate:"min=1,dive"`
+	Failures map[int]string    `json:"failures,omitempty"`
+}
+
+type UpdatedCodeSectionsPayload struct {
+	ChunkID  string            `json:"chunk_id" validate:"required"`
+	Sections []UpdateSectionOp `json:"sections" validate:"min=1,dive"`
+	Failures map[int]string    `json:"failures,omitempty"`
+}
+
+func (p UpdatedCodeSectionsPayload) GetFailures() map[int]string {
+	return p.Failures
+}
+
+func (p UpdatedCodeSectionsPayload) WithoutFailures() any {
+	return UpdatedCodeSectionsPayload{
+		ChunkID:  p.ChunkID,
+		Sections: p.Sections,
+	}
 }
 
 type RemoveCodeSectionsPayload struct {
