@@ -59,4 +59,5 @@ func setupRegistryWithPatching(
 func SetupCommandHandlers(publisher *dispatch.InMemoryPublisher, registryState *registry.RegistryState) {
 	slog.Info("Setting up command handlers for new incoming messages")
 	publisher.Subscribe(domain.NewCommandRouter(registryState))
+	publisher.Subscribe(domain.NewSagaRouter())
 }

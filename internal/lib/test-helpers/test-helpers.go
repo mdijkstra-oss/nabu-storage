@@ -1,6 +1,7 @@
 package test_helpers
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -170,4 +171,13 @@ func RunFunctionTestsWithError[T any, R any, M any](t *testing.T, tests []struct
 
 func DefaultTestTime() time.Time {
 	return time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC)
+}
+
+func RunMapTests[In comparable, Out any](t *testing.T, cases map[In]Out, fn func(In) Out) {
+	for input, expected := range cases {
+		t.Run(fmt.Sprintf("%v", input), func(t *testing.T) {
+			got := fn(input)
+			AssertEqual(t, got, expected, "result")
+		})
+	}
 }

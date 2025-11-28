@@ -48,7 +48,7 @@ var setupCommands = []*commands.AnyMessage{
 			FileData: file.FileData{
 				ProjectID: healthyProjectID,
 				Name:      "Existing File",
-				Type:      file.FileTypeSource,
+				Type:      file.FileTypeCorpus,
 				Locked:    true,
 			},
 			Chunks: []file.Chunk{{ID: "1", Content: "Test content"}},
@@ -191,7 +191,7 @@ func TestCommandRouter(t *testing.T) {
 					FileData: file.FileData{
 						ProjectID: healthyProjectID,
 						Name:      "New File",
-						Type:      file.FileTypeSource,
+						Type:      file.FileTypeCorpus,
 						Locked:    true,
 					},
 					Chunks: []file.Chunk{{ID: "1", Content: "Content\n", Codes: []file.CodedSection{}}},

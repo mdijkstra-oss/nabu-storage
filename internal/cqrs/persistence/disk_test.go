@@ -101,7 +101,7 @@ func TestPersistence(t *testing.T) {
 					Name: "Test",
 				}),
 				domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.CreatedFile, file.CreatedFilePayload{
-					FileData: file.FileData{ProjectID: "project-1", Name: "test.md", Type: file.FileTypeSource, Locked: true},
+					FileData: file.FileData{ProjectID: "project-1", Name: "test.md", Type: file.FileTypeCorpus, Locked: true},
 				}),
 			},
 			Expected: []FileContent{
@@ -117,10 +117,10 @@ func TestPersistence(t *testing.T) {
 					Name: "Test",
 				}),
 				domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.CreatedFile, file.CreatedFilePayload{
-					FileData: file.FileData{ProjectID: "project-1", Name: "test1.md", Type: file.FileTypeSource, Locked: true},
+					FileData: file.FileData{ProjectID: "project-1", Name: "test1.md", Type: file.FileTypeCorpus, Locked: true},
 				}),
 				domain_helpers.NewDomainEvent(file.EntityName, "file-2", file.CreatedFile, file.CreatedFilePayload{
-					FileData: file.FileData{ProjectID: "project-1", Name: "test2.md", Type: file.FileTypeSource, Locked: true},
+					FileData: file.FileData{ProjectID: "project-1", Name: "test2.md", Type: file.FileTypeCorpus, Locked: true},
 				}),
 				domain_helpers.NewDomainEvent(file.EntityName, "file-1", "UpdatedFile", nil),
 				domain_helpers.NewDomainEvent(project.EntityName, "project-2", project.CreatedProject, project.CreatedProjectPayload{

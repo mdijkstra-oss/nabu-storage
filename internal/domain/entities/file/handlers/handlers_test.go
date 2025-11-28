@@ -48,7 +48,7 @@ func TestFileRouter(t *testing.T) {
 				FileData: file.FileData{
 					ProjectID: testProjectID,
 					Name:      "test-file.txt",
-					Type:      file.FileTypeSource,
+					Type:      file.FileTypeCorpus,
 					Locked:    true,
 				},
 				Chunks: []file.Chunk{
@@ -68,7 +68,7 @@ func TestFileRouter(t *testing.T) {
 				FileData: file.FileData{
 					ProjectID: testProjectID,
 					Name:      "minimal.txt",
-					Type:      file.FileTypeSource,
+					Type:      file.FileTypeCorpus,
 					Locked:    true,
 				},
 				Chunks: []file.Chunk{

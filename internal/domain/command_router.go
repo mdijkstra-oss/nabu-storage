@@ -22,3 +22,11 @@ func NewCommandRouter(registryState *registry.RegistryState) dispatch.CommandRou
 		),
 	)
 }
+
+func NewSagaRouter() dispatch.CommandRouter {
+	return dispatch.LimitOnType(commands.DomainEvent,
+		dispatch.CombineRouters(
+			projecthandlers.DefaultFilesSaga(),
+		),
+	)
+}

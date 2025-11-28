@@ -1,8 +1,8 @@
 package codeview
 
 import (
-	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/domain/entities/code"
+	"hermes-relay/internal/lib/test-helpers/domain-helpers"
 	"hermes-relay/internal/lib/test-helpers/reducer-helpers"
 	"testing"
 )
@@ -22,10 +22,10 @@ func TestCodeReducer(t *testing.T) {
 		{
 			Name:    "CreatedCode initializes code",
 			Initial: nil,
-			Event: newCodeEvent("code-1", code.CreatedCode, &code.CreatedCodePayload{
-				ProjectID: "project-1",
-				Slug:      "topic:climate",
-				Color:     "green",
+			Event: domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.CreatedCode, &code.CreatedCodePayload{
+				ProjectID:  "project-1",
+				Slug:       "topic:climate",
+				Color:      "green",
 				Definition: "Climate topics",
 			}),
 			Expected: buildCode("code-1", code.CodeData{}),
@@ -33,7 +33,7 @@ func TestCodeReducer(t *testing.T) {
 		{
 			Name:    "UpdatedCode changes color only",
 			Initial: buildCode("code-1", code.CodeData{}),
-			Event: newCodeEvent("code-1", code.UpdatedCode, &code.UpdatedCodePayload{
+			Event: domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.UpdatedCode, &code.UpdatedCodePayload{
 				Color: "teal",
 			}),
 			Expected: buildCode("code-1", code.CodeData{Color: "teal"}),
@@ -41,7 +41,7 @@ func TestCodeReducer(t *testing.T) {
 		{
 			Name:    "UpdatedCode changes definition only",
 			Initial: buildCode("code-1", code.CodeData{}),
-			Event: newCodeEvent("code-1", code.UpdatedCode, &code.UpdatedCodePayload{
+			Event: domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.UpdatedCode, &code.UpdatedCodePayload{
 				Definition: "Renewable energy and sustainability",
 			}),
 			Expected: buildCode("code-1", code.CodeData{Definition: "Renewable energy and sustainability"}),
@@ -49,8 +49,8 @@ func TestCodeReducer(t *testing.T) {
 		{
 			Name:    "UpdatedCode changes both fields",
 			Initial: buildCode("code-1", code.CodeData{}),
-			Event: newCodeEvent("code-1", code.UpdatedCode, &code.UpdatedCodePayload{
-				Color:     "cyan",
+			Event: domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.UpdatedCode, &code.UpdatedCodePayload{
+				Color:      "cyan",
 				Definition: "Environmental coverage",
 			}),
 			Expected: buildCode("code-1", code.CodeData{Color: "cyan", Definition: "Environmental coverage"}),
@@ -58,8 +58,8 @@ func TestCodeReducer(t *testing.T) {
 		{
 			Name:    "UpdatedCode with empty strings preserves current values",
 			Initial: buildCode("code-1", code.CodeData{Color: "cyan", Definition: "Environmental coverage"}),
-			Event: newCodeEvent("code-1", code.UpdatedCode, &code.UpdatedCodePayload{
-				Color:     "",
+			Event: domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.UpdatedCode, &code.UpdatedCodePayload{
+				Color:      "",
 				Definition: "",
 			}),
 			Expected: buildCode("code-1", code.CodeData{Color: "cyan", Definition: "Environmental coverage"}),
@@ -76,7 +76,7 @@ func TestCodeReducer(t *testing.T) {
 				CounterExamples:   []string{"I'm stressed but managing"},
 				Notes:             "Often co-occurs with uncertainty codes",
 			}),
-			Event: newCodeEvent("code-1", code.UpdatedCode, &code.UpdatedCodePayload{
+			Event: domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.UpdatedCode, &code.UpdatedCodePayload{
 				Slug:              "",
 				Color:             "",
 				Definition:        "",
@@ -100,13 +100,13 @@ func TestCodeReducer(t *testing.T) {
 		{
 			Name:     "MergedCodes returns nil when processing source code",
 			Initial:  buildCode("code-1", code.CodeData{}),
-			Event:    newCodeEvent("code-1", code.MergedCodes, &code.MergedCodesPayload{SourceID: "code-1", TargetID: "code-2"}),
+			Event:    domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.MergedCodes, &code.MergedCodesPayload{SourceID: "code-1", TargetID: "code-2"}),
 			Expected: nil,
 		},
 		{
-			Name:    "MergedCodes keeps target code unchanged",
-			Initial: buildCode("code-2", code.CodeData{Slug: "topic:temperature", Color: "red", Definition: "Temperature topics"}),
-			Event:   newCodeEvent("code-2", code.MergedCodes, &code.MergedCodesPayload{SourceID: "code-1", TargetID: "code-2"}),
+			Name:     "MergedCodes keeps target code unchanged",
+			Initial:  buildCode("code-2", code.CodeData{Slug: "topic:temperature", Color: "red", Definition: "Temperature topics"}),
+			Event:    domain_helpers.NewDomainEvent(code.EntityName, "code-2", code.MergedCodes, &code.MergedCodesPayload{SourceID: "code-1", TargetID: "code-2"}),
 			Expected: buildCode("code-2", code.CodeData{Slug: "topic:temperature", Color: "red", Definition: "Temperature topics"}),
 		},
 	}
@@ -122,8 +122,4 @@ func TestCodeReducer(t *testing.T) {
 	combinedTests = append(combinedTests, deletedProjectTests...)
 
 	reducer_helpers.RunReducerTests(t, combinedTests, Reducer)
-}
-
-func newCodeEvent(aggregateID string, action commands.Action, payload any) *commands.AnyMessage {
-	return commands.ToAny(commands.NewDomainEvent(action, payload, code.EntityName, aggregateID, commands.Actor{UserID: "test-user", ActorType: commands.ActorTypeSystem}, (*commands.AnyMessage)(nil)))
 }

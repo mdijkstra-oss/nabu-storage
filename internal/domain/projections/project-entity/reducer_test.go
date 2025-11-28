@@ -1,11 +1,11 @@
 package projectview
 
 import (
-	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/domain/entities/code"
 	"hermes-relay/internal/domain/entities/file"
 	"hermes-relay/internal/domain/entities/project"
 	th "hermes-relay/internal/lib/test-helpers"
+	"hermes-relay/internal/lib/test-helpers/domain-helpers"
 	"hermes-relay/internal/lib/test-helpers/reducer-helpers"
 	"testing"
 )
@@ -31,7 +31,7 @@ func TestProjectReducer(t *testing.T) {
 		{
 			Name:    "CreatedProject initializes empty maps",
 			Initial: nil,
-			Event: newProjectEvent("project-1", project.CreatedProject, &project.CreatedProjectPayload{
+			Event: domain_helpers.NewDomainEvent(project.EntityName, "project-1", project.CreatedProject, &project.CreatedProjectPayload{
 				Name:        "Research",
 				Description: "Research project",
 			}),
@@ -40,7 +40,7 @@ func TestProjectReducer(t *testing.T) {
 		{
 			Name:    "UpdatedProject changes name and description",
 			Initial: createTestProject("project-1", "Old Name", "Old description"),
-			Event: newProjectEvent("project-1", project.UpdatedProject, &project.UpdatedProjectPayload{
+			Event: domain_helpers.NewDomainEvent(project.EntityName, "project-1", project.UpdatedProject, &project.UpdatedProjectPayload{
 				Name:        "New Name",
 				Description: "New description",
 			}),
@@ -49,7 +49,7 @@ func TestProjectReducer(t *testing.T) {
 		{
 			Name:    "UpdatedProject with empty description preserves existing description",
 			Initial: createTestProject("project-1", "COVID-19 Research Study", "A comprehensive qualitative research study examining healthcare workers' experiences during the COVID-19 pandemic"),
-			Event: newProjectEvent("project-1", project.UpdatedProject, &project.UpdatedProjectPayload{
+			Event: domain_helpers.NewDomainEvent(project.EntityName, "project-1", project.UpdatedProject, &project.UpdatedProjectPayload{
 				Name:        "COVID-19 HCW Research",
 				Description: "",
 			}),
@@ -58,7 +58,7 @@ func TestProjectReducer(t *testing.T) {
 		{
 			Name:    "UpdatedProject on nil project returns nil",
 			Initial: nil,
-			Event: newProjectEvent("project-1", project.UpdatedProject, &project.UpdatedProjectPayload{
+			Event: domain_helpers.NewDomainEvent(project.EntityName, "project-1", project.UpdatedProject, &project.UpdatedProjectPayload{
 				Name: "New Name",
 			}),
 			Expected: nil,
@@ -72,9 +72,9 @@ func TestProjectReducer(t *testing.T) {
 	)
 
 	codeChildTests := reducer_helpers.AggregateChildMapTests(reducer_helpers.AggregateChildMapTestConfig[Project, code.Code]{
-		CreatedEvent:      newCodeEvent("code-1", code.CreatedCode, &code.CreatedCodePayload{ProjectID: "project-1", Slug: "test-code", Color: "red", Definition: "A test code"}),
-		UpdatedEvent:      newCodeEvent("code-1", code.UpdatedCode, &code.UpdateCodePayload{Slug: "new-slug"}),
-		DeletedEvent:      newCodeEvent("code-1", code.DeletedCode, nil),
+		CreatedEvent:      domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.CreatedCode, &code.CreatedCodePayload{ProjectID: "project-1", Slug: "test-code", Color: "red", Definition: "A test code"}),
+		UpdatedEvent:      domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.UpdatedCode, &code.UpdateCodePayload{Slug: "new-slug"}),
+		DeletedEvent:      domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.DeletedCode, nil),
 		EntityAfterCreate: buildCode("code-1", code.CodeData{Slug: "test-code", Color: "red", Definition: "A test code"}),
 		EntityAfterUpdate: buildCode("code-1", code.CodeData{Slug: "new-slug", Color: "red", Definition: "A test code"}),
 		CreateParent:      createEmptyProject,
@@ -82,18 +82,18 @@ func TestProjectReducer(t *testing.T) {
 	})
 
 	fileChildTests := reducer_helpers.AggregateChildMapTests(reducer_helpers.AggregateChildMapTestConfig[Project, file.File]{
-		CreatedEvent: newFileEvent("file-1", file.CreatedFile, &file.CreatedFilePayload{
+		CreatedEvent: domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.CreatedFile, &file.CreatedFilePayload{
 			FileData: file.FileData{
 				ProjectID:   "project-1",
 				Name:        "test-file.txt",
 				Description: "A test file",
-				Type:        file.FileTypeSource,
+				Type:        file.FileTypeCorpus,
 				Locked:      false,
 			},
 			Chunks: []file.Chunk{},
 		}),
-		UpdatedEvent:      newFileEvent("file-1", file.UpdatedFile, &file.UpdatedFilePayload{Name: "new-name.txt", Description: "Updated"}),
-		DeletedEvent:      newFileEvent("file-1", file.DeletedFile, nil),
+		UpdatedEvent:      domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.UpdatedFile, &file.UpdatedFilePayload{Name: "new-name.txt", Description: "Updated"}),
+		DeletedEvent:      domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.DeletedFile, nil),
 		EntityAfterCreate: file.BuildTestFile("file-1", file.FileData{ProjectID: "project-1", Name: "test-file.txt", Description: "A test file"}),
 		EntityAfterUpdate: file.BuildTestFile("file-1", file.FileData{ProjectID: "project-1", Name: "new-name.txt", Description: "Updated"}),
 		CreateParent:      createEmptyProject,
@@ -105,18 +105,6 @@ func TestProjectReducer(t *testing.T) {
 	combinedTests = append(combinedTests, fileChildTests...)
 
 	reducer_helpers.RunReducerTests(t, combinedTests, Reducer, clearFileTimestamps)
-}
-
-func newProjectEvent(aggregateID string, action commands.Action, payload any) *commands.AnyMessage {
-	return commands.ToAny(commands.NewDomainEvent[any, any](action, payload, project.EntityName, aggregateID, commands.Actor{UserID: "test-user", ActorType: commands.ActorTypeSystem}, nil))
-}
-
-func newCodeEvent(aggregateID string, action commands.Action, payload any) *commands.AnyMessage {
-	return commands.ToAny(commands.NewDomainEvent[any, any](action, payload, code.EntityName, aggregateID, commands.Actor{UserID: "test-user", ActorType: commands.ActorTypeSystem}, nil))
-}
-
-func newFileEvent(aggregateID string, action commands.Action, payload any) *commands.AnyMessage {
-	return commands.ToAny(commands.NewDomainEvent[any, any](action, payload, file.EntityName, aggregateID, commands.Actor{UserID: "test-user", ActorType: commands.ActorTypeSystem}, nil))
 }
 
 func clearFileTimestamps(proj *Project) *Project {

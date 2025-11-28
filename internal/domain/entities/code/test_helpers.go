@@ -1,6 +1,10 @@
 package code
 
-import "hermes-relay/internal/lib/utils"
+import (
+	"hermes-relay/internal/cqrs/commands"
+	"hermes-relay/internal/lib/test-helpers/domain-helpers"
+	"hermes-relay/internal/lib/utils"
+)
 
 func BuildTestCode(id string, overrides CodeData) Code {
 	defaults := CodeData{
@@ -15,4 +19,13 @@ func BuildTestCode(id string, overrides CodeData) Code {
 		Healthy:  true,
 		CodeData: merged,
 	}
+}
+
+func CreatedCodeEvent(id, projectID, slug string) *commands.AnyMessage {
+	return domain_helpers.NewDomainEvent(EntityName, id, CreatedCode, CreatedCodePayload{
+		ProjectID:  projectID,
+		Slug:       slug,
+		Color:      "green",
+		Definition: "Test definition",
+	})
 }

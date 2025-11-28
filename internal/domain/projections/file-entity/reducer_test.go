@@ -38,7 +38,7 @@ func TestFileReducer(t *testing.T) {
 				FileData: file.FileData{
 					ProjectID: "project-1",
 					Name:      "test.txt",
-					Type:      file.FileTypeSource,
+					Type:      file.FileTypeCorpus,
 					Locked:    true,
 				},
 				Chunks: []file.Chunk{
@@ -52,7 +52,7 @@ func TestFileReducer(t *testing.T) {
 			Expected: buildFile("file-1", file.FileData{
 				ProjectID: "project-1",
 				Name:      "test.txt",
-				Type:      file.FileTypeSource,
+				Type:      file.FileTypeCorpus,
 				Locked:    true,
 			}, []file.Chunk{
 				{

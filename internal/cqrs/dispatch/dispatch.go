@@ -79,3 +79,22 @@ func ReadOnlyRoutes(readOnlyHandlers ...func(message *commands.AnyMessage) error
 		return nil, nil
 	}
 }
+
+func OnEvent[P any](action commands.Action, handler func(message *commands.AnyMessage, payload P) []*commands.AnyMessage) CommandRouter {
+	return func(message *commands.AnyMessage, publisher PublishFunc) (*commands.AnyMessage, error) {
+		if message.Action != action {
+			return nil, nil
+		}
+
+		var payload P
+		if err := commands.UnmarshallPayload(message, &payload); err != nil {
+			return nil, err
+		}
+
+		for _, cmd := range handler(message, payload) {
+			_, _ = publisher(cmd)
+		}
+
+		return nil, nil
+	}
+}

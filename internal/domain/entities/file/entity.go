@@ -32,11 +32,19 @@ func (f File) WithUnhealthy() any {
 type FileType string
 
 const (
-	FileTypeCodebook FileType = "codebook" // Formal code definitions (user-created)
-	FileTypeSource   FileType = "source"   // Documents being coded (immutable)
-	FileTypeMemo     FileType = "memo"     // Analytical notes (user writes)
-	FileTypeContext  FileType = "context"  // LLM working memory (AI + user)
+	FileTypeCorpus   FileType = "corpus"   // Documents being coded (immutable)
+	FileTypeCodebook FileType = "codebook" // Coding guidelines (editable)
+	FileTypeMemo     FileType = "memo"     // Analytical notes (editable)
+	FileTypeContext  FileType = "context"  // LLM working memory (editable)
 )
+
+func (t FileType) IsLocked() bool {
+	return t == FileTypeCorpus
+}
+
+func (t FileType) IsChunked() bool {
+	return t == FileTypeCorpus
+}
 
 type FileData struct {
 	ProjectID   string    `json:"project_id" validate:"required"`
@@ -45,7 +53,7 @@ type FileData struct {
 	Title       string    `json:"title" validate:"omitempty,min=1,max=200"` // pretty name perhaps from context
 	Summary     string    `json:"summary" validate:"max=1500"`              // todo: halfpage
 	Time        time.Time `json:"time" validate:"omitempty,lte"`
-	Type        FileType  `json:"type" validate:"omitempty,oneof=codebook source memo context"`
+	Type        FileType  `json:"type" validate:"omitempty,oneof=corpus codebook memo context"`
 	Original    string    `json:"original"` // original file (eg pdf converted into File format)
 	Locked      bool      `json:"locked"`   // whether file is read-only
 }

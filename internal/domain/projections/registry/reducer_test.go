@@ -6,6 +6,7 @@ import (
 	"hermes-relay/internal/domain/entities/file"
 	"hermes-relay/internal/domain/entities/project"
 	th "hermes-relay/internal/lib/test-helpers"
+	"hermes-relay/internal/lib/test-helpers/domain-helpers"
 	"hermes-relay/internal/lib/test-helpers/reducer-helpers"
 	"testing"
 )
@@ -15,7 +16,7 @@ func TestRegistryReducer(t *testing.T) {
 		{
 			Name:    "CreatedProject adds project to registry",
 			Initial: nil,
-			Event: newProjectEvent("project-1", project.CreatedProject, &project.CreatedProjectPayload{
+			Event: domain_helpers.NewDomainEvent(project.EntityName, "project-1", project.CreatedProject, &project.CreatedProjectPayload{
 				Name:        "Test Project",
 				Description: "A test project",
 			}),
@@ -26,7 +27,7 @@ func TestRegistryReducer(t *testing.T) {
 		{
 			Name:    "CreatedCode adds code to project and updates lookup",
 			Initial: registryWith(emptyProject("project-1", "Test Project")),
-			Event:   newCodeEvent("code-1", code.CreatedCode, &code.CreatedCodePayload{ProjectID: "project-1", Slug: "test-code", Color: "blue", Definition: "Test code"}),
+			Event:   domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.CreatedCode, &code.CreatedCodePayload{ProjectID: "project-1", Slug: "test-code", Color: "blue", Definition: "Test code"}),
 			Expected: registryWith(
 				projectWith("project-1", "Test Project", "", map[string]code.Code{"code-1": testCode("code-1", "project-1", "test-code")}, nil),
 				withLookup("Code:code-1", "project-1"),
@@ -35,7 +36,7 @@ func TestRegistryReducer(t *testing.T) {
 		{
 			Name:    "CreatedFile adds file to project and updates lookup",
 			Initial: registryWith(emptyProject("project-1", "Test Project")),
-			Event:   newFileEvent("file-1", file.CreatedFile, &file.CreatedFilePayload{FileData: file.FileData{ProjectID: "project-1", Name: "test.md", Type: file.FileTypeSource}, Chunks: []file.Chunk{}}),
+			Event:   domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.CreatedFile, &file.CreatedFilePayload{FileData: file.FileData{ProjectID: "project-1", Name: "test.md", Type: file.FileTypeCorpus}, Chunks: []file.Chunk{}}),
 			Expected: registryWith(
 				projectWith("project-1", "Test Project", "", nil, map[string]file.File{"file-1": testFile("file-1", "project-1", "test.md")}),
 				withLookup("File:file-1", "project-1"),
@@ -47,13 +48,13 @@ func TestRegistryReducer(t *testing.T) {
 				projectWith("project-1", "Test Project", "", map[string]code.Code{"code-1": testCode("code-1", "project-1", "test-code")}, nil),
 				withLookup("Code:code-1", "project-1"),
 			),
-			Event:    newCodeEvent("code-1", code.DeletedCode, nil),
+			Event:    domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.DeletedCode, nil),
 			Expected: registryWith(emptyProject("project-1", "Test Project")),
 		},
 		{
 			Name:     "DeletedProject removes project from registry",
 			Initial:  registryWith(emptyProject("project-1", "Test Project")),
-			Event:    newProjectEvent("project-1", project.DeletedProject, nil),
+			Event:    domain_helpers.NewDomainEvent(project.EntityName, "project-1", project.DeletedProject, nil),
 			Expected: registryWith(),
 		},
 		{
@@ -62,7 +63,7 @@ func TestRegistryReducer(t *testing.T) {
 				projectWith("project-1", "Test Project", "", map[string]code.Code{"code-1": testCode("code-1", "project-1", "old-slug")}, nil),
 				withLookup("Code:code-1", "project-1"),
 			),
-			Event: newCodeEvent("code-1", code.UpdatedCode, &code.UpdateCodePayload{Slug: "new-slug"}),
+			Event: domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.UpdatedCode, &code.UpdateCodePayload{Slug: "new-slug"}),
 			Expected: registryWith(
 				projectWith("project-1", "Test Project", "", map[string]code.Code{"code-1": testCode("code-1", "project-1", "new-slug")}, nil),
 				withLookup("Code:code-1", "project-1"),
@@ -74,7 +75,7 @@ func TestRegistryReducer(t *testing.T) {
 				emptyProject("project-1", "Project 1"),
 				emptyProject("project-2", "Project 2"),
 			),
-			Event: newCodeEvent("code-1", code.CreatedCode, &code.CreatedCodePayload{ProjectID: "project-1", Slug: "test-code", Color: "blue", Definition: "Test code"}),
+			Event: domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.CreatedCode, &code.CreatedCodePayload{ProjectID: "project-1", Slug: "test-code", Color: "blue", Definition: "Test code"}),
 			Expected: registryWith(
 				projectWith("project-1", "Project 1", "", map[string]code.Code{"code-1": testCode("code-1", "project-1", "test-code")}, nil),
 				emptyProject("project-2", "Project 2"),
@@ -154,18 +155,6 @@ func clearFileTimestamps(reg *Registry) *Registry {
 	return reg
 }
 
-func newProjectEvent(aggregateID string, action commands.Action, payload any) *commands.AnyMessage {
-	return commands.ToAny(commands.NewDomainEvent[any, any](action, payload, project.EntityName, aggregateID, commands.Actor{UserID: "test-user", ActorType: commands.ActorTypeSystem}, nil))
-}
-
-func newCodeEvent(aggregateID string, action commands.Action, payload any) *commands.AnyMessage {
-	return commands.ToAny(commands.NewDomainEvent[any, any](action, payload, code.EntityName, aggregateID, commands.Actor{UserID: "test-user", ActorType: commands.ActorTypeSystem}, nil))
-}
-
-func newFileEvent(aggregateID string, action commands.Action, payload any) *commands.AnyMessage {
-	return commands.ToAny(commands.NewDomainEvent[any, any](action, payload, file.EntityName, aggregateID, commands.Actor{UserID: "test-user", ActorType: commands.ActorTypeSystem}, nil))
-}
-
 type resolveProjectIDInput struct {
 	Setup func(*RegistryState)
 	Event *commands.AnyMessage
@@ -193,8 +182,8 @@ func TestResolveProjectID(t *testing.T) {
 			Name: "File with ProjectID in payload extracts it",
 			Input: resolveProjectIDInput{
 				Setup: func(rs *RegistryState) {},
-				Event: newFileEvent("file-1", file.CreatedFile, &file.CreatedFilePayload{
-					FileData: file.FileData{ProjectID: "proj-456", Name: "test.md", Type: file.FileTypeSource},
+				Event: domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.CreatedFile, &file.CreatedFilePayload{
+					FileData: file.FileData{ProjectID: "proj-456", Name: "test.md", Type: file.FileTypeCorpus},
 					Chunks:   []file.Chunk{},
 				}),
 			},
@@ -204,7 +193,7 @@ func TestResolveProjectID(t *testing.T) {
 			Name: "Code with ProjectID in payload extracts it",
 			Input: resolveProjectIDInput{
 				Setup: func(rs *RegistryState) {},
-				Event: newCodeEvent("code-1", code.CreatedCode, &code.CreatedCodePayload{
+				Event: domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.CreatedCode, &code.CreatedCodePayload{
 					ProjectID:  "proj-789",
 					Slug:       "test-code",
 					Color:      "blue",
@@ -217,12 +206,12 @@ func TestResolveProjectID(t *testing.T) {
 			Name: "File without ProjectID in payload falls back to registry lookup",
 			Input: resolveProjectIDInput{
 				Setup: func(rs *RegistryState) {
-					rs.ApplyEvent(newProjectEvent("proj-100", project.CreatedProject, &project.CreatedProjectPayload{
+					rs.ApplyEvent(domain_helpers.NewDomainEvent(project.EntityName, "proj-100", project.CreatedProject, &project.CreatedProjectPayload{
 						Name:        "Test Project",
 						Description: "Test",
 					}))
-					rs.ApplyEvent(newFileEvent("file-99", file.CreatedFile, &file.CreatedFilePayload{
-						FileData: file.FileData{ProjectID: "proj-100", Name: "existing.md", Type: file.FileTypeSource},
+					rs.ApplyEvent(domain_helpers.NewDomainEvent(file.EntityName, "file-99", file.CreatedFile, &file.CreatedFilePayload{
+						FileData: file.FileData{ProjectID: "proj-100", Name: "existing.md", Type: file.FileTypeCorpus},
 						Chunks:   []file.Chunk{},
 					}))
 				},
@@ -238,10 +227,10 @@ func TestResolveProjectID(t *testing.T) {
 			Name: "Code without ProjectID falls back to registry lookup",
 			Input: resolveProjectIDInput{
 				Setup: func(rs *RegistryState) {
-					rs.ApplyEvent(newProjectEvent("proj-200", project.CreatedProject, &project.CreatedProjectPayload{
+					rs.ApplyEvent(domain_helpers.NewDomainEvent(project.EntityName, "proj-200", project.CreatedProject, &project.CreatedProjectPayload{
 						Name: "Test Project",
 					}))
-					rs.ApplyEvent(newCodeEvent("code-88", code.CreatedCode, &code.CreatedCodePayload{
+					rs.ApplyEvent(domain_helpers.NewDomainEvent(code.EntityName, "code-88", code.CreatedCode, &code.CreatedCodePayload{
 						ProjectID:  "proj-200",
 						Slug:       "test-code",
 						Color:      "red",

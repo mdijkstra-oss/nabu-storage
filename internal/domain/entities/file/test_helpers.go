@@ -15,7 +15,7 @@ func BuildTestFile(id string, overrides FileData) File {
 		Title:       "",
 		Summary:     "",
 		Time:        th.DefaultTestTime(),
-		Type:        FileTypeSource,
+		Type:        FileTypeCorpus,
 		Original:    "",
 		Locked:      false,
 	}
@@ -49,7 +49,7 @@ func CreatedFileEvent(id, projectID, content string) *commands.AnyMessage {
 		FileData: FileData{
 			ProjectID: projectID,
 			Name:      "test-file.txt",
-			Type:      FileTypeSource,
+			Type:      FileTypeCorpus,
 			Locked:    true,
 		},
 		Chunks: []Chunk{

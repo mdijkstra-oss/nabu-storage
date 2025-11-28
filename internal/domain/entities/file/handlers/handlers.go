@@ -19,6 +19,18 @@ func NewRouter(reg *registry.RegistryState) dispatch.CommandRouter {
 			dispatch.ToCreateEntityEvent[file.CreateFilePayload, file.CreatedFilePayload](file.CreateFile, file.CreatedFile, createFileFromPayload),
 			dispatch.ToUpdateEntityEvent[file.UpdateFilePayload, file.UpdatedFilePayload](file.UpdateFile, file.UpdatedFile),
 
+			dispatch.LimitOnAction(file.UpdateFileContent,
+				registry.ValidateDomain[file.UpdateFileContentPayload](
+					reg,
+					validateFileNotLocked,
+					dispatch.ToUpdateEntityEvent[file.UpdateFileContentPayload, file.UpdatedFileContentPayload](
+						file.UpdateFileContent,
+						file.UpdatedFileContent,
+						toUpdatedContentPayload,
+					),
+				),
+			),
+
 			dispatch.LimitOnAction(file.AddCodeSections,
 				registry.NormalizeDomain[file.AddCodeSectionsPayload](
 					reg,
@@ -51,21 +63,31 @@ func NewRouter(reg *registry.RegistryState) dispatch.CommandRouter {
 }
 
 func createFileFromPayload(payload *file.CreateFilePayload) file.CreatedFilePayload {
+	fileType := payload.Type
+	if fileType == "" {
+		fileType = file.FileTypeCorpus
+	}
+
 	return file.CreatedFilePayload{
 		FileData: file.FileData{
 			ProjectID:   payload.ProjectID,
 			Name:        payload.Name,
 			Description: payload.Description,
-			Type:        file.FileTypeSource,
-			Locked:      true,
+			Type:        fileType,
+			Locked:      fileType.IsLocked(),
 		},
-		Chunks: createFileChunks(payload.Content),
+		Chunks: createChunksForType(fileType, payload.Content),
 	}
 }
 
-func createFileChunks(content string) []file.Chunk {
-	// Warn! These will be now fixed in time.
-	// Changing it later if ever, will only be for future files. Perhaps not that bad....
+func createChunksForType(fileType file.FileType, content string) []file.Chunk {
+	if fileType.IsChunked() {
+		return chunkContent(content)
+	}
+	return singleChunk(content)
+}
+
+func chunkContent(content string) []file.Chunk {
 	blocks := chunker.ChunkBlocks(content, chunker.FullPage*5, (chunker.FullPage*5)+chunker.HalfPage)
 	return utils.MapWithIndex(blocks, func(i int, block string) file.Chunk {
 		return file.Chunk{
@@ -74,6 +96,14 @@ func createFileChunks(content string) []file.Chunk {
 			Codes:   []file.CodedSection{},
 		}
 	})
+}
+
+func singleChunk(content string) []file.Chunk {
+	return []file.Chunk{{
+		ID:      "1",
+		Content: content,
+		Codes:   []file.CodedSection{},
+	}}
 }
 
 func validateAndNormalizeText(text, chunkContent string) (string, error) {
@@ -193,5 +223,22 @@ func toUpdatedSectionsPayload(payload *file.UpdateCodeSectionsPayload) file.Upda
 		ChunkID:  payload.ChunkID,
 		Sections: payload.Sections,
 		Failures: payload.Failures,
+	}
+}
+
+func validateFileNotLocked(proj project.Project, payload file.UpdateFileContentPayload, msg *commands.AnyMessage) error {
+	f, exists := proj.Files[msg.AggregateID]
+	if !exists {
+		return utils.FieldError("file", "not found")
+	}
+	if f.Locked {
+		return utils.FieldError("file", "cannot update content of locked file")
+	}
+	return nil
+}
+
+func toUpdatedContentPayload(payload *file.UpdateFileContentPayload) file.UpdatedFileContentPayload {
+	return file.UpdatedFileContentPayload{
+		Content: payload.Content,
 	}
 }
