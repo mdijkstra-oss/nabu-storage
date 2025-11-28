@@ -12,6 +12,7 @@ func TestNormalizeText(t *testing.T) {
 		{"curly apostrophe removed", "it\u2019s", "its"},
 		{"straight apostrophe removed", "it's", "its"},
 		{"curly double quotes removed", "\u201Chello\u201D", "hello"},
+		{"straight double quotes removed", "\"hello\"", "hello"},
 		{"curly single quotes removed", "\u2018hello\u2019", "hello"},
 		{"underscore to space", "_hello_", " hello "},
 		{"asterisk to space", "*hello*", " hello "},

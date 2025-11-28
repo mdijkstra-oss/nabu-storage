@@ -2,9 +2,12 @@ package find
 
 import (
 	"encoding/json"
+	"flag"
 	"os"
 	"testing"
 )
+
+var updateBaseline = flag.Bool("update-baseline", false, "Update baseline.json with current results")
 
 type ParsedRequest struct {
 	ChunkContent string   `json:"chunk_content"`
@@ -12,11 +15,8 @@ type ParsedRequest struct {
 	FailedTexts  []string `json:"failed_texts"`
 }
 
-type RegressionStats struct {
-	FoundTextsTotal  int
-	FoundTextsFound  int
-	FailedTextsTotal int
-	FailedTextsFound int
+type Baseline struct {
+	PassingTexts map[string]int `json:"passing_texts"`
 }
 
 func loadParsedRequests(path string) ([]ParsedRequest, error) {
@@ -29,50 +29,28 @@ func loadParsedRequests(path string) ([]ParsedRequest, error) {
 	return requests, err
 }
 
-func toSet(items []string) map[string]struct{} {
-	set := make(map[string]struct{}, len(items))
-	for _, item := range items {
-		set[item] = struct{}{}
+func loadBaseline(path string) (map[string]int, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return make(map[string]int), nil
+		}
+		return nil, err
 	}
-	return set
+	var baseline Baseline
+	if err := json.Unmarshal(data, &baseline); err != nil {
+		return nil, err
+	}
+	return baseline.PassingTexts, nil
 }
 
-func runRegressionOnRequest(t *testing.T, req ParsedRequest) RegressionStats {
-	var stats RegressionStats
-	failedSet := toSet(req.FailedTexts)
-
-	for _, needle := range req.FoundTexts {
-		_, inFailedSet := failedSet[needle]
-		if inFailedSet {
-			continue
-		}
-		stats.FoundTextsTotal++
-		_, found := Find(needle, req.ChunkContent)
-		if found {
-			stats.FoundTextsFound++
-		} else {
-			t.Errorf("REGRESSION: previously found text not found: %q", truncate(needle, 80))
-		}
+func saveBaseline(path string, passing map[string]int) error {
+	baseline := Baseline{PassingTexts: passing}
+	data, err := json.MarshalIndent(baseline, "", "  ")
+	if err != nil {
+		return err
 	}
-
-	for _, needle := range req.FailedTexts {
-		stats.FailedTextsTotal++
-		_, found := Find(needle, req.ChunkContent)
-		if found {
-			stats.FailedTextsFound++
-		}
-	}
-
-	return stats
-}
-
-func aggregateStats(a, b RegressionStats) RegressionStats {
-	return RegressionStats{
-		FoundTextsTotal:  a.FoundTextsTotal + b.FoundTextsTotal,
-		FoundTextsFound:  a.FoundTextsFound + b.FoundTextsFound,
-		FailedTextsTotal: a.FailedTextsTotal + b.FailedTextsTotal,
-		FailedTextsFound: a.FailedTextsFound + b.FailedTextsFound,
-	}
+	return os.WriteFile(path, data, 0644)
 }
 
 func truncate(s string, maxLen int) string {
@@ -88,28 +66,57 @@ func TestFind_Regression(t *testing.T) {
 		t.Fatalf("Failed to load parsed-requests.json: %v", err)
 	}
 
-	var total RegressionStats
-	for i, req := range requests {
-		stats := runRegressionOnRequest(t, req)
-		total = aggregateStats(total, stats)
-		t.Logf("Chunk %d: found_texts %d/%d, failed_texts now found %d/%d",
-			i, stats.FoundTextsFound, stats.FoundTextsTotal,
-			stats.FailedTextsFound, stats.FailedTextsTotal)
+	baselineMap, err := loadBaseline("baseline.json")
+	if err != nil {
+		t.Fatalf("Failed to load baseline.json: %v", err)
+	}
+
+	currentPassing := make(map[string]int)
+	var regressions, improvements int
+
+	for chunkIdx, req := range requests {
+		for _, needle := range req.FoundTexts {
+			_, found := Find(needle, req.ChunkContent)
+			baselineChunk, wasInBaseline := baselineMap[needle]
+
+			if found {
+				currentPassing[needle] = chunkIdx
+				if !wasInBaseline {
+					improvements++
+				}
+			} else if wasInBaseline && baselineChunk == chunkIdx {
+				regressions++
+				t.Errorf("REGRESSION: baseline text no longer found: %q", truncate(needle, 80))
+			}
+		}
+
+		for _, needle := range req.FailedTexts {
+			_, found := Find(needle, req.ChunkContent)
+			baselineChunk, wasInBaseline := baselineMap[needle]
+
+			if found {
+				currentPassing[needle] = chunkIdx
+				if !wasInBaseline {
+					improvements++
+				}
+			} else if wasInBaseline && baselineChunk == chunkIdx {
+				regressions++
+				t.Errorf("REGRESSION: baseline text no longer found: %q", truncate(needle, 80))
+			}
+		}
 	}
 
 	t.Logf("\n=== REGRESSION SUMMARY ===")
-	t.Logf("Previously found (must stay found): %d/%d (%.1f%%)",
-		total.FoundTextsFound, total.FoundTextsTotal,
-		percentage(total.FoundTextsFound, total.FoundTextsTotal))
-	t.Logf("Previously failed (now found):      %d/%d (%.1f%%)",
-		total.FailedTextsFound, total.FailedTextsTotal,
-		percentage(total.FailedTextsFound, total.FailedTextsTotal))
+	t.Logf("Baseline texts:  %d", len(baselineMap))
+	t.Logf("Now passing:     %d", len(currentPassing))
+	t.Logf("Regressions:     %d", regressions)
+	t.Logf("Improvements:    %d", improvements)
 	t.Logf("==========================")
-}
 
-func percentage(found, total int) float64 {
-	if total == 0 {
-		return 0
+	if *updateBaseline {
+		if err := saveBaseline("baseline.json", currentPassing); err != nil {
+			t.Fatalf("Failed to save baseline: %v", err)
+		}
+		t.Logf("Baseline updated with %d passing texts", len(currentPassing))
 	}
-	return float64(found) / float64(total) * 100
 }
