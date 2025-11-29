@@ -7,7 +7,6 @@ import (
 	"hermes-relay/internal/domain/entities/project"
 	"hermes-relay/internal/domain/templates"
 	"hermes-relay/internal/lib/utils"
-	"time"
 )
 
 func DefaultFilesSaga() dispatch.CommandRouter {
@@ -21,17 +20,17 @@ func createDefaultFiles(message *commands.AnyMessage, _ project.CreatedProjectPa
 }
 
 func buildCreateFileCommand(projectID string, df templates.DefaultFile, actor commands.Actor) *commands.AnyMessage {
-	return &commands.AnyMessage{
-		AggregateType: file.EntityName,
-		AggregateID:   utils.NewID(),
-		Action:        file.CreateFile,
-		Timestamp:     time.Now(),
-		Actor:         actor,
-		Payload: file.CreateFilePayload{
+	return commands.ToAny(commands.NewCommand[file.CreateFilePayload, any](
+		file.CreateFile,
+		file.CreateFilePayload{
 			ProjectID: projectID,
 			Name:      df.Name,
 			Content:   df.Content,
 			Type:      df.Type,
 		},
-	}
+		file.EntityName,
+		utils.NewID(),
+		actor,
+		nil,
+	))
 }

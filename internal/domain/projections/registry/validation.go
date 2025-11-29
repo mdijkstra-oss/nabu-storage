@@ -39,7 +39,7 @@ func EnsureEntityHealth(registry *RegistryState, handler dispatch.CommandRouter)
 			return handler(message, publisher)
 		}
 
-		if err := checkEntityHealth(*proj, string(message.AggregateType), message.AggregateID); err != nil {
+		if err := checkEntityHealth(*proj, message.Action, string(message.AggregateType), message.AggregateID); err != nil {
 			return nil, err
 		}
 
@@ -47,11 +47,18 @@ func EnsureEntityHealth(registry *RegistryState, handler dispatch.CommandRouter)
 	}
 }
 
-func checkEntityHealth(proj project.Project, aggregateType, aggregateID string) error {
+func isCreateAction(action commands.Action) bool {
+	return len(action) >= 6 && action[:6] == "Create"
+}
+
+func checkEntityHealth(proj project.Project, action commands.Action, aggregateType, aggregateID string) error {
 	switch aggregateType {
 	case "Code":
 		code, exists := proj.Codes[aggregateID]
 		if !exists {
+			if isCreateAction(action) {
+				return nil
+			}
 			return utils.FieldError("aggregate_id", "code not found")
 		}
 		if !code.IsHealthy() {
@@ -60,6 +67,9 @@ func checkEntityHealth(proj project.Project, aggregateType, aggregateID string) 
 	case "File":
 		file, exists := proj.Files[aggregateID]
 		if !exists {
+			if isCreateAction(action) {
+				return nil
+			}
 			return utils.FieldError("aggregate_id", "file not found")
 		}
 		if !file.IsHealthy() {

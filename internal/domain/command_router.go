@@ -30,3 +30,10 @@ func NewSagaRouter() dispatch.CommandRouter {
 		),
 	)
 }
+
+func CommandHandlers(registryState *registry.RegistryState) []dispatch.CommandRouter {
+	return []dispatch.CommandRouter{
+		NewCommandRouter(registryState),
+		NewSagaRouter(),
+	}
+}
