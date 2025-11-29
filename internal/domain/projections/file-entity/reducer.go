@@ -62,11 +62,12 @@ func withLastActor(section file.CodedSection, actor commands.Actor) file.CodedSe
 
 func toCodedSection(section file.AddedSection, actor commands.Actor) file.CodedSection {
 	return withLastActor(file.CodedSection{
-		ID:       section.ID,
-		CodeSlug: section.CodeSlug,
-		CodeID:   section.CodeID,
-		Text:     section.Text,
-		Reason:   section.Reason,
+		ID:         section.ID,
+		CodeSlug:   section.CodeSlug,
+		CodeID:     section.CodeID,
+		Text:       section.Text,
+		Reason:     section.Reason,
+		Confidence: section.Confidence,
 	}, actor)
 }
 

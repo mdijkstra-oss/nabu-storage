@@ -153,10 +153,11 @@ func normalizeAddSections(proj project.Project, payload file.AddCodeSectionsPayl
 		}
 
 		normalizedSections = append(normalizedSections, file.AddSectionOp{
-			CodeSlug: op.CodeSlug,
-			CodeID:   op.CodeID,
-			Text:     normalizedText,
-			Reason:   op.Reason,
+			CodeSlug:   op.CodeSlug,
+			CodeID:     op.CodeID,
+			Text:       normalizedText,
+			Reason:     op.Reason,
+			Confidence: op.Confidence,
 		})
 	}
 
@@ -181,11 +182,12 @@ func addSectionIDs(payload *file.AddCodeSectionsPayload) file.AddedCodeSectionsP
 		ChunkID: payload.ChunkID,
 		Sections: utils.Map(payload.Sections, func(op file.AddSectionOp) file.AddedSection {
 			return file.AddedSection{
-				ID:       utils.NewID(),
-				CodeSlug: op.CodeSlug,
-				CodeID:   op.CodeID,
-				Text:     op.Text,
-				Reason:   op.Reason,
+				ID:         utils.NewID(),
+				CodeSlug:   op.CodeSlug,
+				CodeID:     op.CodeID,
+				Text:       op.Text,
+				Reason:     op.Reason,
+				Confidence: op.Confidence,
 			}
 		}),
 		Failures: payload.Failures,
@@ -203,8 +205,9 @@ func normalizeUpdateSections(proj project.Project, payload file.UpdateCodeSectio
 
 	for i, op := range payload.Sections {
 		normalizedOp := file.UpdateSectionOp{
-			ID:     op.ID,
-			Reason: op.Reason,
+			ID:         op.ID,
+			Reason:     op.Reason,
+			Confidence: op.Confidence,
 		}
 
 		if op.Text != "" {

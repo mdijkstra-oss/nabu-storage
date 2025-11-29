@@ -110,7 +110,7 @@ func TestFileReducer(t *testing.T) {
 			Event: domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.AddedCodeSections, &file.AddedCodeSectionsPayload{
 				ChunkID: "1",
 				Sections: []file.AddedSection{
-					{ID: "section-id-1", CodeID: "code-1", CodeSlug: "topic:climate", Text: "Climate change impacts", Reason: "Climate ref"},
+					{ID: "section-id-1", CodeID: "code-1", CodeSlug: "topic:climate", Text: "Climate change impacts", Reason: "Climate ref", Confidence: file.ConfidenceHigh},
 				},
 			}),
 			Expected: buildFile("file-1", file.FileData{}, []file.Chunk{
@@ -118,7 +118,7 @@ func TestFileReducer(t *testing.T) {
 					ID:      "1",
 					Content: "Climate change impacts global warming.\n",
 					Codes: []file.CodedSection{
-						{ID: "generated-id-1", CodeID: "code-1", CodeSlug: "topic:climate", Text: "Climate change impacts", Reason: "Climate ref", LastActor: testActor()},
+						{ID: "generated-id-1", CodeID: "code-1", CodeSlug: "topic:climate", Text: "Climate change impacts", Reason: "Climate ref", Confidence: file.ConfidenceHigh, LastActor: testActor()},
 					},
 				},
 			}),

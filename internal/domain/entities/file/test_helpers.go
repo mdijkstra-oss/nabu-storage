@@ -38,9 +38,10 @@ func BuildTestChunk(id, content string, codes []CodedSection) Chunk {
 
 func BuildTestCodedSection(id, codeID, text string) CodedSection {
 	return CodedSection{
-		ID:     id,
-		CodeID: codeID,
-		Text:   text,
+		ID:         id,
+		CodeID:     codeID,
+		Text:       text,
+		Confidence: ConfidenceHigh,
 	}
 }
 

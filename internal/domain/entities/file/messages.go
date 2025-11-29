@@ -1,24 +1,27 @@
 package file
 
 type AddSectionOp struct {
-	CodeSlug string `json:"code_slug" validate:"required,code_slug"`
-	CodeID   string `json:"code_id" validate:"required"`
-	Text     string `json:"text" validate:"required,min=1,max=1500"`
-	Reason   string `json:"reason" validate:"max=1500"`
+	CodeSlug   string     `json:"code_slug" validate:"required,code_slug"`
+	CodeID     string     `json:"code_id" validate:"required"`
+	Text       string     `json:"text" validate:"required,min=1,max=1500"`
+	Reason     string     `json:"reason" validate:"max=1500"`
+	Confidence Confidence `json:"confidence" validate:"required,oneof=high medium low"`
 }
 
 type UpdateSectionOp struct {
-	ID     string `json:"id" validate:"required,valid_id"`
-	Text   string `json:"text,omitempty" validate:"omitempty,min=1,max=1500"`
-	Reason string `json:"reason,omitempty" validate:"max=1500"`
+	ID         string      `json:"id" validate:"required,valid_id"`
+	Text       string      `json:"text,omitempty" validate:"omitempty,min=1,max=1500"`
+	Reason     string      `json:"reason,omitempty" validate:"max=1500"`
+	Confidence *Confidence `json:"confidence,omitempty" validate:"omitempty,oneof=high medium low"`
 }
 
 type AddedSection struct {
-	ID       string `json:"id" validate:"required,valid_id"`
-	CodeSlug string `json:"code_slug" validate:"required,code_slug"`
-	CodeID   string `json:"code_id" validate:"required"`
-	Text     string `json:"text" validate:"required,min=1,max=1500"`
-	Reason   string `json:"reason" validate:"max=1500"`
+	ID         string     `json:"id" validate:"required,valid_id"`
+	CodeSlug   string     `json:"code_slug" validate:"required,code_slug"`
+	CodeID     string     `json:"code_id" validate:"required"`
+	Text       string     `json:"text" validate:"required,min=1,max=1500"`
+	Reason     string     `json:"reason" validate:"max=1500"`
+	Confidence Confidence `json:"confidence" validate:"required,oneof=high medium low"`
 }
 
 type AddCodeSectionsPayload struct {
