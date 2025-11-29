@@ -16,7 +16,7 @@ var cmds = []*commands.AnyMessage{}
 func TestProjectRouter(t *testing.T) {
 	tests := []rh.RouterTestCase{
 		{
-			Name: "CreateProject with valid payload",
+			Name: "CreateProject with valid payload defaults phase to explore",
 			Input: commands.ToAny(commands.NewCommand[project.CreateProjectPayload, any](project.CreateProject, project.CreateProjectPayload{
 				Name:        "My Research Project",
 				Description: "A project for research purposes",
@@ -25,7 +25,28 @@ func TestProjectRouter(t *testing.T) {
 			ExpectEvent: commands.ToAny(commands.NewDomainEvent[project.CreatedProjectPayload, any](project.CreatedProject, project.CreatedProjectPayload{
 				Name:        "My Research Project",
 				Description: "A project for research purposes",
+				Phase:       project.PhaseExplore,
 			}, project.EntityName, "", domain_helpers.TestActor(), nil)),
+		},
+		{
+			Name: "CreateProject with explicit phase",
+			Input: commands.ToAny(commands.NewCommand[project.CreateProjectPayload, any](project.CreateProject, project.CreateProjectPayload{
+				Name:  "Code Phase Project",
+				Phase: project.PhaseCode,
+			}, project.EntityName, "", domain_helpers.TestActor(), nil)),
+			ExpectErr: "",
+			ExpectEvent: commands.ToAny(commands.NewDomainEvent[project.CreatedProjectPayload, any](project.CreatedProject, project.CreatedProjectPayload{
+				Name:  "Code Phase Project",
+				Phase: project.PhaseCode,
+			}, project.EntityName, "", domain_helpers.TestActor(), nil)),
+		},
+		{
+			Name: "CreateProject with invalid phase fails",
+			Input: commands.ToAny(commands.NewCommand[project.CreateProjectPayload, any](project.CreateProject, project.CreateProjectPayload{
+				Name:  "Invalid Phase Project",
+				Phase: "invalid",
+			}, project.EntityName, "", domain_helpers.TestActor(), nil)),
+			ExpectErr: "validation failed: Phase failed validation (oneof)",
 		},
 		{
 			Name:      "CreateProject with missing Name",
@@ -42,6 +63,18 @@ func TestProjectRouter(t *testing.T) {
 			ExpectEvent: commands.ToAny(commands.NewDomainEvent[project.UpdatedProjectPayload, any](project.UpdatedProject, project.UpdatedProjectPayload{
 				Name:        "Updated Project Name",
 				Description: "Updated description",
+			}, project.EntityName, testProjectID, domain_helpers.TestActor(), nil)),
+		},
+		{
+			Name: "UpdateProject with phase change",
+			Input: commands.ToAny(commands.NewCommand[project.UpdateProjectPayload, any](project.UpdateProject, project.UpdateProjectPayload{
+				Name:  "Project Name",
+				Phase: project.PhaseAnalyze,
+			}, project.EntityName, testProjectID, domain_helpers.TestActor(), nil)),
+			ExpectErr: "",
+			ExpectEvent: commands.ToAny(commands.NewDomainEvent[project.UpdatedProjectPayload, any](project.UpdatedProject, project.UpdatedProjectPayload{
+				Name:  "Project Name",
+				Phase: project.PhaseAnalyze,
 			}, project.EntityName, testProjectID, domain_helpers.TestActor(), nil)),
 		},
 		{

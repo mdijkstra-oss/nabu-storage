@@ -17,8 +17,13 @@ func NewRouter(_ *registry.RegistryState) dispatch.CommandRouter {
 }
 
 func createProjectFromPayload(payload *project.CreateProjectPayload) project.CreatedProjectPayload {
+	phase := payload.Phase
+	if phase == "" {
+		phase = project.PhaseExplore
+	}
 	return project.ProjectData{
 		Name:        payload.Name,
 		Description: payload.Description,
+		Phase:       phase,
 	}
 }

@@ -5,9 +5,19 @@ import (
 	"hermes-relay/internal/domain/entities/file"
 )
 
+type Phase string
+
+const (
+	PhaseExplore  Phase = "explore"
+	PhaseCode     Phase = "code"
+	PhaseValidate Phase = "validate"
+	PhaseAnalyze  Phase = "analyze"
+)
+
 type ProjectData struct {
 	Name        string `json:"name" validate:"required,max=200" normalize:"trim"`
 	Description string `json:"description" validate:"max=2000" normalize:"trim"`
+	Phase       Phase  `json:"phase" validate:"oneof=explore code validate analyze"`
 }
 
 type Project struct {
