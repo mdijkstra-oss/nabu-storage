@@ -20,14 +20,17 @@ var (
 	testCodeID3     = utils.NewID()
 	testFileShort   = utils.NewID()
 	testFileLong    = utils.NewID()
+	testFileMemo    = utils.NewID()
 	shortContent    = "Some text to code here"
 	longContent     = "Some text to code here and more words for searching"
+	memoContent     = "This is a memo with some editable content here"
 )
 
 var cmds = []*commands.AnyMessage{
 	project.CreatedProjectEvent(testProjectID),
 	file.CreatedFileEvent(testFileShort, testProjectID, shortContent),
 	file.CreatedFileEvent(testFileLong, testProjectID, longContent),
+	file.CreatedMemoEvent(testFileMemo, testProjectID, memoContent),
 }
 
 var ignoreGeneratedIDs = []th.IgnoreFieldsOption{
@@ -163,6 +166,50 @@ func TestFileRouter(t *testing.T) {
 			Input:       commands.ToAny(commands.NewCommand[file.DeleteFilePayload, any](file.DeleteFile, file.DeleteFilePayload{}, file.EntityName, testFileShort, domain_helpers.TestActor(), nil)),
 			ExpectErr:   "",
 			ExpectEvent: commands.ToAny(commands.NewDomainEvent[any, any](file.DeletedFile, nil, file.EntityName, testFileShort, domain_helpers.TestActor(), nil)),
+		},
+		{
+			Name: "ReplaceFileContent on unlocked file",
+			Input: commands.ToAny(commands.NewCommand[file.ReplaceFileContentPayload, any](file.ReplaceFileContent, file.ReplaceFileContentPayload{
+				Content: "New memo content",
+			}, file.EntityName, testFileMemo, domain_helpers.TestActor(), nil)),
+			ExpectErr: "",
+			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.ReplacedFileContentPayload, any](file.ReplacedFileContent, file.ReplacedFileContentPayload{
+				Content: "New memo content",
+			}, file.EntityName, testFileMemo, domain_helpers.TestActor(), nil)),
+		},
+		{
+			Name: "ReplaceFileContent on locked file fails",
+			Input: commands.ToAny(commands.NewCommand[file.ReplaceFileContentPayload, any](file.ReplaceFileContent, file.ReplaceFileContentPayload{
+				Content: "New content",
+			}, file.EntityName, testFileShort, domain_helpers.TestActor(), nil)),
+			ExpectErr: "file is locked",
+		},
+		{
+			Name: "EditFileContent with fuzzy match",
+			Input: commands.ToAny(commands.NewCommand[file.EditFileContentPayload, any](file.EditFileContent, file.EditFileContentPayload{
+				OldText: "some editable content",
+				NewText: "some UPDATED content",
+			}, file.EntityName, testFileMemo, domain_helpers.TestActor(), nil)),
+			ExpectErr: "",
+			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.ReplacedFileContentPayload, any](file.ReplacedFileContent, file.ReplacedFileContentPayload{
+				Content: "This is a memo with some UPDATED content here",
+			}, file.EntityName, testFileMemo, domain_helpers.TestActor(), nil)),
+		},
+		{
+			Name: "EditFileContent on locked file fails",
+			Input: commands.ToAny(commands.NewCommand[file.EditFileContentPayload, any](file.EditFileContent, file.EditFileContentPayload{
+				OldText: "Some text to code",
+				NewText: "replacement",
+			}, file.EntityName, testFileShort, domain_helpers.TestActor(), nil)),
+			ExpectErr: "file is locked",
+		},
+		{
+			Name: "EditFileContent with text not found",
+			Input: commands.ToAny(commands.NewCommand[file.EditFileContentPayload, any](file.EditFileContent, file.EditFileContentPayload{
+				OldText: "nonexistent text that does not exist",
+				NewText: "replacement",
+			}, file.EntityName, testFileMemo, domain_helpers.TestActor(), nil)),
+			ExpectErr: "old_text",
 		},
 		{
 			Name: "CreateFile with missing Name",

@@ -45,12 +45,20 @@ func BuildTestCodedSection(id, codeID, text string) CodedSection {
 }
 
 func CreatedFileEvent(id, projectID, content string) *commands.AnyMessage {
+	return CreatedFileEventWithType(id, projectID, content, FileTypeCorpus)
+}
+
+func CreatedMemoEvent(id, projectID, content string) *commands.AnyMessage {
+	return CreatedFileEventWithType(id, projectID, content, FileTypeMemo)
+}
+
+func CreatedFileEventWithType(id, projectID, content string, fileType FileType) *commands.AnyMessage {
 	return domain_helpers.NewDomainEvent(EntityName, id, CreatedFile, CreatedFilePayload{
 		FileData: FileData{
 			ProjectID: projectID,
 			Name:      "test-file.txt",
-			Type:      FileTypeCorpus,
-			Locked:    true,
+			Type:      fileType,
+			Locked:    fileType.IsLocked(),
 		},
 		Chunks: []Chunk{
 			{ID: "chunk-1", Content: content, Codes: []CodedSection{}},

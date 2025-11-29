@@ -35,7 +35,7 @@ type ReplaceFileContentPayload struct {
 
 type EditFileContentPayload struct {
 	OldText string `json:"old_text" validate:"required"`
-	NewText string `json:"new_text"`
+	NewText string `json:"new_text" validate:"required"`
 }
 
 type DeleteFilePayload = commands.EmptyPayload

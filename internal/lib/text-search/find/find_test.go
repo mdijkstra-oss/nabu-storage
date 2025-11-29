@@ -125,3 +125,31 @@ func TestFind_EdgeCases(t *testing.T) {
 
 	runFindTests(t, tests)
 }
+
+func TestReplace(t *testing.T) {
+	tests := []struct {
+		name     string
+		content  string
+		oldText  string
+		newText  string
+		expected string
+	}{
+		{"simple replace", "hello world", "world", "universe", "hello universe"},
+		{"replace at start", "foo bar baz", "foo", "qux", "qux bar baz"},
+		{"replace at end", "foo bar baz", "baz", "qux", "foo bar qux"},
+		{"replace with empty", "hello world", "world", "", "hello "},
+		{"replace first occurrence only", "cat cat cat", "cat", "dog", "dog cat cat"},
+		{"no match returns unchanged", "hello world", "xyz", "abc", "hello world"},
+		{"empty content", "", "foo", "bar", ""},
+		{"empty oldText returns unchanged", "hello world", "", "bar", "hello world"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := Replace(tt.content, tt.oldText, tt.newText)
+			if result != tt.expected {
+				t.Errorf("Replace(%q, %q, %q) = %q, want %q", tt.content, tt.oldText, tt.newText, result, tt.expected)
+			}
+		})
+	}
+}

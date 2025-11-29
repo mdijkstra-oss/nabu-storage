@@ -143,6 +143,9 @@ func isSubsequence(needle, window []string) bool {
 }
 
 func Replace(content, oldText, newText string) string {
+	if oldText == "" {
+		return content
+	}
 	return strings.Replace(content, oldText, newText, 1)
 }
 
