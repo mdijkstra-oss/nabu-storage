@@ -7,7 +7,8 @@ const EntityName commands.AggregateType = "File"
 const (
 	CreateFile          commands.Action = "CreateFile"
 	UpdateFile          commands.Action = "UpdateFile"
-	UpdateFileContent   commands.Action = "UpdateFileContent"
+	ReplaceFileContent  commands.Action = "ReplaceFileContent"
+	EditFileContent     commands.Action = "EditFileContent"
 	DeleteFile          commands.Action = "DeleteFile"
 	AddCodeSections     commands.Action = "AddCodeSections"
 	UpdateCodeSections  commands.Action = "UpdateCodeSections"
@@ -28,8 +29,13 @@ type UpdateFilePayload struct {
 	Description string `json:"description,omitempty" validate:"omitempty,max=2000" normalize:"trim"`
 }
 
-type UpdateFileContentPayload struct {
+type ReplaceFileContentPayload struct {
 	Content string `json:"content" validate:"required"`
+}
+
+type EditFileContentPayload struct {
+	OldText string `json:"old_text" validate:"required"`
+	NewText string `json:"new_text"`
 }
 
 type DeleteFilePayload = commands.EmptyPayload

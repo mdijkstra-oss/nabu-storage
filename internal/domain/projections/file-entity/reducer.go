@@ -14,7 +14,7 @@ var Reducer = projection.WithHealthCheck(
 		projection.For(file.CreatedFile, CreatedFileReducer),
 		projection.IfExists(
 			projection.For(file.UpdatedFile, UpdatedFileReducer),
-			projection.For(file.UpdatedFileContent, UpdatedFileContentReducer),
+			projection.For(file.ReplacedFileContent, ReplacedFileContentReducer),
 			projection.For(file.DeletedFile, projection.DeletedEntity[File]),
 			projection.For(file.AddedCodeSections, AddedCodeSectionsReducer),
 			projection.For(file.UpdatedCodeSections, UpdatedCodeSectionsReducer),
@@ -46,7 +46,7 @@ func UpdatedFileReducer(current *File, _ *commands.AnyMessage, payload *file.Upd
 	return &updated
 }
 
-func UpdatedFileContentReducer(current *File, _ *commands.AnyMessage, payload *file.UpdatedFileContentPayload) *File {
+func ReplacedFileContentReducer(current *File, _ *commands.AnyMessage, payload *file.ReplacedFileContentPayload) *File {
 	current.Chunks = []file.Chunk{{
 		ID:      "1",
 		Content: payload.Content,

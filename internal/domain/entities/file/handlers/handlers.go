@@ -16,17 +16,34 @@ import (
 func NewRouter(reg *registry.RegistryState) dispatch.CommandRouter {
 	return dispatch.CombineRouters(
 		dispatch.LimitOnEntity(file.EntityName,
-			dispatch.ToCreateEntityEvent[file.CreateFilePayload, file.CreatedFilePayload](file.CreateFile, file.CreatedFile, createFileFromPayload),
+			dispatch.LimitOnAction(file.CreateFile,
+				registry.ValidateDomain[file.CreateFilePayload](
+					reg,
+					validateNoDuplicateCodebook,
+					dispatch.ToCreateEntityEvent[file.CreateFilePayload, file.CreatedFilePayload](file.CreateFile, file.CreatedFile, createFileFromPayload),
+				),
+			),
 			dispatch.ToUpdateEntityEvent[file.UpdateFilePayload, file.UpdatedFilePayload](file.UpdateFile, file.UpdatedFile),
 
-			dispatch.LimitOnAction(file.UpdateFileContent,
-				registry.ValidateDomain[file.UpdateFileContentPayload](
+			dispatch.LimitOnAction(file.ReplaceFileContent,
+				registry.ValidateDomain[file.ReplaceFileContentPayload](
 					reg,
 					validateFileNotLocked,
-					dispatch.ToUpdateEntityEvent[file.UpdateFileContentPayload, file.UpdatedFileContentPayload](
-						file.UpdateFileContent,
-						file.UpdatedFileContent,
-						toUpdatedContentPayload,
+					dispatch.ToUpdateEntityEvent[file.ReplaceFileContentPayload, file.ReplacedFileContentPayload](
+						file.ReplaceFileContent,
+						file.ReplacedFileContent,
+						toReplacedContentPayload,
+					),
+				),
+			),
+
+			dispatch.LimitOnAction(file.EditFileContent,
+				registry.TransformDomain(
+					reg,
+					transformEditFileContent,
+					dispatch.ToUpdateEntityEvent[file.ReplacedFileContentPayload, file.ReplacedFileContentPayload](
+						file.EditFileContent,
+						file.ReplacedFileContent,
 					),
 				),
 			),
@@ -226,19 +243,47 @@ func toUpdatedSectionsPayload(payload *file.UpdateCodeSectionsPayload) file.Upda
 	}
 }
 
-func validateFileNotLocked(proj project.Project, payload file.UpdateFileContentPayload, msg *commands.AnyMessage) error {
-	f, exists := proj.Files[msg.AggregateID]
-	if !exists {
-		return utils.FieldError("file", "not found")
+func validateNoDuplicateCodebook(proj project.Project, payload file.CreateFilePayload, msg *commands.AnyMessage) error {
+	if payload.Type != file.FileTypeCodebook {
+		return nil
 	}
-	if f.Locked {
-		return utils.FieldError("file", "cannot update content of locked file")
+	if fileview.GetCodebook(proj) != nil {
+		return utils.FieldError("type", "project already has a codebook")
 	}
 	return nil
 }
 
-func toUpdatedContentPayload(payload *file.UpdateFileContentPayload) file.UpdatedFileContentPayload {
-	return file.UpdatedFileContentPayload{
-		Content: payload.Content,
+func validateFileNotLocked(proj project.Project, payload file.ReplaceFileContentPayload, msg *commands.AnyMessage) error {
+	return errIfLocked(proj, msg)
+}
+
+func errIfLocked(proj project.Project, msg *commands.AnyMessage) error {
+	if proj.Files[msg.AggregateID].Locked {
+		return utils.FieldError("file", "file is locked")
 	}
+	return nil
+}
+
+func toReplacedContentPayload(payload *file.ReplaceFileContentPayload) file.ReplacedFileContentPayload {
+	return file.ReplacedFileContentPayload{Content: payload.Content}
+}
+
+func transformEditFileContent(proj project.Project, payload file.EditFileContentPayload, msg *commands.AnyMessage) (file.ReplacedFileContentPayload, error) {
+	if err := errIfLocked(proj, msg); err != nil {
+		return file.ReplacedFileContentPayload{}, err
+	}
+
+	f := proj.Files[msg.AggregateID]
+	if len(f.Chunks) == 0 {
+		return file.ReplacedFileContentPayload{}, utils.FieldError("file", "has no content")
+	}
+
+	foundText, found := find.Find(payload.OldText, f.Chunks[0].Content)
+	if !found {
+		return file.ReplacedFileContentPayload{}, utils.FieldError("old_text", "not found in file")
+	}
+
+	return file.ReplacedFileContentPayload{
+		Content: find.Replace(f.Chunks[0].Content, foundText, payload.NewText),
+	}, nil
 }

@@ -322,7 +322,8 @@ type chunkingTestResult struct {
 }
 
 func TestFileCreationChunking(t *testing.T) {
-	router := NewRouter(nil)
+	reg := rh.NewTestRegistry([]*commands.AnyMessage{project.CreatedProjectEvent(testProjectID)})
+	router := NewRouter(reg)
 
 	createAndTestChunks := func(content string) chunkingTestResult {
 		input := commands.NewCommand[file.CreateFilePayload, any](

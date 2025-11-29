@@ -25,15 +25,9 @@ func FindChunk(chunks []file.Chunk, chunkID string) *file.Chunk {
 }
 
 func GetFileChunk(proj project.Project, fileID, chunkID string) (*file.Chunk, error) {
-	fileEntity, exists := proj.Files[fileID]
-	if !exists {
-		return nil, utils.FieldNotFound("file_id")
-	}
-
-	chunk := FindChunk(fileEntity.Chunks, chunkID)
+	chunk := FindChunk(proj.Files[fileID].Chunks, chunkID)
 	if chunk == nil {
 		return nil, utils.FieldNotFound("chunk_id")
 	}
-
 	return chunk, nil
 }

@@ -142,6 +142,10 @@ func isSubsequence(needle, window []string) bool {
 	return needleIdx == len(needle)
 }
 
+func Replace(content, oldText, newText string) string {
+	return strings.Replace(content, oldText, newText, 1)
+}
+
 func CountWords(text string) int {
 	trimmed := strings.TrimSpace(text)
 	if trimmed == "" {

@@ -3,14 +3,14 @@ package file
 import "hermes-relay/internal/cqrs/commands"
 
 const (
-	CreatedFile         = "CreatedFile"
-	UpdatedFile         = "UpdatedFile"
-	UpdatedFileContent  = "UpdatedFileContent"
-	DeletedFile         = "DeletedFile"
-	AddedCodeSections   = "AddedCodeSections"
-	UpdatedCodeSections = "UpdatedCodeSections"
-	RemovedCodeSections = "RemovedCodeSections"
-	ClearedCoding       = "ClearedCoding"
+	CreatedFile          = "CreatedFile"
+	UpdatedFile          = "UpdatedFile"
+	ReplacedFileContent  = "ReplacedFileContent"
+	DeletedFile          = "DeletedFile"
+	AddedCodeSections    = "AddedCodeSections"
+	UpdatedCodeSections  = "UpdatedCodeSections"
+	RemovedCodeSections  = "RemovedCodeSections"
+	ClearedCoding        = "ClearedCoding"
 )
 
 type CreatedFilePayload struct {
@@ -19,5 +19,5 @@ type CreatedFilePayload struct {
 }
 
 type UpdatedFilePayload = UpdateFilePayload
-type UpdatedFileContentPayload = UpdateFileContentPayload
+type ReplacedFileContentPayload = ReplaceFileContentPayload
 type DeletedFilePayload = commands.EmptyPayload

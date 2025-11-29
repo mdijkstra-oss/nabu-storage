@@ -51,12 +51,18 @@ func checkEntityHealth(proj project.Project, aggregateType, aggregateID string) 
 	switch aggregateType {
 	case "Code":
 		code, exists := proj.Codes[aggregateID]
-		if exists && !code.IsHealthy() {
+		if !exists {
+			return utils.FieldError("aggregate_id", "code not found")
+		}
+		if !code.IsHealthy() {
 			return &utils.InternalError{Message: "code is in unhealthy state, commands are blocked"}
 		}
 	case "File":
 		file, exists := proj.Files[aggregateID]
-		if exists && !file.IsHealthy() {
+		if !exists {
+			return utils.FieldError("aggregate_id", "file not found")
+		}
+		if !file.IsHealthy() {
 			return &utils.InternalError{Message: "file is in unhealthy state, commands are blocked"}
 		}
 	}
@@ -82,6 +88,14 @@ func NormalizeDomain[P any](
 	normalize func(project.Project, P, *commands.AnyMessage) (P, error),
 	handler dispatch.CommandRouter,
 ) dispatch.CommandRouter {
+	return TransformDomain(registry, normalize, handler)
+}
+
+func TransformDomain[In, Out any](
+	registry *RegistryState,
+	transform func(project.Project, In, *commands.AnyMessage) (Out, error),
+	handler dispatch.CommandRouter,
+) dispatch.CommandRouter {
 	return func(message *commands.AnyMessage, publisher dispatch.PublishFunc) (*commands.AnyMessage, error) {
 		projectID := registry.ResolveProjectID(message)
 		proj := registry.GetProject(projectID)
@@ -90,22 +104,22 @@ func NormalizeDomain[P any](
 			return nil, utils.FieldError("ProjectID", "not found")
 		}
 
-		var payload P
+		var payload In
 		if err := commands.EnsureValidPayload(message, &payload); err != nil {
 			return nil, err
 		}
 
-		normalizedPayload, err := normalize(*proj, payload, message)
+		transformedPayload, err := transform(*proj, payload, message)
 		if err != nil {
 			return nil, err
 		}
 
-		if err := utils.ToValidationError(utils.Validate.Struct(normalizedPayload)); err != nil {
+		if err := utils.ToValidationError(utils.Validate.Struct(transformedPayload)); err != nil {
 			return nil, err
 		}
 
 		updatedMessage := *message
-		updatedMessage.Payload = normalizedPayload
+		updatedMessage.Payload = transformedPayload
 
 		return handler(&updatedMessage, publisher)
 	}
