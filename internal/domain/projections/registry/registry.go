@@ -17,6 +17,7 @@ func NewRegistryState() *RegistryState {
 		state: &Registry{
 			Projects:        make(map[string]project.Project),
 			EntityToProject: make(map[string]string),
+			Events:          make(map[string][]commands.AnyMessage),
 		},
 	}
 }
@@ -55,4 +56,10 @@ func (rs *RegistryState) ResolveProjectID(message *commands.AnyMessage) string {
 		projectID = rs.GetProjectIDForEntity(message.AggregateType, message.AggregateID)
 	}
 	return projectID
+}
+
+func (rs *RegistryState) GetProjectEvents(projectID string) []commands.AnyMessage {
+	rs.mu.RLock()
+	defer rs.mu.RUnlock()
+	return rs.state.Events[projectID]
 }

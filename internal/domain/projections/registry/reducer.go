@@ -17,6 +17,7 @@ func NewReducer(projectReducer projection.Reducer[project.Project]) projection.R
 			current = &Registry{
 				Projects:        make(map[string]project.Project),
 				EntityToProject: make(map[string]string),
+				Events:          make(map[string][]commands.AnyMessage),
 			}
 		}
 
@@ -37,8 +38,10 @@ func NewReducer(projectReducer projection.Reducer[project.Project]) projection.R
 
 		if newProj == nil {
 			delete(current.Projects, projectID)
+			delete(current.Events, projectID)
 		} else {
 			current.Projects[projectID] = *newProj
+			current.Events[projectID] = append(current.Events[projectID], *event)
 		}
 
 		updateLookupTable(current.EntityToProject, event, projectID)

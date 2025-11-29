@@ -84,13 +84,17 @@ func TestRegistryReducer(t *testing.T) {
 		},
 	}
 
-	reducer_helpers.RunReducerTests(t, tests, Reducer, clearFileTimestamps)
+	reducer_helpers.RunReducerTests(t, tests, Reducer, normalizeRegistry)
 }
 
 type registryOpt func(*Registry)
 
 func registryWith(opts ...registryOpt) *Registry {
-	reg := &Registry{Projects: make(map[string]project.Project), EntityToProject: make(map[string]string)}
+	reg := &Registry{
+		Projects:        make(map[string]project.Project),
+		EntityToProject: make(map[string]string),
+		Events:          make(map[string][]commands.AnyMessage),
+	}
 	for _, opt := range opts {
 		opt(reg)
 	}
@@ -141,7 +145,7 @@ func testFile(id, projectID, name string) file.File {
 	})
 }
 
-func clearFileTimestamps(reg *Registry) *Registry {
+func normalizeRegistry(reg *Registry) *Registry {
 	if reg == nil {
 		return nil
 	}
@@ -152,6 +156,7 @@ func clearFileTimestamps(reg *Registry) *Registry {
 		}
 		reg.Projects[projID] = proj
 	}
+	reg.Events = make(map[string][]commands.AnyMessage)
 	return reg
 }
 

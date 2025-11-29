@@ -42,6 +42,7 @@ func SetupHTTPHandlers(r chi.Router, publisher *dispatch.InMemoryPublisher, regi
 			// Todo: r.Use(middleware.RequireProjectAccess)
 
 			r.Get("/", http.ProjectQuery(registryState, projectview.QueryProject))
+			r.Get("/events", http.RegistryQuery(registryState, registry.QueryProjectEvents))
 
 			r.Route("/files", func(r chi.Router) {
 				r.Get("/", http.ProjectQuery(registryState, fileview.QueryFiles))

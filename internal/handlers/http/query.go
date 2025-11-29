@@ -100,6 +100,34 @@ func ProjectQuery[Q, R any](
 	}
 }
 
+func RegistryQuery[Q, R any](
+	registryState *registry.RegistryState,
+	handler func(Q, string, *registry.RegistryState) R,
+) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		projectID := chi.URLParam(r, "projectId")
+		if projectID == "" {
+			respondWithError(w, &utils.ValidationError{Message: "projectId is required"})
+			return
+		}
+
+		proj := registryState.GetProject(projectID)
+		if proj == nil {
+			respondWithError(w, &utils.NotFoundError{Message: "project not found"})
+			return
+		}
+
+		query, err := ParseQuery[Q](r)
+		if err != nil {
+			respondWithError(w, err)
+			return
+		}
+
+		result := handler(query, projectID, registryState)
+		respondWithJSON(w, result)
+	}
+}
+
 func respondWithError(w http.ResponseWriter, err error) {
 	WriteResponse(w, typedErrorOutput(err))
 }

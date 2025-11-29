@@ -102,6 +102,14 @@ func EnsureValidPayload[T any](m *Message[T], p any) *utils.ValidationError {
 	return utils.ToValidationError(utils.Validate.Struct(p))
 }
 
+func (m Message[T]) GetID() string {
+	return m.ID
+}
+
+func (m Message[T]) GetActorType() string {
+	return string(m.Actor.ActorType)
+}
+
 func (m Message[T]) LogValue() slog.Value {
 	return slog.GroupValue(
 		slog.String("id", m.ID),
