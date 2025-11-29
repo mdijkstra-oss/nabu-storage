@@ -20,8 +20,8 @@ func TestDefaultFiles(t *testing.T) {
 			if f.Name == "" {
 				t.Error("Codebook file should have a name")
 			}
-			if !strings.Contains(f.Content, "Coding Guidelines") {
-				t.Error("Codebook content should contain 'Coding Guidelines'")
+			if !strings.Contains(f.Content, "Coding Preferences") {
+				t.Error("Codebook content should contain 'Coding Preferences'")
 			}
 		}
 	}

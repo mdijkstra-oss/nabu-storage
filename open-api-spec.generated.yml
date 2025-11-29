@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: hermes-relay-api
-  version: 1.5.0
+  version: 1.6.0
   description: |
     CQRS-based qualitative data analysis API for coding and analyzing research data.
 
@@ -61,6 +61,17 @@ paths:
                   payload:
                     name: Healthcare Patient Experience Study
                     description: Qualitative analysis of patient interviews regarding hospital experiences
+              createProjectWithPhase:
+                summary: Create project with specific phase
+                value:
+                  type: Command
+                  action: CreateProject
+                  aggregate_type: Project
+                  aggregate_id: ""
+                  payload:
+                    name: UX Research Q1 2025
+                    description: User experience research for new features
+                    phase: code
               updateProject:
                 summary: Update project details
                 value:
@@ -71,6 +82,7 @@ paths:
                   payload:
                     name: Healthcare Patient Experience Study - Updated
                     description: Updated qualitative analysis of patient interviews
+                    phase: validate
               createCode:
                 summary: Create a new analytical code
                 value:
@@ -104,7 +116,7 @@ paths:
                     color: "orange"
                     definition: "Updated to focus specifically on pre-procedure anxiety, excluding post-treatment concerns"
               createFile:
-                summary: Create a source file
+                summary: Create a corpus file
                 value:
                   type: Command
                   action: CreateFile
@@ -115,6 +127,51 @@ paths:
                     name: "Interview with Patient P07"
                     description: "Pre-operative patient interview discussing anxiety and information needs"
                     content: "I was really worried about the surgery. The doctor explained everything but I still felt nervous waiting for the results."
+              createMemoFile:
+                summary: Create a memo file (editable)
+                value:
+                  type: Command
+                  action: CreateFile
+                  aggregate_type: File
+                  aggregate_id: ""
+                  payload:
+                    project_id: "550e8400-e29b-41d4-a716-446655440000"
+                    name: "Analysis Notes - Week 1"
+                    description: "Initial observations and emerging themes"
+                    content: "Initial analysis reveals strong anxiety patterns among older patients."
+                    type: memo
+              createCodebook:
+                summary: Create a codebook file
+                value:
+                  type: Command
+                  action: CreateFile
+                  aggregate_type: File
+                  aggregate_id: ""
+                  payload:
+                    project_id: "550e8400-e29b-41d4-a716-446655440000"
+                    name: "Project Codebook"
+                    description: "Coding guidelines and definitions"
+                    content: "# Coding Guidelines\n\n## Emotions\n- anxiety: expressions of worry..."
+                    type: codebook
+              replaceFileContent:
+                summary: Replace file content (unlocked files only)
+                value:
+                  type: Command
+                  action: ReplaceFileContent
+                  aggregate_type: File
+                  aggregate_id: "770e8400-e29b-41d4-a716-446655440002"
+                  payload:
+                    content: "Updated memo content with new observations and findings."
+              editFileContent:
+                summary: Search and replace text in file
+                value:
+                  type: Command
+                  action: EditFileContent
+                  aggregate_type: File
+                  aggregate_id: "770e8400-e29b-41d4-a716-446655440002"
+                  payload:
+                    old_text: "Initial analysis reveals"
+                    new_text: "Comprehensive analysis confirms"
               addCodeSections:
                 summary: Add code sections to a file chunk
                 value:
@@ -205,6 +262,7 @@ paths:
                     payload:
                       name: Healthcare Patient Experience Study
                       description: Study analyzing patient experiences in hospital settings
+                      phase: explore
                 batchSuccess:
                   summary: Batch command success
                   value:
@@ -250,6 +308,12 @@ paths:
                             slug: "theme:accessibility"
                             color: "blue"
                             definition: "Comments about ease of access for users with disabilities"
+        '201':
+          description: Entity created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DomainEvent'
         '202':
           description: Command(s) accepted for async processing
         '207':
@@ -360,6 +424,24 @@ paths:
                     message: "validation failed"
                     fields:
                       slug: "already in use"
+                duplicateCodebook:
+                  summary: Duplicate codebook error
+                  value:
+                    message: "validation failed"
+                    fields:
+                      type: "project already has a codebook"
+                fileLocked:
+                  summary: File is locked error
+                  value:
+                    message: "validation failed"
+                    fields:
+                      file: "file is locked"
+                textNotFound:
+                  summary: Text not found in file
+                  value:
+                    message: "validation failed"
+                    fields:
+                      old_text: "not found in file"
                 arrayValidationSingle:
                   summary: Array item validation error (single failure)
                   value:
@@ -474,6 +556,7 @@ paths:
                   - id: "550e8400-e29b-41d4-a716-446655440000"
                     name: "Healthcare Patient Experience Study"
                     description: "Qualitative analysis of patient interviews"
+                    phase: explore
                     codes:
                       "660e8400-e29b-41d4-a716-446655440001":
                         id: "660e8400-e29b-41d4-a716-446655440001"
@@ -488,11 +571,14 @@ paths:
                         project_id: "550e8400-e29b-41d4-a716-446655440000"
                         name: "Interview Transcript - Patient P07"
                         title: "Patient P07 Pre-operative Interview"
+                        type: corpus
+                        locked: true
                         healthy: true
                     healthy: true
                   - id: "550e8400-e29b-41d4-a716-446655440010"
                     name: "UX Research Q1 2025"
                     description: "User experience research for new features"
+                    phase: code
                     codes: {}
                     files: {}
                     healthy: true
@@ -521,6 +607,7 @@ paths:
                 id: "550e8400-e29b-41d4-a716-446655440000"
                 name: "Policy Impact Assessment"
                 description: "Analysis of energy transition policy documents"
+                phase: analyze
                 codes:
                   "660e8400-e29b-41d4-a716-446655440001":
                     id: "660e8400-e29b-41d4-a716-446655440001"
@@ -535,8 +622,95 @@ paths:
                     project_id: "550e8400-e29b-41d4-a716-446655440000"
                     name: "Policy Document - Climate Action Plan 2025"
                     title: "National Climate Action Plan"
+                    type: corpus
+                    locked: true
                     healthy: true
                 healthy: true
+        '404':
+          description: Project not found
+
+  /queries/projects/{projectId}/events:
+    get:
+      summary: Get project event history with cursor pagination
+      description: |
+        Retrieve chronological project events with cursor-based pagination.
+        Supports filtering by actor type (human, llm, system).
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: since_id
+          in: query
+          description: Return events after this event ID (cursor)
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          description: Maximum events to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: actor_type
+          in: query
+          description: Filter by actor type
+          schema:
+            type: string
+            enum: [human, llm, system]
+      responses:
+        '200':
+          description: Paginated list of events
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventCursorResult'
+              examples:
+                withEvents:
+                  summary: Events with more available
+                  value:
+                    items:
+                      - id: "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+                        type: DomainEvent
+                        action: CreatedProject
+                        aggregate_type: Project
+                        aggregate_id: "550e8400-e29b-41d4-a716-446655440000"
+                        actor:
+                          user_id: "user-123"
+                          actor_type: human
+                        timestamp: "2025-01-15T10:30:00Z"
+                        version: 1
+                        payload:
+                          name: Healthcare Study
+                          description: Patient experience research
+                          phase: explore
+                      - id: "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e"
+                        type: DomainEvent
+                        action: CreatedCode
+                        aggregate_type: Code
+                        aggregate_id: "660e8400-e29b-41d4-a716-446655440001"
+                        actor:
+                          user_id: "user-123"
+                          actor_type: human
+                        timestamp: "2025-01-15T10:31:00Z"
+                        version: 1
+                        payload:
+                          project_id: "550e8400-e29b-41d4-a716-446655440000"
+                          slug: "emotion:anxiety"
+                          color: "red"
+                          definition: "Patient anxiety expressions"
+                    next_cursor: "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e"
+                    has_more: true
+                empty:
+                  summary: No more events
+                  value:
+                    items: []
+                    next_cursor: "last-known-id"
+                    has_more: false
         '404':
           description: Project not found
 
@@ -568,8 +742,15 @@ paths:
                   title: "Employee Interview - Remote Work Experience"
                   summary: "Discussion about challenges and benefits of remote work during organizational transition"
                   time: "2025-01-10T14:30:00Z"
-                  type: "source"
+                  type: corpus
                   locked: true
+                  healthy: true
+                - id: "880e8400-e29b-41d4-a716-446655440003"
+                  project_id: "550e8400-e29b-41d4-a716-446655440000"
+                  name: "Analysis Notes"
+                  description: "Ongoing analysis observations"
+                  type: memo
+                  locked: false
                   healthy: true
 
   /queries/projects/{projectId}/files/{id}:
@@ -604,7 +785,7 @@ paths:
                 title: "Employee Interview - Remote Work Experience"
                 summary: "Discussion about challenges and benefits of remote work"
                 time: "2025-01-10T14:30:00Z"
-                type: "source"
+                type: corpus
                 locked: true
                 healthy: true
         '404':
@@ -704,6 +885,31 @@ paths:
                     next: null
         '404':
           description: File or chunk not found
+
+  /queries/projects/{projectId}/codebook:
+    get:
+      summary: Get project codebook content
+      description: |
+        Returns the content of the project's codebook file.
+        Each project can have at most one codebook file.
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Codebook content
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CodebookContent'
+              example:
+                content: "# Coding Guidelines\n\n## Emotions\n- anxiety: expressions of worry...\n\n## Themes\n- communication: patient-provider interactions..."
+        '404':
+          description: No codebook found for this project
 
   /queries/projects/{projectId}/codes:
     get:
@@ -1019,6 +1225,34 @@ components:
             "1": "minimum 3 words required: \"xy\""
             "3": "text not found in chunk: \"missing text\""
 
+    EventCursorResult:
+      type: object
+      required:
+        - items
+        - next_cursor
+        - has_more
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/DomainEvent'
+          description: List of events in chronological order
+        next_cursor:
+          type: string
+          description: Cursor for fetching next page (use as since_id parameter)
+        has_more:
+          type: boolean
+          description: Whether more events exist after this page
+
+    CodebookContent:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          description: Full codebook content as text
+
     Project:
       type: object
       required:
@@ -1038,6 +1272,15 @@ components:
         description:
           type: string
           maxLength: 2000
+        phase:
+          type: string
+          enum: [explore, code, validate, analyze]
+          description: |
+            Project analysis phase:
+            - explore: Initial data exploration
+            - code: Active coding phase
+            - validate: Code validation and refinement
+            - analyze: Final analysis and interpretation
         codes:
           type: object
           additionalProperties:
@@ -1211,19 +1454,19 @@ components:
           description: Document timestamp (must not be in future)
         type:
           type: string
-          enum: [codebook, source, memo, context]
+          enum: [corpus, codebook, memo, context]
           description: |
             File type:
-            - codebook: Formal code definitions
-            - source: Documents being coded (immutable)
-            - memo: Analytical notes
-            - context: LLM working memory
+            - corpus: Documents being coded (immutable, locked)
+            - codebook: Coding guidelines (editable, one per project)
+            - memo: Analytical notes (editable)
+            - context: LLM working memory (editable)
         original:
           type: string
           description: Reference to original file (e.g., PDF path)
         locked:
           type: boolean
-          description: Whether file is read-only
+          description: Whether file is read-only (corpus files are locked)
 
     File:
       allOf:
@@ -1324,12 +1567,15 @@ components:
           type: string
           maxLength: 2000
           description: Project description (whitespace trimmed)
+        phase:
+          type: string
+          enum: [explore, code, validate, analyze]
+          description: Initial project phase (defaults to explore if not specified)
 
     UpdateProjectPayload:
       type: object
       required:
         - name
-        - description
       properties:
         name:
           type: string
@@ -1340,6 +1586,10 @@ components:
           type: string
           maxLength: 2000
           description: Project description (whitespace trimmed)
+        phase:
+          type: string
+          enum: [explore, code, validate, analyze]
+          description: Project analysis phase
 
     EmptyPayload:
       type: object
@@ -1454,6 +1704,15 @@ components:
         content:
           type: string
           description: File content (optional, can be empty)
+        type:
+          type: string
+          enum: [corpus, codebook, memo, context]
+          description: |
+            File type (defaults to corpus if not specified):
+            - corpus: Documents being coded (locked, chunked)
+            - codebook: Coding guidelines (one per project)
+            - memo: Analytical notes
+            - context: LLM working memory
 
     UpdateFilePayload:
       type: object
@@ -1469,6 +1728,28 @@ components:
           type: string
           maxLength: 2000
           description: File description (whitespace trimmed)
+
+    ReplaceFileContentPayload:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          description: New file content (replaces entire file content)
+
+    EditFileContentPayload:
+      type: object
+      required:
+        - old_text
+        - new_text
+      properties:
+        old_text:
+          type: string
+          description: Text to find in file (fuzzy matched)
+        new_text:
+          type: string
+          description: Replacement text
 
     AddCodeSectionsPayload:
       type: object
@@ -1569,6 +1850,7 @@ x-command-reference:
       payload: CreateProjectPayload
       aggregate_id: empty string for create
       event: CreatedProject
+      note: Phase defaults to "explore" if not specified
       example: |
         {
           "type": "Command",
@@ -1577,12 +1859,13 @@ x-command-reference:
           "aggregate_id": "",
           "payload": {
             "name": "Market Research Q1 2025",
-            "description": "Quarterly market analysis and consumer sentiment tracking"
+            "description": "Quarterly market analysis and consumer sentiment tracking",
+            "phase": "explore"
           }
         }
 
     UpdateProject:
-      description: Update project name and description
+      description: Update project name, description, and/or phase
       payload: UpdateProjectPayload
       aggregate_id: project UUID
       event: UpdatedProject
@@ -1594,7 +1877,8 @@ x-command-reference:
           "aggregate_id": "550e8400-e29b-41d4-a716-446655440000",
           "payload": {
             "name": "Market Research Q1 2025 - Updated",
-            "description": "Updated quarterly market analysis"
+            "description": "Updated quarterly market analysis",
+            "phase": "code"
           }
         }
 
@@ -1707,13 +1991,15 @@ x-command-reference:
 
   File:
     CreateFile:
-      description: Create a new file (automatically chunked, defaults to type=source, locked=true)
+      description: Create a new file with optional type specification
       payload: CreateFilePayload
       aggregate_id: empty string for create
       event: CreatedFile
       note: |
-        File type and locked status are set automatically to "source" and true.
-        Content is automatically chunked into manageable segments.
+        - Type defaults to "corpus" if not specified
+        - Corpus files are automatically chunked and locked
+        - Codebook, memo, and context files are single-chunk and editable
+        - Only one codebook file allowed per project
       example: |
         {
           "type": "Command",
@@ -1724,7 +2010,8 @@ x-command-reference:
             "project_id": "550e8400-e29b-41d4-a716-446655440000",
             "name": "Focus Group Session 3",
             "description": "Consumer feedback on new product features",
-            "content": "Participants discussed their experiences with the new product..."
+            "content": "Participants discussed their experiences with the new product...",
+            "type": "corpus"
           }
         }
 
@@ -1742,6 +2029,47 @@ x-command-reference:
           "payload": {
             "name": "Updated File Name",
             "description": "Updated file description"
+          }
+        }
+
+    ReplaceFileContent:
+      description: Replace entire file content (unlocked files only)
+      payload: ReplaceFileContentPayload
+      aggregate_id: file UUID
+      event: ReplacedFileContent
+      validation:
+        - File must not be locked (corpus files are locked)
+      note: Only works on memo, codebook, and context files
+      example: |
+        {
+          "type": "Command",
+          "action": "ReplaceFileContent",
+          "aggregate_type": "File",
+          "aggregate_id": "770e8400-e29b-41d4-a716-446655440002",
+          "payload": {
+            "content": "New complete file content here..."
+          }
+        }
+
+    EditFileContent:
+      description: Search and replace text in file (fuzzy matching)
+      payload: EditFileContentPayload
+      aggregate_id: file UUID
+      event: ReplacedFileContent
+      validation:
+        - File must not be locked
+        - File must have content
+        - old_text must be found in file (fuzzy matched)
+      note: Uses fuzzy matching to find text, then replaces with exact new_text
+      example: |
+        {
+          "type": "Command",
+          "action": "EditFileContent",
+          "aggregate_type": "File",
+          "aggregate_id": "770e8400-e29b-41d4-a716-446655440002",
+          "payload": {
+            "old_text": "initial observations",
+            "new_text": "comprehensive findings"
           }
         }
 
