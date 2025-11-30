@@ -10,14 +10,6 @@
 
 ---
 
-## Phase
-
-- [ ] **Exploratory** — Building/refining framework, flag ambiguities freely
-- [ ] **Systematic** — Framework stable, apply consistently
-- [ ] **Validation** — Checking consistency, filling gaps
-
----
-
 ## Coding Preferences
 
 ### Density
@@ -41,6 +33,16 @@ What's the typical unit of analysis?
 - [ ] **Sentence** — Complete thoughts
 - [ ] **Paragraph** — Full arguments, extended ideas
 - [ ] **Mixed** — Varies by code type
+
+---
+
+## Code Relationships
+
+Codes that commonly co-occur or need disambiguation.
+
+| Code A | Code B | Relationship |
+|--------|--------|--------------|
+| | | |
 
 ---
 
@@ -82,11 +84,3 @@ Anything about the source material that affects coding.
 
 **Known anomalies:**  
 [Sections to skip, formatting issues, etc.]
-
----
-
-## Revision History
-
-| Date | Change | Reason |
-|------|--------|--------|
-| | | |

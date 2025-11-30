@@ -42,11 +42,15 @@ func QueryCodebook(query projection.EmptyQuery, proj project.Project) *CodebookC
 	return &CodebookContent{Content: codebook.Chunks[0].Content}
 }
 
-func GetCodebook(proj project.Project) *file.File {
+func FindFileByType(proj project.Project, fileType file.FileType) *file.File {
 	for _, f := range proj.Files {
-		if f.Type == file.FileTypeCodebook {
+		if f.Type == fileType {
 			return &f
 		}
 	}
 	return nil
+}
+
+func GetCodebook(proj project.Project) *file.File {
+	return FindFileByType(proj, file.FileTypeCodebook)
 }

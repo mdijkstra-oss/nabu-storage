@@ -35,7 +35,7 @@ const (
 	FileTypeCorpus   FileType = "corpus"   // Documents being coded (immutable)
 	FileTypeCodebook FileType = "codebook" // Coding guidelines (editable)
 	FileTypeMemo     FileType = "memo"     // Analytical notes (editable)
-	FileTypeContext  FileType = "context"  // LLM working memory (editable)
+	FileTypeLLMMemo  FileType = "llm-memo" // LLM analytical notes (editable)
 )
 
 func (t FileType) IsLocked() bool {
@@ -44,6 +44,10 @@ func (t FileType) IsLocked() bool {
 
 func (t FileType) IsChunked() bool {
 	return t == FileTypeCorpus
+}
+
+func (t FileType) IsSingleton() bool {
+	return t == FileTypeCodebook || t == FileTypeLLMMemo
 }
 
 type Confidence string
@@ -61,7 +65,7 @@ type FileData struct {
 	Title       string    `json:"title" validate:"omitempty,min=1,max=200"` // pretty name perhaps from context
 	Summary     string    `json:"summary" validate:"max=1500"`              // todo: halfpage
 	Time        time.Time `json:"time" validate:"omitempty,lte"`
-	Type        FileType  `json:"type" validate:"omitempty,oneof=corpus codebook memo context"`
+	Type        FileType  `json:"type" validate:"omitempty,oneof=corpus codebook memo llm-memo"`
 	Original    string    `json:"original"` // original file (eg pdf converted into File format)
 	Locked      bool      `json:"locked"`   // whether file is read-only
 }

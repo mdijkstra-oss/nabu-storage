@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: hermes-relay-api
-  version: 1.6.0
+  version: 1.7.0
   description: |
     CQRS-based qualitative data analysis API for coding and analyzing research data.
 
@@ -186,6 +186,7 @@ paths:
                         code_slug: "emotion:anxiety"
                         text: "I was really worried about the surgery"
                         reason: "Explicit expression of pre-procedure worry"
+                        confidence: "high"
               updateCodeSections:
                 summary: Update existing code sections
                 value:
@@ -198,6 +199,7 @@ paths:
                     sections:
                       - id: "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
                         reason: "Updated reasoning for this code application"
+                        confidence: "medium"
               removeCodeSections:
                 summary: Remove code sections from a chunk
                 value:
@@ -383,11 +385,13 @@ paths:
                             code_slug: "emotion:anxiety"
                             text: "I was really worried about the surgery"
                             reason: "Explicit expression of pre-procedure worry"
+                            confidence: "high"
                           - id: "e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b"
                             code_id: "770e8400-e29b-41d4-a716-446655440002"
                             code_slug: "topic:patient-experience"
                             text: "The doctor explained everything clearly"
                             reason: "Positive patient-provider communication"
+                            confidence: "medium"
                     failures:
                       "1": "minimum 3 words required: \"short\""
         '400':
@@ -870,6 +874,7 @@ paths:
                           code_id: "660e8400-e29b-41d4-a716-446655440001"
                           text: "feeling anxious about the upcoming procedure"
                           reason: "Direct expression of pre-procedure anxiety"
+                          confidence: "high"
                     chunk_id: 1
                     total_chunks: 5
                     next: 2
@@ -1454,13 +1459,13 @@ components:
           description: Document timestamp (must not be in future)
         type:
           type: string
-          enum: [corpus, codebook, memo, context]
+          enum: [corpus, codebook, memo, llm-memo]
           description: |
             File type:
             - corpus: Documents being coded (immutable, locked)
             - codebook: Coding guidelines (editable, one per project)
             - memo: Analytical notes (editable)
-            - context: LLM working memory (editable)
+            - llm-memo: LLM analytical notes (editable)
         original:
           type: string
           description: Reference to original file (e.g., PDF path)
@@ -1506,6 +1511,7 @@ components:
         - code_slug
         - code_id
         - text
+        - confidence
       properties:
         id:
           type: string
@@ -1528,6 +1534,14 @@ components:
           type: string
           maxLength: 1500
           description: Reasoning for this code application
+        confidence:
+          type: string
+          enum: [high, medium, low]
+          description: |
+            Confidence level for this code application:
+            - high: Strong confidence in code application
+            - medium: Moderate confidence, may need review
+            - low: Low confidence, requires validation
         last_actor:
           $ref: '#/components/schemas/Actor'
           description: Actor who last modified this coded section
@@ -1706,13 +1720,13 @@ components:
           description: File content (optional, can be empty)
         type:
           type: string
-          enum: [corpus, codebook, memo, context]
+          enum: [corpus, codebook, memo, llm-memo]
           description: |
             File type (defaults to corpus if not specified):
             - corpus: Documents being coded (locked, chunked)
             - codebook: Coding guidelines (one per project)
             - memo: Analytical notes
-            - context: LLM working memory
+            - llm-memo: LLM analytical notes
 
     UpdateFilePayload:
       type: object
@@ -1772,6 +1786,7 @@ components:
         - code_slug
         - code_id
         - text
+        - confidence
       properties:
         code_slug:
           type: string
@@ -1786,6 +1801,14 @@ components:
         reason:
           type: string
           maxLength: 1500
+        confidence:
+          type: string
+          enum: [high, medium, low]
+          description: |
+            Confidence level for this code application:
+            - high: Strong confidence in code application
+            - medium: Moderate confidence, may need review
+            - low: Low confidence, requires validation
 
     UpdateCodeSectionsPayload:
       type: object
@@ -1818,6 +1841,10 @@ components:
         reason:
           type: string
           maxLength: 1500
+        confidence:
+          type: string
+          enum: [high, medium, low]
+          description: Optional confidence level update
 
     RemoveCodeSectionsPayload:
       type: object
@@ -1998,7 +2025,7 @@ x-command-reference:
       note: |
         - Type defaults to "corpus" if not specified
         - Corpus files are automatically chunked and locked
-        - Codebook, memo, and context files are single-chunk and editable
+        - Codebook, memo, and llm-memo files are single-chunk and editable
         - Only one codebook file allowed per project
       example: |
         {
@@ -2039,7 +2066,7 @@ x-command-reference:
       event: ReplacedFileContent
       validation:
         - File must not be locked (corpus files are locked)
-      note: Only works on memo, codebook, and context files
+      note: Only works on memo, codebook, and llm-memo files
       example: |
         {
           "type": "Command",
@@ -2096,6 +2123,7 @@ x-command-reference:
       validation:
         - Text must exist in the chunk (fuzzy matched, normalized)
         - Text must contain at least 3 words
+        - Confidence is required (high, medium, or low)
         - Array validation errors use format sections[index]
       partial_success: |
         Supports partial success. If some sections pass validation and others fail:
@@ -2116,13 +2144,22 @@ x-command-reference:
                 "code_id": "660e8400-e29b-41d4-a716-446655440001",
                 "code_slug": "usability:confusion",
                 "text": "I didn't understand how to submit the form",
-                "reason": "User expresses confusion about a core interface function"
+                "reason": "User expresses confusion about a core interface function",
+                "confidence": "high"
               },
               {
                 "code_id": "770e8400-e29b-41d4-a716-446655440002",
                 "code_slug": "emotion:frustration",
                 "text": "This is so frustrating",
-                "reason": "Direct emotional expression of frustration"
+                "reason": "Direct emotional expression of frustration",
+                "confidence": "medium"
+              },
+              {
+                "code_id": "880e8400-e29b-41d4-a716-446655440003",
+                "code_slug": "theme:interface-design",
+                "text": "The button was hard to find",
+                "reason": "Possible indication of interface design issue, needs review",
+                "confidence": "low"
               }
             ]
           }
@@ -2136,6 +2173,7 @@ x-command-reference:
       validation:
         - If text is provided, it must exist in the chunk (fuzzy matched, normalized)
         - If text is provided, it must contain at least 3 words
+        - Confidence is optional (high, medium, or low)
         - Array validation errors use format sections[index]
       partial_success: |
         Supports partial success. If some sections pass validation and others fail:
@@ -2143,7 +2181,7 @@ x-command-reference:
         - Successful sections are processed and included in the event
         - Failed sections are listed in the failures map with original array index
         If ALL sections fail validation, returns HTTP 400 with validation error.
-      note: Only include fields to update (text and/or reason)
+      note: Only include fields to update (text, reason, and/or confidence)
       example: |
         {
           "type": "Command",
@@ -2155,12 +2193,18 @@ x-command-reference:
             "sections": [
               {
                 "id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
-                "reason": "Updated reasoning to be more specific about context"
+                "reason": "Updated reasoning to be more specific about context",
+                "confidence": "high"
               },
               {
                 "id": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
                 "text": "Updated text excerpt",
-                "reason": "Updated reasoning"
+                "reason": "Updated reasoning",
+                "confidence": "medium"
+              },
+              {
+                "id": "c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f",
+                "confidence": "low"
               }
             ]
           }

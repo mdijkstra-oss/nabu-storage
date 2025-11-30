@@ -10,7 +10,7 @@ func TestFileType_IsLocked(t *testing.T) {
 		FileTypeCorpus:   true,
 		FileTypeCodebook: false,
 		FileTypeMemo:     false,
-		FileTypeContext:  false,
+		FileTypeLLMMemo:  false,
 	}, FileType.IsLocked)
 }
 
@@ -19,6 +19,15 @@ func TestFileType_IsChunked(t *testing.T) {
 		FileTypeCorpus:   true,
 		FileTypeCodebook: false,
 		FileTypeMemo:     false,
-		FileTypeContext:  false,
+		FileTypeLLMMemo:  false,
 	}, FileType.IsChunked)
+}
+
+func TestFileType_IsSingleton(t *testing.T) {
+	th.RunMapTests(t, map[FileType]bool{
+		FileTypeCorpus:   false,
+		FileTypeCodebook: true,
+		FileTypeMemo:     false,
+		FileTypeLLMMemo:  true,
+	}, FileType.IsSingleton)
 }

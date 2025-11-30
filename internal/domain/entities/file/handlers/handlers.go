@@ -19,7 +19,7 @@ func NewRouter(reg *registry.RegistryState) dispatch.CommandRouter {
 			dispatch.LimitOnAction(file.CreateFile,
 				registry.ValidateDomain[file.CreateFilePayload](
 					reg,
-					validateNoDuplicateCodebook,
+					validateNoDuplicateSingleton,
 					dispatch.ToCreateEntityEvent[file.CreateFilePayload, file.CreatedFilePayload](file.CreateFile, file.CreatedFile, createFileFromPayload),
 				),
 			),
@@ -246,12 +246,12 @@ func toUpdatedSectionsPayload(payload *file.UpdateCodeSectionsPayload) file.Upda
 	}
 }
 
-func validateNoDuplicateCodebook(proj project.Project, payload file.CreateFilePayload, msg *commands.AnyMessage) error {
-	if payload.Type != file.FileTypeCodebook {
+func validateNoDuplicateSingleton(proj project.Project, payload file.CreateFilePayload, msg *commands.AnyMessage) error {
+	if !payload.Type.IsSingleton() {
 		return nil
 	}
-	if fileview.GetCodebook(proj) != nil {
-		return utils.FieldError("type", "project already has a codebook")
+	if fileview.FindFileByType(proj, payload.Type) != nil {
+		return utils.FieldError("type", "project already has a "+string(payload.Type))
 	}
 	return nil
 }

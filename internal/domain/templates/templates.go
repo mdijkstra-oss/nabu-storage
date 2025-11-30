@@ -8,6 +8,9 @@ import (
 //go:embed codebook.md
 var codebookContent string
 
+//go:embed llm-memo.md
+var memoContent string
+
 type DefaultFile struct {
 	Name    string
 	Type    file.FileType
@@ -20,6 +23,11 @@ func DefaultFiles() []DefaultFile {
 			Name:    "Codebook",
 			Type:    file.FileTypeCodebook,
 			Content: codebookContent,
+		},
+		{
+			Name:    "AI Analytical Memo",
+			Type:    file.FileTypeLLMMemo,
+			Content: memoContent,
 		},
 	}
 }

@@ -21,7 +21,7 @@ type CreateFilePayload struct {
 	Name        string   `json:"name" validate:"required,max=200" normalize:"trim"`
 	Description string   `json:"description" validate:"max=2000" normalize:"trim"`
 	Content     string   `json:"content"`
-	Type        FileType `json:"type" validate:"omitempty,oneof=corpus codebook memo context"`
+	Type        FileType `json:"type" validate:"omitempty,oneof=corpus codebook memo llm-memo"`
 }
 
 type UpdateFilePayload struct {
