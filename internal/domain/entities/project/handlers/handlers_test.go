@@ -104,6 +104,28 @@ func TestProjectRouter(t *testing.T) {
 			ExpectErr:   "",
 			ExpectEvent: nil,
 		},
+		{
+			Name: "ChangePhase with valid phase",
+			Input: commands.ToAny(commands.NewCommand[project.ChangePhasePayload, any](project.ChangePhase, project.ChangePhasePayload{
+				Phase: project.PhaseCode,
+			}, project.EntityName, testProjectID, domain_helpers.TestActor(), nil)),
+			ExpectErr: "",
+			ExpectEvent: commands.ToAny(commands.NewDomainEvent[project.ChangedPhasePayload, any](project.ChangedPhase, project.ChangedPhasePayload{
+				Phase: project.PhaseCode,
+			}, project.EntityName, testProjectID, domain_helpers.TestActor(), nil)),
+		},
+		{
+			Name: "ChangePhase with missing phase fails",
+			Input: commands.ToAny(commands.NewCommand[project.ChangePhasePayload, any](project.ChangePhase, project.ChangePhasePayload{}, project.EntityName, testProjectID, domain_helpers.TestActor(), nil)),
+			ExpectErr: "validation failed: Phase is required",
+		},
+		{
+			Name: "ChangePhase with invalid phase fails",
+			Input: commands.ToAny(commands.NewCommand[project.ChangePhasePayload, any](project.ChangePhase, project.ChangePhasePayload{
+				Phase: "invalid",
+			}, project.EntityName, testProjectID, domain_helpers.TestActor(), nil)),
+			ExpectErr: "validation failed: Phase failed validation (oneof)",
+		},
 	}
 
 	rh.RunRouterTests(t, cmds, tests, NewRouter)

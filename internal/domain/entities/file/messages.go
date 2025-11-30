@@ -10,6 +10,8 @@ type AddSectionOp struct {
 
 type UpdateSectionOp struct {
 	ID         string      `json:"id" validate:"required,valid_id"`
+	CodeSlug   string      `json:"code_slug,omitempty" validate:"omitempty,code_slug"`
+	CodeID     string      `json:"code_id,omitempty" validate:"omitempty,valid_id"`
 	Text       string      `json:"text,omitempty" validate:"omitempty,min=1,max=1500"`
 	Reason     string      `json:"reason,omitempty" validate:"max=1500"`
 	Confidence *Confidence `json:"confidence,omitempty" validate:"omitempty,oneof=high medium low"`

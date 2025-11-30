@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/cqrs/dispatch"
+	"hermes-relay/internal/domain/entities/code"
 	"hermes-relay/internal/domain/entities/file"
 	"hermes-relay/internal/domain/entities/project"
 	fileview "hermes-relay/internal/domain/projections/file-entity"
@@ -219,6 +220,14 @@ func normalizeUpdateSections(proj project.Project, payload file.UpdateCodeSectio
 			normalizedOp.Text = normalizedText
 		}
 
+		slug, id, err := resolveCode(proj.Codes, op.CodeSlug, op.CodeID)
+		if err != nil {
+			failures[i] = err.Error()
+			continue
+		}
+		normalizedOp.CodeSlug = slug
+		normalizedOp.CodeID = id
+
 		normalizedSections = append(normalizedSections, normalizedOp)
 	}
 
@@ -236,6 +245,35 @@ func normalizeUpdateSections(proj project.Project, payload file.UpdateCodeSectio
 		Sections: normalizedSections,
 		Failures: resultFailures,
 	}, nil
+}
+
+func resolveCode(codes map[string]code.Code, slug, id string) (string, string, error) {
+	if slug == "" && id == "" {
+		return "", "", nil
+	}
+
+	if slug != "" {
+		for codeID, c := range codes {
+			if c.Slug == slug {
+				return slug, codeID, nil
+			}
+		}
+	}
+
+	if id != "" {
+		c, exists := codes[id]
+		if exists {
+			return c.Slug, id, nil
+		}
+	}
+
+	if slug != "" && id != "" {
+		return "", "", fmt.Errorf("code not found: %s / %s", slug, id)
+	}
+	if slug != "" {
+		return "", "", fmt.Errorf("code not found: %s", slug)
+	}
+	return "", "", fmt.Errorf("code not found: %s", id)
 }
 
 func toUpdatedSectionsPayload(payload *file.UpdateCodeSectionsPayload) file.UpdatedCodeSectionsPayload {

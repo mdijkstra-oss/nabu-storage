@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: hermes-relay-api
-  version: 1.7.0
+  version: 1.8.0
   description: |
     CQRS-based qualitative data analysis API for coding and analyzing research data.
 
@@ -83,6 +83,15 @@ paths:
                     name: Healthcare Patient Experience Study - Updated
                     description: Updated qualitative analysis of patient interviews
                     phase: validate
+              changePhase:
+                summary: Change project phase only
+                value:
+                  type: Command
+                  action: ChangePhase
+                  aggregate_type: Project
+                  aggregate_id: "550e8400-e29b-41d4-a716-446655440000"
+                  payload:
+                    phase: code
               createCode:
                 summary: Create a new analytical code
                 value:
@@ -1605,6 +1614,21 @@ components:
           enum: [explore, code, validate, analyze]
           description: Project analysis phase
 
+    ChangePhasePayload:
+      type: object
+      required:
+        - phase
+      properties:
+        phase:
+          type: string
+          enum: [explore, code, validate, analyze]
+          description: |
+            Project analysis phase:
+            - explore: Initial data exploration
+            - code: Active coding phase
+            - validate: Code validation and refinement
+            - analyze: Final analysis and interpretation
+
     EmptyPayload:
       type: object
       description: Empty payload object (no fields)
@@ -1834,6 +1858,20 @@ components:
           type: string
           format: uuid
           description: ID of the section to update
+        code_slug:
+          type: string
+          pattern: '^[a-z]+(-[a-z]+)*:[a-z]+(-[a-z]+)*$'
+          description: |
+            New code slug to reassign section to. The code_id will be resolved
+            from the project's codes. If both slug and id are provided, slug
+            takes priority if valid; otherwise id is used.
+        code_id:
+          type: string
+          format: uuid
+          description: |
+            New code ID to reassign section to. The code_slug will be resolved
+            from the project's codes. If both slug and id are provided, slug
+            takes priority if valid; otherwise id is used.
         text:
           type: string
           minLength: 1
@@ -1922,6 +1960,25 @@ x-command-reference:
           "aggregate_type": "Project",
           "aggregate_id": "550e8400-e29b-41d4-a716-446655440000",
           "payload": {}
+        }
+
+    ChangePhase:
+      description: Change project phase without modifying other fields
+      payload: ChangePhasePayload
+      aggregate_id: project UUID
+      event: ChangedPhase
+      validation:
+        - Phase is required
+        - Phase must be one of: explore, code, validate, analyze
+      example: |
+        {
+          "type": "Command",
+          "action": "ChangePhase",
+          "aggregate_type": "Project",
+          "aggregate_id": "550e8400-e29b-41d4-a716-446655440000",
+          "payload": {
+            "phase": "code"
+          }
         }
 
   Code:
@@ -2166,7 +2223,7 @@ x-command-reference:
         }
 
     UpdateCodeSections:
-      description: Update existing code sections in a file chunk
+      description: Update existing code sections in a file chunk, including reassigning to different codes
       payload: UpdateCodeSectionsPayload
       aggregate_id: file UUID
       event: UpdatedCodeSections
@@ -2174,6 +2231,8 @@ x-command-reference:
         - If text is provided, it must exist in the chunk (fuzzy matched, normalized)
         - If text is provided, it must contain at least 3 words
         - Confidence is optional (high, medium, or low)
+        - If code_slug or code_id is provided, at least one must match a code in the project
+        - If both are provided, slug is tried first; if invalid, id is used as fallback
         - Array validation errors use format sections[index]
       partial_success: |
         Supports partial success. If some sections pass validation and others fail:
@@ -2181,7 +2240,10 @@ x-command-reference:
         - Successful sections are processed and included in the event
         - Failed sections are listed in the failures map with original array index
         If ALL sections fail validation, returns HTTP 400 with validation error.
-      note: Only include fields to update (text, reason, and/or confidence)
+      note: |
+        Only include fields to update. To reassign a section to a different code,
+        provide code_slug and/or code_id. The system resolves the correct pair:
+        slug takes priority if valid, otherwise id is used as fallback.
       example: |
         {
           "type": "Command",
@@ -2198,9 +2260,8 @@ x-command-reference:
               },
               {
                 "id": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
-                "text": "Updated text excerpt",
-                "reason": "Updated reasoning",
-                "confidence": "medium"
+                "code_slug": "theme:different-topic",
+                "reason": "Reassigned to different code"
               },
               {
                 "id": "c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f",
