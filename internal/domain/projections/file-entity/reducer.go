@@ -88,10 +88,6 @@ func AddedCodeSectionsReducer(current *File, message *commands.AnyMessage, paylo
 
 func UpdatedCodeSectionsReducer(current *File, message *commands.AnyMessage, payload *file.UpdateCodeSectionsPayload) *File {
 	current.Chunks = utils.Map(current.Chunks, func(chunk file.Chunk) file.Chunk {
-		if chunk.ID != payload.ChunkID {
-			return chunk
-		}
-
 		chunk.Codes = utils.Map(chunk.Codes, func(section file.CodedSection) file.CodedSection {
 			for _, op := range payload.Sections {
 				if section.ID == op.ID {
@@ -108,10 +104,6 @@ func UpdatedCodeSectionsReducer(current *File, message *commands.AnyMessage, pay
 
 func RemovedCodeSectionsReducer(current *File, _ *commands.AnyMessage, payload *file.RemoveCodeSectionsPayload) *File {
 	current.Chunks = utils.Map(current.Chunks, func(chunk file.Chunk) file.Chunk {
-		if chunk.ID != payload.ChunkID {
-			return chunk
-		}
-
 		chunk.Codes = utils.Filter(chunk.Codes, func(section file.CodedSection) bool {
 			for _, id := range payload.SectionIDs {
 				if section.ID == id {

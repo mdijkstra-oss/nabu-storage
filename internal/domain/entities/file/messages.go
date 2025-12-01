@@ -50,13 +50,11 @@ func (p AddedCodeSectionsPayload) WithoutFailures() any {
 }
 
 type UpdateCodeSectionsPayload struct {
-	ChunkID  string            `json:"chunk_id" validate:"required"`
 	Sections []UpdateSectionOp `json:"sections" validate:"min=1,dive"`
 	Failures map[int]string    `json:"failures,omitempty"`
 }
 
 type UpdatedCodeSectionsPayload struct {
-	ChunkID  string            `json:"chunk_id" validate:"required"`
 	Sections []UpdateSectionOp `json:"sections" validate:"min=1,dive"`
 	Failures map[int]string    `json:"failures,omitempty"`
 }
@@ -67,12 +65,10 @@ func (p UpdatedCodeSectionsPayload) GetFailures() map[int]string {
 
 func (p UpdatedCodeSectionsPayload) WithoutFailures() any {
 	return UpdatedCodeSectionsPayload{
-		ChunkID:  p.ChunkID,
 		Sections: p.Sections,
 	}
 }
 
 type RemoveCodeSectionsPayload struct {
-	ChunkID    string   `json:"chunk_id" validate:"required"`
 	SectionIDs []string `json:"section_ids" validate:"min=1,dive,required,valid_id"`
 }

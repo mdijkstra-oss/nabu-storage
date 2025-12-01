@@ -66,3 +66,17 @@ func CreatedFileEventWithType(id, projectID, content string, fileType FileType) 
 		},
 	})
 }
+
+func CreatedFileWithSectionsEvent(id, projectID, content string, sections []CodedSection) *commands.AnyMessage {
+	return domain_helpers.NewDomainEvent(EntityName, id, CreatedFile, CreatedFilePayload{
+		FileData: FileData{
+			ProjectID: projectID,
+			Name:      "test-file.txt",
+			Type:      FileTypeCorpus,
+			Locked:    true,
+		},
+		Chunks: []Chunk{
+			{ID: "chunk-1", Content: content, Codes: sections},
+		},
+	})
+}

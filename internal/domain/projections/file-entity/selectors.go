@@ -31,3 +31,14 @@ func GetFileChunk(proj project.Project, fileID, chunkID string) (*file.Chunk, er
 	}
 	return chunk, nil
 }
+
+func FindChunkBySectionID(f file.File, sectionID string) *file.Chunk {
+	for i := range f.Chunks {
+		for _, section := range f.Chunks[i].Codes {
+			if section.ID == sectionID {
+				return &f.Chunks[i]
+			}
+		}
+	}
+	return nil
+}

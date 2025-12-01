@@ -1837,17 +1837,16 @@ components:
     UpdateCodeSectionsPayload:
       type: object
       required:
-        - chunk_id
         - sections
       properties:
-        chunk_id:
-          type: string
-          description: Chunk ID containing sections to update
         sections:
           type: array
           minItems: 1
           items:
             $ref: '#/components/schemas/UpdateSectionOp'
+          description: |
+            Sections to update, identified by their unique section ID.
+            The system searches across all chunks in the file to find each section.
 
     UpdateSectionOp:
       type: object
@@ -1887,19 +1886,17 @@ components:
     RemoveCodeSectionsPayload:
       type: object
       required:
-        - chunk_id
         - section_ids
       properties:
-        chunk_id:
-          type: string
-          description: Chunk ID containing sections to remove
         section_ids:
           type: array
           minItems: 1
           items:
             type: string
             format: uuid
-          description: IDs of sections to remove
+          description: |
+            IDs of sections to remove.
+            The system searches across all chunks in the file to find each section.
 
 x-command-reference:
   description: |
@@ -2223,12 +2220,13 @@ x-command-reference:
         }
 
     UpdateCodeSections:
-      description: Update existing code sections in a file chunk, including reassigning to different codes
+      description: Update existing code sections in a file, including reassigning to different codes
       payload: UpdateCodeSectionsPayload
       aggregate_id: file UUID
       event: UpdatedCodeSections
       validation:
-        - If text is provided, it must exist in the chunk (fuzzy matched, normalized)
+        - Section ID must exist in the file (searches all chunks automatically)
+        - If text is provided, it must exist in the section's chunk (fuzzy matched, normalized)
         - If text is provided, it must contain at least 3 words
         - Confidence is optional (high, medium, or low)
         - If code_slug or code_id is provided, at least one must match a code in the project
@@ -2241,7 +2239,8 @@ x-command-reference:
         - Failed sections are listed in the failures map with original array index
         If ALL sections fail validation, returns HTTP 400 with validation error.
       note: |
-        Only include fields to update. To reassign a section to a different code,
+        Only include fields to update. Chunk ID is not required - sections are found
+        by their unique ID across all chunks. To reassign a section to a different code,
         provide code_slug and/or code_id. The system resolves the correct pair:
         slug takes priority if valid, otherwise id is used as fallback.
       example: |
@@ -2251,7 +2250,6 @@ x-command-reference:
           "aggregate_type": "File",
           "aggregate_id": "770e8400-e29b-41d4-a716-446655440002",
           "payload": {
-            "chunk_id": "1",
             "sections": [
               {
                 "id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
@@ -2272,10 +2270,12 @@ x-command-reference:
         }
 
     RemoveCodeSections:
-      description: Remove code sections from a file chunk
+      description: Remove code sections from a file
       payload: RemoveCodeSectionsPayload
       aggregate_id: file UUID
       event: RemovedCodeSections
+      note: |
+        Chunk ID is not required - sections are found by their unique ID across all chunks.
       example: |
         {
           "type": "Command",
@@ -2283,7 +2283,6 @@ x-command-reference:
           "aggregate_type": "File",
           "aggregate_id": "770e8400-e29b-41d4-a716-446655440002",
           "payload": {
-            "chunk_id": "1",
             "section_ids": [
               "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
               "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e"

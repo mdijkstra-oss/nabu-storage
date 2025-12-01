@@ -196,15 +196,18 @@ func addSectionIDs(payload *file.AddCodeSectionsPayload) file.AddedCodeSectionsP
 }
 
 func normalizeUpdateSections(proj project.Project, payload file.UpdateCodeSectionsPayload, msg *commands.AnyMessage) (file.UpdateCodeSectionsPayload, error) {
-	chunk, err := fileview.GetFileChunk(proj, msg.AggregateID, payload.ChunkID)
-	if err != nil {
-		return file.UpdateCodeSectionsPayload{}, err
-	}
+	f := proj.Files[msg.AggregateID]
 
 	normalizedSections := []file.UpdateSectionOp{}
 	failures := make(map[int]string)
 
 	for i, op := range payload.Sections {
+		chunk := fileview.FindChunkBySectionID(f, op.ID)
+		if chunk == nil {
+			failures[i] = fmt.Sprintf("section not found: %s", op.ID)
+			continue
+		}
+
 		normalizedOp := file.UpdateSectionOp{
 			ID:         op.ID,
 			Reason:     op.Reason,
@@ -241,7 +244,6 @@ func normalizeUpdateSections(proj project.Project, payload file.UpdateCodeSectio
 	}
 
 	return file.UpdateCodeSectionsPayload{
-		ChunkID:  payload.ChunkID,
 		Sections: normalizedSections,
 		Failures: resultFailures,
 	}, nil
@@ -278,7 +280,6 @@ func resolveCode(codes map[string]code.Code, slug, id string) (string, string, e
 
 func toUpdatedSectionsPayload(payload *file.UpdateCodeSectionsPayload) file.UpdatedCodeSectionsPayload {
 	return file.UpdatedCodeSectionsPayload{
-		ChunkID:  payload.ChunkID,
 		Sections: payload.Sections,
 		Failures: payload.Failures,
 	}

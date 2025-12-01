@@ -1,6 +1,6 @@
-# Hermes's Analytical Memo
+# Hermes's Memory
 
-Working notes maintained by the AI. Tracks patterns, preferences, and observations across sessions. You can read this to see how Hermes is thinking about your project.
+Working memory maintained across sessions. Tracks patterns, preferences, and observations.
 
 ---
 

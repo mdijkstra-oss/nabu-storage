@@ -136,7 +136,6 @@ func TestFileReducer(t *testing.T) {
 				},
 			}),
 			Event: domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.UpdatedCodeSections, &file.UpdateCodeSectionsPayload{
-				ChunkID: "1",
 				Sections: []file.UpdateSectionOp{
 					{ID: "section-1", Text: "Climate change impacts", Reason: "New reason"},
 				},
@@ -165,7 +164,6 @@ func TestFileReducer(t *testing.T) {
 				},
 			}),
 			Event: domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.RemovedCodeSections, &file.RemoveCodeSectionsPayload{
-				ChunkID:    "1",
 				SectionIDs: []string{"section-1"},
 			}),
 			Expected: buildFile("file-1", file.FileData{}, []file.Chunk{
@@ -192,7 +190,6 @@ func TestFileReducer(t *testing.T) {
 				},
 			}),
 			Event: domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.RemovedCodeSections, &file.RemoveCodeSectionsPayload{
-				ChunkID:    "1",
 				SectionIDs: []string{"section-2"},
 			}),
 			Expected: buildFile("file-1", file.FileData{}, []file.Chunk{
@@ -220,7 +217,6 @@ func TestFileReducer(t *testing.T) {
 				},
 			}),
 			Event: domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.RemovedCodeSections, &file.RemoveCodeSectionsPayload{
-				ChunkID:    "1",
 				SectionIDs: []string{"section-3"},
 			}),
 			Expected: buildFile("file-1", file.FileData{}, []file.Chunk{
@@ -249,7 +245,6 @@ func TestFileReducer(t *testing.T) {
 				},
 			}),
 			Event: domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.RemovedCodeSections, &file.RemoveCodeSectionsPayload{
-				ChunkID:    "1",
 				SectionIDs: []string{"section-2", "section-4"},
 			}),
 			Expected: buildFile("file-1", file.FileData{}, []file.Chunk{
@@ -366,7 +361,6 @@ func TestFileReducer(t *testing.T) {
 	combinedTests := append(tests, deletedEntityTests...)
 	combinedTests = append(combinedTests, deletedProjectTests...)
 
-	// Normalize Time and ID fields for comparison
 	normalize := func(f *File) *File {
 		if f != nil {
 			f.Time = testTime
