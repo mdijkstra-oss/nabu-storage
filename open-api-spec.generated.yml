@@ -448,6 +448,12 @@ paths:
                     message: "validation failed"
                     fields:
                       file: "file is locked"
+                chunkedFileBlocked:
+                  summary: Chunked file modification blocked
+                  value:
+                    message: "validation failed"
+                    fields:
+                      file: "chunked files cannot be modified"
                 textNotFound:
                   summary: Text not found in file
                   value:
@@ -2230,7 +2236,8 @@ x-command-reference:
       event: ReplacedFileContent
       validation:
         - File must not be locked (corpus files are locked)
-      note: Only works on memo, codebook, and llm-memo files
+        - File must not be chunked (corpus files are chunked and immutable)
+      note: Only works on memo, codebook, and llm-memo files. Corpus files cannot be modified after creation.
       example: |
         {
           "type": "Command",
@@ -2249,6 +2256,7 @@ x-command-reference:
       event: ReplacedFileContent
       validation:
         - File must not be locked
+        - File must not be chunked (corpus files cannot be modified)
         - File must have content
         - old_text must be found in file (fuzzy matched)
       note: Uses fuzzy matching to find text, then replaces with exact new_text
