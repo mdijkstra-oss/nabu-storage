@@ -52,6 +52,9 @@ func (t FileType) IsLocked() bool {
 	return t == FileTypeCorpus
 }
 
+// IsChunked: INVARIANT - chunked files are immutable after creation.
+// Chunk IDs become permanent references for CodedSections. Re-chunking would
+// invalidate all existing coding work. Content edits are blocked for chunked files.
 func (t FileType) IsChunked() bool {
 	return t == FileTypeCorpus
 }

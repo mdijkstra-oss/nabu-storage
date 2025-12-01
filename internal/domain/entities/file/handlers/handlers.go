@@ -268,8 +268,12 @@ func validateFileNotLocked(proj project.Project, payload file.ReplaceFileContent
 }
 
 func errIfLocked(proj project.Project, msg *commands.AnyMessage) error {
-	if proj.Files[msg.AggregateID].Locked {
+	f := proj.Files[msg.AggregateID]
+	if f.Locked {
 		return utils.FieldError("file", "file is locked")
+	}
+	if f.Type.IsChunked() {
+		return utils.FieldError("file", "chunked files cannot be modified")
 	}
 	return nil
 }
