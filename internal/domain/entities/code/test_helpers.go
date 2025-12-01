@@ -17,6 +17,7 @@ func BuildTestCode(id string, overrides CodeData) Code {
 	return Code{
 		ID:       id,
 		Healthy:  true,
+		Version:  1,
 		CodeData: merged,
 	}
 }

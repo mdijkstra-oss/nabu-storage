@@ -116,6 +116,7 @@ func projectWith(id, name, desc string, codes map[string]code.Code, files map[st
 		r.Projects[id] = project.Project{
 			ID:          id,
 			Healthy:     true,
+			Version:     1,
 			ProjectData: project.ProjectData{Name: name, Description: desc},
 			Codes:       codes,
 			Files:       files,

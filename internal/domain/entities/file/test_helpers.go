@@ -23,6 +23,7 @@ func BuildTestFile(id string, overrides FileData) File {
 	return File{
 		ID:       id,
 		Healthy:  true,
+		Version:  1,
 		FileData: merged,
 		Chunks:   []Chunk{},
 	}

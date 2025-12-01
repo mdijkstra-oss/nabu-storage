@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: hermes-relay-api
-  version: 1.8.0
+  version: 1.9.0
   description: |
     CQRS-based qualitative data analysis API for coding and analyzing research data.
 
@@ -73,12 +73,13 @@ paths:
                     description: User experience research for new features
                     phase: code
               updateProject:
-                summary: Update project details
+                summary: Update project details with optimistic concurrency
                 value:
                   type: Command
                   action: UpdateProject
                   aggregate_type: Project
                   aggregate_id: "550e8400-e29b-41d4-a716-446655440000"
+                  expected_version: 3
                   payload:
                     name: Healthcare Patient Experience Study - Updated
                     description: Updated qualitative analysis of patient interviews
@@ -115,12 +116,13 @@ paths:
                       - "I'm glad that anxious period is over now"
                     notes: "Consider creating sub-codes for pre-procedure vs post-procedure anxiety"
               updateCode:
-                summary: Update code definition
+                summary: Update code definition with optimistic concurrency
                 value:
                   type: Command
                   action: UpdateCode
                   aggregate_type: Code
                   aggregate_id: "660e8400-e29b-41d4-a716-446655440001"
+                  expected_version: 2
                   payload:
                     color: "orange"
                     definition: "Updated to focus specifically on pre-procedure anxiety, excluding post-treatment concerns"
@@ -476,11 +478,18 @@ paths:
                 fields:
                   project_id: "not found"
         '409':
-          description: Conflict error
+          description: |
+            Conflict error. Most commonly returned when:
+            - expected_version does not match the current entity version (optimistic concurrency control)
+
+            Example: Client reads entity at version 5, another client updates it to version 6,
+            first client sends update with expected_version=5 → 409 Conflict
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                message: "version conflict: expected 5, actual 6"
         '500':
           description: Internal server error
           content:
@@ -1157,7 +1166,14 @@ components:
           description: Message timestamp (auto-set by server)
         version:
           type: integer
-          description: Event version (always 1 currently)
+          description: Event schema version (always 1 currently)
+        expected_version:
+          type: integer
+          description: |
+            Optimistic concurrency control. Required for UPDATE/DELETE commands on existing entities.
+            Client must provide the current entity version to prevent concurrent modification conflicts.
+            Server rejects with HTTP 409 Conflict if expected_version != entity.version.
+            Not required for CREATE commands.
 
     DomainEvent:
       allOf:
@@ -1303,6 +1319,7 @@ components:
       type: object
       required:
         - id
+        - version
         - name
         - codes
         - files
@@ -1311,6 +1328,9 @@ components:
         id:
           type: string
           format: uuid
+        version:
+          type: integer
+          description: Entity version for optimistic concurrency control. Increments on each modification.
         name:
           type: string
           minLength: 1
@@ -1364,6 +1384,7 @@ components:
       type: object
       required:
         - id
+        - version
         - project_id
         - slug
         - color
@@ -1373,6 +1394,9 @@ components:
         id:
           type: string
           format: uuid
+        version:
+          type: integer
+          description: Entity version for optimistic concurrency control. Increments on each modification.
         project_id:
           type: string
           format: uuid
@@ -1465,6 +1489,7 @@ components:
       type: object
       required:
         - id
+        - version
         - project_id
         - name
         - healthy
@@ -1472,6 +1497,9 @@ components:
         id:
           type: string
           format: uuid
+        version:
+          type: integer
+          description: Entity version for optimistic concurrency control. Increments on each modification.
         project_id:
           type: string
           format: uuid

@@ -17,6 +17,7 @@ func BuildTestProject(id string, overrides ProjectData) Project {
 	return Project{
 		ID:          id,
 		Healthy:     true,
+		Version:     1,
 		ProjectData: merged,
 		Codes:       make(map[string]code.Code),
 		Files:       make(map[string]file.File),

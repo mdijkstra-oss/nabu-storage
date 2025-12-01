@@ -1,14 +1,15 @@
 package reducer_helpers
 
 import (
+	"os"
+	"reflect"
+	"testing"
+
+	"github.com/google/go-cmp/cmp"
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/cqrs/projection"
 	"hermes-relay/internal/lib/test-helpers"
 	"hermes-relay/internal/lib/test-helpers/domain-helpers"
-	"hermes-relay/internal/lib/utils"
-	"os"
-	"reflect"
-	"testing"
 )
 
 type ReducerTestCase[T any] struct {
@@ -18,36 +19,30 @@ type ReducerTestCase[T any] struct {
 	Expected T
 }
 
-type reducerInput[T any] struct {
-	initial T
-	event   *commands.AnyMessage
-}
-
 func RunReducerTests[T any](t *testing.T, tests []ReducerTestCase[T], reducer func(T, *commands.AnyMessage) T, mapFunc ...func(T) T) {
-	genericTests := utils.Map(tests, func(tt ReducerTestCase[T]) struct {
-		Name     string
-		Input    reducerInput[T]
-		Expected T
-	} {
-		return struct {
-			Name     string
-			Input    reducerInput[T]
-			Expected T
-		}{
-			Name: tt.Name,
-			Input: reducerInput[T]{
-				initial: tt.Initial,
-				event:   tt.Event,
-			},
-			Expected: tt.Expected,
-		}
-	})
-
 	wrappedReducer := wrapReducerWithImmutabilityCheck(reducer)
 
-	test_helpers.RunFunctionTests(t, genericTests, func(input reducerInput[T]) T {
-		return wrappedReducer(input.initial, input.event)
-	}, mapFunc...)
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			result := wrappedReducer(tt.Initial, tt.Event)
+			actual := result
+			if len(mapFunc) > 0 {
+				actual = mapFunc[0](result)
+			}
+			test_helpers.AssertEqual(t, actual, tt.Expected, "result", ignoreVersionFields()...)
+		})
+	}
+}
+
+func ignoreVersionFields() []cmp.Option {
+	return []cmp.Option{
+		cmp.FilterPath(func(p cmp.Path) bool {
+			if sf, ok := p.Last().(cmp.StructField); ok {
+				return sf.Name() == "Version"
+			}
+			return false
+		}, cmp.Ignore()),
+	}
 }
 
 // DeletedEntityTests generates table-driven tests for entity deletion.

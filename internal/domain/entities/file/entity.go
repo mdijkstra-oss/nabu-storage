@@ -8,6 +8,7 @@ import (
 type File struct {
 	ID      string `json:"id"`
 	Healthy bool   `json:"healthy"`
+	Version int    `json:"version"`
 	FileData
 	Chunks []Chunk `json:"chunks"`
 }
@@ -26,6 +27,15 @@ func (f File) IsHealthy() bool {
 
 func (f File) WithUnhealthy() any {
 	f.Healthy = false
+	return &f
+}
+
+func (f File) GetVersion() int {
+	return f.Version
+}
+
+func (f File) WithVersion(v int) any {
+	f.Version = v
 	return &f
 }
 

@@ -7,6 +7,7 @@ package code
 type Code struct {
 	ID      string `json:"id" validate:"required"`
 	Healthy bool   `json:"healthy"`
+	Version int    `json:"version"`
 	CodeData
 }
 
@@ -59,5 +60,14 @@ func (c Code) IsHealthy() bool {
 
 func (c Code) WithUnhealthy() any {
 	c.Healthy = false
+	return &c
+}
+
+func (c Code) GetVersion() int {
+	return c.Version
+}
+
+func (c Code) WithVersion(v int) any {
+	c.Version = v
 	return &c
 }

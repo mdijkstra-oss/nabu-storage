@@ -13,10 +13,12 @@ func NewCommandRouter(registryState *registry.RegistryState) dispatch.CommandRou
 	return dispatch.LimitOnType(commands.Command,
 		registry.EnsureProjectHealth(registryState,
 			registry.EnsureEntityHealth(registryState,
-				dispatch.CombineRouters(
-					codehandlers.NewRouter(registryState),
-					filehandlers.NewRouter(registryState),
-					projecthandlers.NewRouter(registryState),
+				registry.EnsureExpectedVersion(registryState,
+					dispatch.CombineRouters(
+						codehandlers.NewRouter(registryState),
+						filehandlers.NewRouter(registryState),
+						projecthandlers.NewRouter(registryState),
+					),
 				),
 			),
 		),

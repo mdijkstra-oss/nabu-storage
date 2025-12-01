@@ -10,6 +10,7 @@ type Project = project.Project
 
 type ProjectView struct {
 	ID      string `json:"id"`
+	Version int    `json:"version"`
 	Healthy bool   `json:"healthy"`
 	project.ProjectData
 	Codes map[string]code.Code            `json:"codes"`
@@ -28,6 +29,7 @@ func ToView(p project.Project) ProjectView {
 
 	return ProjectView{
 		ID:          p.ID,
+		Version:     p.Version,
 		Healthy:     p.Healthy,
 		ProjectData: p.ProjectData,
 		Codes:       p.Codes,

@@ -17,6 +17,16 @@ func NewDomainEvent(entityName commands.AggregateType, aggregateID string, actio
 	return commands.ToAny(commands.NewDomainEvent(action, payload, entityName, aggregateID, TestActor(), (*commands.AnyMessage)(nil)))
 }
 
+func NewCommand(entityName commands.AggregateType, aggregateID string, action commands.Action, payload any) *commands.AnyMessage {
+	return commands.ToAny(commands.NewCommand(action, payload, entityName, aggregateID, TestActor(), (*commands.AnyMessage)(nil)))
+}
+
+func NewCommandWithExpectedVersion(entityName commands.AggregateType, aggregateID string, action commands.Action, payload any, expectedVersion int) *commands.AnyMessage {
+	msg := NewCommand(entityName, aggregateID, action, payload)
+	msg.ExpectedVersion = &expectedVersion
+	return msg
+}
+
 func AssertMessage(t *testing.T, got, want *commands.AnyMessage, msg string, extraOpts ...cmp.Option) {
 	t.Helper()
 	ignoreOpts := []test_helpers.IgnoreFieldsOption{

@@ -10,10 +10,6 @@ import (
 	"testing"
 )
 
-func buildCode(id string, overrides code.CodeData) code.Code {
-	return code.BuildTestCode(id, overrides)
-}
-
 func createTestProject(id, name, description string) *Project {
 	p := project.BuildTestProject(id, project.ProjectData{
 		Name:        name,
@@ -75,8 +71,8 @@ func TestProjectReducer(t *testing.T) {
 		CreatedEvent:      domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.CreatedCode, &code.CreatedCodePayload{ProjectID: "project-1", Slug: "test-code", Color: "red", Definition: "A test code"}),
 		UpdatedEvent:      domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.UpdatedCode, &code.UpdateCodePayload{Slug: "new-slug"}),
 		DeletedEvent:      domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.DeletedCode, nil),
-		EntityAfterCreate: buildCode("code-1", code.CodeData{Slug: "test-code", Color: "red", Definition: "A test code"}),
-		EntityAfterUpdate: buildCode("code-1", code.CodeData{Slug: "new-slug", Color: "red", Definition: "A test code"}),
+		EntityAfterCreate: code.BuildTestCode("code-1", code.CodeData{Slug: "test-code", Color: "red", Definition: "A test code"}),
+		EntityAfterUpdate: code.BuildTestCode("code-1", code.CodeData{Slug: "new-slug", Color: "red", Definition: "A test code"}),
 		CreateParent:      createEmptyProject,
 		GetMap:            func(p *Project) map[string]code.Code { return p.Codes },
 	})

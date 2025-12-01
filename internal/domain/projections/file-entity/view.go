@@ -7,6 +7,7 @@ type File = file.File
 // FileSummary contains file metadata without chunks
 type FileSummary struct {
 	ID      string `json:"id"`
+	Version int    `json:"version"`
 	Healthy bool   `json:"healthy"`
 	file.FileData
 }
@@ -15,6 +16,7 @@ type FileSummary struct {
 func ToSummary(f File) FileSummary {
 	return FileSummary{
 		ID:       f.ID,
+		Version:  f.Version,
 		Healthy:  f.Healthy,
 		FileData: f.FileData,
 	}

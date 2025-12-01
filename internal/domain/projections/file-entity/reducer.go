@@ -9,21 +9,23 @@ import (
 	"time"
 )
 
-var Reducer = projection.WithHealthCheck(
-	projection.CombineReducers(
-		projection.For(file.CreatedFile, CreatedFileReducer),
-		projection.IfExists(
-			projection.For(file.UpdatedFile, UpdatedFileReducer),
-			projection.For(file.ReplacedFileContent, ReplacedFileContentReducer),
-			projection.For(file.DeletedFile, projection.DeletedEntity[File]),
-			projection.For(file.AddedCodeSections, AddedCodeSectionsReducer),
-			projection.For(file.UpdatedCodeSections, UpdatedCodeSectionsReducer),
-			projection.For(file.RemovedCodeSections, RemovedCodeSectionsReducer),
-			projection.For(file.ClearedCoding, ClearedCodingReducer),
-			projection.For(code.DeletedCode, DeletedCodeReducer),
-			projection.For(code.MergedCodes, MergedCodesReducer),
+var Reducer = projection.WithVersionIncrement(
+	projection.WithHealthCheck(
+		projection.CombineReducers(
+			projection.For(file.CreatedFile, CreatedFileReducer),
+			projection.IfExists(
+				projection.For(file.UpdatedFile, UpdatedFileReducer),
+				projection.For(file.ReplacedFileContent, ReplacedFileContentReducer),
+				projection.For(file.DeletedFile, projection.DeletedEntity[File]),
+				projection.For(file.AddedCodeSections, AddedCodeSectionsReducer),
+				projection.For(file.UpdatedCodeSections, UpdatedCodeSectionsReducer),
+				projection.For(file.RemovedCodeSections, RemovedCodeSectionsReducer),
+				projection.For(file.ClearedCoding, ClearedCodingReducer),
+				projection.For(code.DeletedCode, DeletedCodeReducer),
+				projection.For(code.MergedCodes, MergedCodesReducer),
+			),
+			projection.DeletedProjectReducer[file.File],
 		),
-		projection.DeletedProjectReducer[file.File],
 	),
 )
 

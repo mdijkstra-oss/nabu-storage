@@ -7,15 +7,17 @@ import (
 	"hermes-relay/internal/lib/utils"
 )
 
-var Reducer = projection.WithHealthCheck(
-	projection.CombineReducers(
-		projection.For(code.CreatedCode, CreatedCodeReducer),
-		projection.IfExists(
-			projection.For(code.UpdatedCode, UpdatedCodeReducer),
-			projection.For(code.DeletedCode, projection.DeletedEntity[Code]),
-			projection.For(code.MergedCodes, MergedCodesReducer),
+var Reducer = projection.WithVersionIncrement(
+	projection.WithHealthCheck(
+		projection.CombineReducers(
+			projection.For(code.CreatedCode, CreatedCodeReducer),
+			projection.IfExists(
+				projection.For(code.UpdatedCode, UpdatedCodeReducer),
+				projection.For(code.DeletedCode, projection.DeletedEntity[Code]),
+				projection.For(code.MergedCodes, MergedCodesReducer),
+			),
+			projection.DeletedProjectReducer[code.Code],
 		),
-		projection.DeletedProjectReducer[code.Code],
 	),
 )
 

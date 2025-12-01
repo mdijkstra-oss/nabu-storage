@@ -58,6 +58,8 @@ func EmitPatchAction(publish dispatch.PublishFunc, projectID string, action Patc
 			}
 		case ActionTypeNone:
 			// Nothing to emit
+		default:
+			panic("EmitPatchAction: unknown action type: " + action.Type)
 		}
 	}, "projectID", projectID, "actionType", action.Type, "operation", "emitPatchAction")
 }

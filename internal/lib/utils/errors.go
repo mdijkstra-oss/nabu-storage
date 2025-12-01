@@ -173,6 +173,12 @@ func IsConflictError(err error) bool {
 	return errors.As(err, &conflictError)
 }
 
+func VersionConflict(expected, actual int) *ConflictError {
+	return &ConflictError{
+		Message: fmt.Sprintf("version conflict: expected %d, actual %d", expected, actual),
+	}
+}
+
 func Must[T any](value T, err error) T {
 	if err != nil {
 		panic(err)
