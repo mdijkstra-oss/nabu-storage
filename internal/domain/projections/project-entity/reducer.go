@@ -17,6 +17,7 @@ var projectReducer = projection.WithVersionIncrement(
 			projection.For(project.CreatedProject, CreatedProjectReducer),
 			projection.IfExists(
 				projection.For(project.UpdatedProject, UpdatedProjectReducer),
+				projection.For(project.ChangedPhase, ChangedPhaseReducer),
 				projection.For(project.DeletedProject, projection.DeletedEntity[Project]),
 			),
 		),
@@ -61,5 +62,11 @@ func CreatedProjectReducer(_ *Project, message *commands.AnyMessage, payload *pr
 
 func UpdatedProjectReducer(current *Project, _ *commands.AnyMessage, payload *project.UpdatedProjectPayload) *Project {
 	updated := utils.ApplyPartialUpdate(*current, payload)
+	return &updated
+}
+
+func ChangedPhaseReducer(current *Project, _ *commands.AnyMessage, payload *project.ChangedPhasePayload) *Project {
+	updated := *current
+	updated.Phase = payload.Phase
 	return &updated
 }

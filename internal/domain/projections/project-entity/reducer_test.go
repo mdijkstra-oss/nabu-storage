@@ -59,6 +59,26 @@ func TestProjectReducer(t *testing.T) {
 			}),
 			Expected: nil,
 		},
+		{
+			Name:    "ChangedPhase updates phase",
+			Initial: createTestProject("project-1", "Research", "Description"),
+			Event: domain_helpers.NewDomainEvent(project.EntityName, "project-1", project.ChangedPhase, &project.ChangedPhasePayload{
+				Phase: project.PhaseCode,
+			}),
+			Expected: func() *Project {
+				p := createTestProject("project-1", "Research", "Description")
+				p.Phase = project.PhaseCode
+				return p
+			}(),
+		},
+		{
+			Name:    "ChangedPhase on nil project returns nil",
+			Initial: nil,
+			Event: domain_helpers.NewDomainEvent(project.EntityName, "project-1", project.ChangedPhase, &project.ChangedPhasePayload{
+				Phase: project.PhaseCode,
+			}),
+			Expected: nil,
+		},
 	}
 
 	deletedEntityTests := reducer_helpers.DeletedEntityTests(
