@@ -1012,6 +1012,88 @@ paths:
         '404':
           description: Code not found
 
+  /queries/projects/{projectId}/codes/{id}/sections:
+    get:
+      summary: Get coded sections for a code
+      description: |
+        Returns all coded sections across all files that use this code.
+        Useful for reviewing all usages of a code, splitting codes, or reassigning sections.
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Code ID
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: confidence
+          in: query
+          description: Filter by confidence level
+          schema:
+            type: string
+            enum: [high, medium, low]
+        - name: actor_type
+          in: query
+          description: Filter by actor type who created the section
+          schema:
+            type: string
+            enum: [human, llm, system]
+      responses:
+        '200':
+          description: Paginated list of coded sections
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CodedSectionsResult'
+              example:
+                items:
+                  - id: "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+                    file_id: "770e8400-e29b-41d4-a716-446655440002"
+                    file_name: "Interview Transcript P07"
+                    chunk_id: "3"
+                    code_id: "660e8400-e29b-41d4-a716-446655440001"
+                    text: "I was really worried about the surgery"
+                    reason: "Explicit pre-procedure anxiety"
+                    confidence: "high"
+                    last_actor:
+                      user_id: "user-123"
+                      actor_type: "human"
+                  - id: "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e"
+                    file_id: "880e8400-e29b-41d4-a716-446655440003"
+                    file_name: "Interview Transcript P12"
+                    chunk_id: "1"
+                    code_id: "660e8400-e29b-41d4-a716-446655440001"
+                    text: "The waiting was nerve-wracking"
+                    reason: "Anxiety during wait period"
+                    confidence: "medium"
+                    last_actor:
+                      user_id: "llm-coder"
+                      actor_type: "llm"
+                total: 47
+                page: 1
+                page_size: 20
+        '404':
+          description: Code not found
+
 components:
   schemas:
     Actor:
@@ -1499,6 +1581,74 @@ components:
         last_actor:
           $ref: '#/components/schemas/Actor'
           description: Actor who last modified this coded section
+
+    CodedSectionView:
+      type: object
+      required:
+        - id
+        - file_id
+        - file_name
+        - chunk_id
+        - code_id
+        - text
+        - confidence
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for this coded section
+        file_id:
+          type: string
+          format: uuid
+          description: ID of the file containing this section
+        file_name:
+          type: string
+          description: Name of the file containing this section
+        chunk_id:
+          type: string
+          description: Chunk ID within the file (e.g., "1", "2")
+        code_id:
+          type: string
+          format: uuid
+          description: ID of the code applied to this section
+        text:
+          type: string
+          minLength: 1
+          maxLength: 1500
+          description: The coded text excerpt
+        reason:
+          type: string
+          maxLength: 1500
+          description: Reasoning for this code application
+        confidence:
+          type: string
+          enum: [high, medium, low]
+          description: Confidence level for this code application
+        last_actor:
+          $ref: '#/components/schemas/Actor'
+          description: Actor who last modified this coded section
+
+    CodedSectionsResult:
+      type: object
+      required:
+        - items
+        - total
+        - page
+        - page_size
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CodedSectionView'
+        total:
+          type: integer
+          description: Total number of sections matching the query
+        page:
+          type: integer
+          description: Current page number
+        page_size:
+          type: integer
+          description: Number of items per page
 
     ChunkResult:
       type: object
