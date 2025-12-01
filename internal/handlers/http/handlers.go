@@ -3,6 +3,7 @@ package http
 import (
 	"hermes-relay/internal/cqrs/dispatch"
 	"io"
+	"log/slog"
 	"net/http"
 )
 
@@ -18,7 +19,8 @@ func httpHandler(processor func(Request, dispatch.PublishFunc) Response, publish
 	return func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			slog.Error("failed to read request body", "error", err)
+			WriteResponse(w, errorOutput(http.StatusInternalServerError, err))
 			return
 		}
 

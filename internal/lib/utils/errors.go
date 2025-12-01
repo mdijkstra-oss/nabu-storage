@@ -188,7 +188,7 @@ func MustNotError(err error) {
 
 func Should[T any](value T, err error) T {
 	if err != nil {
-		slog.Warn("Should detected error", "error", err)
+		slog.Error("tolerable error", "error", err)
 	}
 	return value
 }
@@ -197,6 +197,5 @@ func ShouldWork(err error) {
 	if err == nil {
 		return
 	}
-
-	slog.Warn("Error: %v", "err", err)
+	slog.Error("tolerable error", "error", err)
 }

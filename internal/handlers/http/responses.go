@@ -5,6 +5,7 @@ import (
 	"errors"
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/lib/utils"
+	"log/slog"
 	"net/http"
 	"strings"
 )
@@ -25,7 +26,7 @@ func successOutput(result *commands.AnyMessage, acceptedOnly bool) Response {
 
 	var body []byte
 	if result != nil {
-		body, _ = json.Marshal(result)
+		body = mustMarshal(result)
 	}
 
 	return Response{
@@ -42,7 +43,7 @@ func partialSuccessOutput(result *commands.AnyMessage) Response {
 		Success:  &strippedResult,
 		Failures: pf.GetFailures(),
 	}
-	body, _ := json.Marshal(response)
+	body := mustMarshal(response)
 	return Response{
 		StatusCode: http.StatusMultiStatus,
 		Body:       body,
@@ -57,10 +58,9 @@ func hasPartialFailures(payload any) bool {
 }
 
 func successQueryOutput(result any) Response {
-	body, _ := json.Marshal(result)
 	return Response{
 		StatusCode: http.StatusOK,
-		Body:       body,
+		Body:       mustMarshal(result),
 	}
 }
 
@@ -85,11 +85,19 @@ func errorOutput(status int, err error) Response {
 		response.Fields = ve.Fields
 	}
 
-	body, _ := json.Marshal(response)
 	return Response{
 		StatusCode: status,
-		Body:       body,
+		Body:       mustMarshal(response),
 	}
+}
+
+func mustMarshal(v any) []byte {
+	body, err := json.Marshal(v)
+	if err != nil {
+		slog.Error("failed to marshal response", "error", err)
+		return []byte(`{"message":"internal server error"}`)
+	}
+	return body
 }
 
 func batchStatus(total, successCount int, acceptedOnly bool) int {
