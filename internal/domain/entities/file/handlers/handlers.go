@@ -72,8 +72,21 @@ func NewRouter(reg *registry.RegistryState) dispatch.CommandRouter {
 				),
 			),
 
-			dispatch.ToUpdateEntityEvent[file.RemoveCodeSectionsPayload, file.RemoveCodeSectionsPayload](file.RemoveCodeSections, file.RemovedCodeSections),
-			dispatch.ToEmptyDomainEvent(file.ClearCoding, file.ClearedCoding),
+			dispatch.LimitOnAction(file.RemoveCodeSections,
+				registry.ValidateDomain(
+					reg,
+					validateCorpusFile[file.RemoveCodeSectionsPayload],
+					dispatch.ToUpdateEntityEvent[file.RemoveCodeSectionsPayload, file.RemoveCodeSectionsPayload](file.RemoveCodeSections, file.RemovedCodeSections),
+				),
+			),
+
+			dispatch.LimitOnAction(file.ClearCoding,
+				registry.ValidateDomain(
+					reg,
+					validateCorpusFile[commands.EmptyPayload],
+					dispatch.ToEmptyDomainEvent(file.ClearCoding, file.ClearedCoding),
+				),
+			),
 		),
 		dispatch.ToEmptyDomainEvent(file.DeleteFile, file.DeletedFile),
 	)
@@ -137,6 +150,10 @@ func validateAndNormalizeText(text, chunkContent string) (string, error) {
 }
 
 func normalizeAddSections(proj project.Project, payload file.AddCodeSectionsPayload, msg *commands.AnyMessage) (file.AddCodeSectionsPayload, error) {
+	if err := errIfNotCorpus(proj, msg); err != nil {
+		return file.AddCodeSectionsPayload{}, err
+	}
+
 	chunk, err := fileview.GetFileChunk(proj, msg.AggregateID, payload.ChunkID)
 	if err != nil {
 		return file.AddCodeSectionsPayload{}, err
@@ -193,6 +210,10 @@ func addSectionIDs(payload *file.AddCodeSectionsPayload) file.AddedCodeSectionsP
 }
 
 func normalizeUpdateSections(proj project.Project, payload file.UpdateCodeSectionsPayload, msg *commands.AnyMessage) (file.UpdateCodeSectionsPayload, error) {
+	if err := errIfNotCorpus(proj, msg); err != nil {
+		return file.UpdateCodeSectionsPayload{}, err
+	}
+
 	f := proj.Files[msg.AggregateID]
 
 	normalizedSections := []file.UpdateSectionOp{}
@@ -276,6 +297,18 @@ func errIfLocked(proj project.Project, msg *commands.AnyMessage) error {
 		return utils.FieldError("file", "chunked files cannot be modified")
 	}
 	return nil
+}
+
+func errIfNotCorpus(proj project.Project, msg *commands.AnyMessage) error {
+	f := proj.Files[msg.AggregateID]
+	if f.Type != file.FileTypeCorpus {
+		return utils.FieldError("file", "coding is only allowed on corpus files")
+	}
+	return nil
+}
+
+func validateCorpusFile[P any](proj project.Project, _ P, msg *commands.AnyMessage) error {
+	return errIfNotCorpus(proj, msg)
 }
 
 func toReplacedContentPayload(payload *file.ReplaceFileContentPayload) file.ReplacedFileContentPayload {

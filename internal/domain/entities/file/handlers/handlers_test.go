@@ -392,6 +392,37 @@ func TestFileRouter(t *testing.T) {
 			}, file.EntityName, testFileWithCode, domain_helpers.TestActor(), nil)),
 			ExpectErr: "validation failed",
 		},
+		{
+			Name: "AddCodeSections fails on non-corpus file",
+			Input: commands.ToAny(commands.NewCommand[file.AddCodeSectionsPayload, any](file.AddCodeSections, file.AddCodeSectionsPayload{
+				ChunkID: "1",
+				Sections: []file.AddSectionOp{
+					{CodeID: testCodeID1, Text: "some editable content", Confidence: file.ConfidenceHigh},
+				},
+			}, file.EntityName, testFileMemo, domain_helpers.TestActor(), nil)),
+			ExpectErr: "coding is only allowed on corpus files",
+		},
+		{
+			Name: "UpdateCodeSections fails on non-corpus file",
+			Input: commands.ToAny(commands.NewCommand[file.UpdateCodeSectionsPayload, any](file.UpdateCodeSections, file.UpdateCodeSectionsPayload{
+				Sections: []file.UpdateSectionOp{
+					{ID: testSectionID1, Reason: "Updated"},
+				},
+			}, file.EntityName, testFileMemo, domain_helpers.TestActor(), nil)),
+			ExpectErr: "coding is only allowed on corpus files",
+		},
+		{
+			Name: "RemoveCodeSections fails on non-corpus file",
+			Input: commands.ToAny(commands.NewCommand[file.RemoveCodeSectionsPayload, any](file.RemoveCodeSections, file.RemoveCodeSectionsPayload{
+				SectionIDs: []string{testSectionID1},
+			}, file.EntityName, testFileMemo, domain_helpers.TestActor(), nil)),
+			ExpectErr: "coding is only allowed on corpus files",
+		},
+		{
+			Name:      "ClearCoding fails on non-corpus file",
+			Input:     commands.ToAny(commands.NewCommand[any, any](file.ClearCoding, nil, file.EntityName, testFileMemo, domain_helpers.TestActor(), nil)),
+			ExpectErr: "coding is only allowed on corpus files",
+		},
 	}
 
 	rh.RunRouterTests(t, cmds, tests, NewRouter)
