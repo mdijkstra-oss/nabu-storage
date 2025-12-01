@@ -74,7 +74,6 @@ func TestCodeReducer(t *testing.T) {
 				ExclusionCriteria: "General stress without specific worry",
 				Examples:          []string{"I'm worried about...", "What if something goes wrong?"},
 				CounterExamples:   []string{"I'm stressed but managing"},
-				Notes:             "Often co-occurs with uncertainty codes",
 			}),
 			Event: domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.UpdatedCode, &code.UpdatedCodePayload{
 				Slug:              "",
@@ -84,7 +83,6 @@ func TestCodeReducer(t *testing.T) {
 				ExclusionCriteria: "",
 				Examples:          nil,
 				CounterExamples:   nil,
-				Notes:             "",
 			}),
 			Expected: buildCode("code-1", code.CodeData{
 				Slug:              "emotion:anxiety",
@@ -94,7 +92,6 @@ func TestCodeReducer(t *testing.T) {
 				ExclusionCriteria: "General stress without specific worry",
 				Examples:          []string{"I'm worried about...", "What if something goes wrong?"},
 				CounterExamples:   []string{"I'm stressed but managing"},
-				Notes:             "Often co-occurs with uncertainty codes",
 			}),
 		},
 		{

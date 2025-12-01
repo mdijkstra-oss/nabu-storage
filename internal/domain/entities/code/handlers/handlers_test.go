@@ -233,6 +233,36 @@ func TestCodeRouter(t *testing.T) {
 			}, code.EntityName, testCodeID1, domain_helpers.TestActor(), nil)),
 			ExpectErr: "validation failed: source_id cannot merge with itself",
 		},
+		{
+			Name:        "ClearCodeApplications",
+			Input:       commands.ToAny(commands.NewCommand[code.ClearCodeApplicationsPayload, any](code.ClearCodeApplications, code.ClearCodeApplicationsPayload{}, code.EntityName, testCodeID1, domain_helpers.TestActor(), nil)),
+			ExpectErr:   "",
+			ExpectEvent: commands.ToAny(commands.NewDomainEvent[any, any](code.ClearedCodeApplications, nil, code.EntityName, testCodeID1, domain_helpers.TestActor(), nil)),
+		},
+		{
+			Name: "RecodeAll with valid target",
+			Input: commands.ToAny(commands.NewCommand[code.RecodeAllPayload, any](code.RecodeAll, code.RecodeAllPayload{
+				TargetCodeID: testCodeID2,
+			}, code.EntityName, testCodeID1, domain_helpers.TestActor(), nil)),
+			ExpectErr: "",
+			ExpectEvent: commands.ToAny(commands.NewDomainEvent[code.RecodedAllPayload, any](code.RecodedAll, code.RecodedAllPayload{
+				TargetCodeID: testCodeID2,
+			}, code.EntityName, testCodeID1, domain_helpers.TestActor(), nil)),
+		},
+		{
+			Name: "RecodeAll with non-existent target fails",
+			Input: commands.ToAny(commands.NewCommand[code.RecodeAllPayload, any](code.RecodeAll, code.RecodeAllPayload{
+				TargetCodeID: testNonexistentID,
+			}, code.EntityName, testCodeID1, domain_helpers.TestActor(), nil)),
+			ExpectErr: "validation failed: target_code_id not found",
+		},
+		{
+			Name: "RecodeAll to itself fails",
+			Input: commands.ToAny(commands.NewCommand[code.RecodeAllPayload, any](code.RecodeAll, code.RecodeAllPayload{
+				TargetCodeID: testCodeID1,
+			}, code.EntityName, testCodeID1, domain_helpers.TestActor(), nil)),
+			ExpectErr: "validation failed: target_code_id cannot recode to itself",
+		},
 	}
 
 	rh.RunRouterTests(t, cmds, tests, NewRouter)

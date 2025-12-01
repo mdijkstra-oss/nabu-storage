@@ -41,9 +41,6 @@ type CodeData struct {
 
 	// Counter-examples: 2-3 snippets that might seem like they fit but don't.
 	CounterExamples []string `json:"counter_examples"`
-
-	// Analyst notes: Your evolving thoughts, connections to theory, frequency observations
-	Notes string `json:"notes"`
 }
 
 func (c Code) GetID() string {

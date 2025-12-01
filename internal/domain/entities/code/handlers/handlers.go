@@ -32,6 +32,13 @@ func NewRouter(reg *registry.RegistryState) dispatch.CommandRouter {
 		),
 
 		dispatch.ToEmptyDomainEvent(code.DeleteCode, code.DeletedCode),
+		dispatch.ToEmptyDomainEvent(code.ClearCodeApplications, code.ClearedCodeApplications),
+
+		dispatch.LimitOnAction(code.RecodeAll,
+			registry.ValidateDomain(reg, validateRecodeAll,
+				dispatch.ToUpdateEntityEvent[code.RecodeAllPayload, code.RecodedAllPayload](code.RecodeAll, code.RecodedAll),
+			),
+		),
 	)
 }
 
@@ -64,6 +71,18 @@ func validateMergeCodes(proj project.Project, payload code.MergeCodesPayload, ms
 
 	if payload.SourceID == payload.TargetID {
 		return utils.FieldError("source_id", "cannot merge with itself")
+	}
+
+	return nil
+}
+
+func validateRecodeAll(proj project.Project, payload code.RecodeAllPayload, msg *commands.AnyMessage) error {
+	if !projectview.CodeExists(proj, payload.TargetCodeID) {
+		return utils.FieldNotFound("target_code_id")
+	}
+
+	if msg.AggregateID == payload.TargetCodeID {
+		return utils.FieldError("target_code_id", "cannot recode to itself")
 	}
 
 	return nil

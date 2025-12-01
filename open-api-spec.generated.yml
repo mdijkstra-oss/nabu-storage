@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: hermes-relay-api
-  version: 1.9.0
+  version: 1.10.0
   description: |
     CQRS-based qualitative data analysis API for coding and analyzing research data.
 
@@ -114,7 +114,6 @@ paths:
                     counter_examples:
                       - "I was a bit uncomfortable during the examination"
                       - "I'm glad that anxious period is over now"
-                    notes: "Consider creating sub-codes for pre-procedure vs post-procedure anxiety"
               updateCode:
                 summary: Update code definition with optimistic concurrency
                 value:
@@ -1022,7 +1021,6 @@ paths:
                   - "Investment in offshore wind farms will create 10,000 jobs"
                 counter_examples:
                   - "We need to protect our forests and wildlife"
-                notes: "Consider splitting into sub-codes for different energy types"
                 healthy: true
         '404':
           description: Code not found
@@ -1462,12 +1460,6 @@ components:
             Helps clarify boundaries.
           example:
             - "I was a bit uncomfortable during the exam"
-        notes:
-          type: string
-          description: |
-            Analyst notes: evolving thoughts, connections to theory,
-            frequency observations, ideas for refinement
-          example: "Consider creating sub-codes for pre-procedure vs post-procedure anxiety. Appears frequently in older patients."
         healthy:
           type: boolean
           description: Whether the code is in a healthy state
@@ -1803,9 +1795,6 @@ components:
           items:
             type: string
           description: Counter-example snippets (optional)
-        notes:
-          type: string
-          description: Analyst notes (optional)
 
     UpdateCodePayload:
       type: object
@@ -1833,8 +1822,6 @@ components:
           type: array
           items:
             type: string
-        notes:
-          type: string
 
     MergeCodesPayload:
       type: object
@@ -2124,8 +2111,7 @@ x-command-reference:
             "counter_examples": [
               "The opposition criticized Rutte's economic policy",
               "Rutte was mentioned in the debate"
-            ],
-            "notes": "Consider splitting into sub-codes for different policy areas if volume is high"
+            ]
           }
         }
 

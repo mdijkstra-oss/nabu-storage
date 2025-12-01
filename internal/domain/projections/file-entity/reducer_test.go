@@ -325,6 +325,77 @@ func TestFileReducer(t *testing.T) {
 				},
 			}),
 		},
+		{
+			Name: "RemovedCodeFromFile removes all sections with matching CodeID from file",
+			Initial: buildFile("file-1", file.FileData{}, []file.Chunk{
+				{
+					ID:      "1",
+					Content: "Climate change impacts global warming.\n",
+					Codes: []file.CodedSection{
+						{ID: "section-1", CodeID: "code-1", Text: "Climate change impacts"},
+						{ID: "section-2", CodeID: "code-2", Text: "impacts global warming"},
+						{ID: "section-3", CodeID: "code-1", Text: "global warming"},
+					},
+				},
+			}),
+			Event: domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.RemovedCodeFromFile, &file.RemovedCodeFromFilePayload{CodeID: "code-1"}),
+			Expected: buildFile("file-1", file.FileData{}, []file.Chunk{
+				{
+					ID:      "1",
+					Content: "Climate change impacts global warming.\n",
+					Codes: []file.CodedSection{
+						{ID: "section-2", CodeID: "code-2", Text: "impacts global warming"},
+					},
+				},
+			}),
+		},
+		{
+			Name: "ClearedCodeApplications removes all sections with matching CodeID across all files",
+			Initial: buildFile("file-1", file.FileData{}, []file.Chunk{
+				{
+					ID:      "1",
+					Content: "Climate change impacts global warming.\n",
+					Codes: []file.CodedSection{
+						{ID: "section-1", CodeID: "code-1", Text: "Climate change impacts"},
+						{ID: "section-2", CodeID: "code-2", Text: "impacts global warming"},
+					},
+				},
+			}),
+			Event: domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.ClearedCodeApplications, nil),
+			Expected: buildFile("file-1", file.FileData{}, []file.Chunk{
+				{
+					ID:      "1",
+					Content: "Climate change impacts global warming.\n",
+					Codes: []file.CodedSection{
+						{ID: "section-2", CodeID: "code-2", Text: "impacts global warming"},
+					},
+				},
+			}),
+		},
+		{
+			Name: "RecodedAll replaces source CodeID with target CodeID keeping both codes",
+			Initial: buildFile("file-1", file.FileData{}, []file.Chunk{
+				{
+					ID:      "1",
+					Content: "Climate change impacts global warming.\n",
+					Codes: []file.CodedSection{
+						{ID: "section-1", CodeID: "code-1", Text: "Climate change impacts"},
+						{ID: "section-2", CodeID: "code-2", Text: "impacts global warming"},
+					},
+				},
+			}),
+			Event: domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.RecodedAll, &code.RecodedAllPayload{TargetCodeID: "code-2"}),
+			Expected: buildFile("file-1", file.FileData{}, []file.Chunk{
+				{
+					ID:      "1",
+					Content: "Climate change impacts global warming.\n",
+					Codes: []file.CodedSection{
+						{ID: "section-1", CodeID: "code-2", Text: "Climate change impacts"},
+						{ID: "section-2", CodeID: "code-2", Text: "impacts global warming"},
+					},
+				},
+			}),
+		},
 	}
 
 	deletedEntityTests := reducer_helpers.DeletedEntityTests(

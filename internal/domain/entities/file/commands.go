@@ -14,6 +14,7 @@ const (
 	UpdateCodeSections  commands.Action = "UpdateCodeSections"
 	RemoveCodeSections  commands.Action = "RemoveCodeSections"
 	ClearCoding         commands.Action = "ClearCoding"
+	RemoveCodeFromFile  commands.Action = "RemoveCodeFromFile"
 )
 
 type CreateFilePayload struct {
@@ -39,3 +40,7 @@ type EditFileContentPayload struct {
 }
 
 type DeleteFilePayload = commands.EmptyPayload
+
+type RemoveCodeFromFilePayload struct {
+	CodeID string `json:"code_id" validate:"required,valid_id"`
+}

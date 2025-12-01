@@ -8,10 +8,13 @@ type UpdateCodeData struct {
 	ExclusionCriteria string   `json:"exclusion_criteria,omitempty"`
 	Examples          []string `json:"examples,omitempty"`
 	CounterExamples   []string `json:"counter_examples,omitempty"`
-	Notes             string   `json:"notes,omitempty"`
 }
 
 type MergeCodesData struct {
 	SourceID string `json:"source_id" validate:"required,valid_id"`
 	TargetID string `json:"target_id" validate:"required,valid_id"`
+}
+
+type RecodeAllData struct {
+	TargetCodeID string `json:"target_code_id" validate:"required,valid_id"`
 }

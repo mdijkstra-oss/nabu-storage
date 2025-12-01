@@ -11,6 +11,7 @@ const (
 	UpdatedCodeSections  = "UpdatedCodeSections"
 	RemovedCodeSections  = "RemovedCodeSections"
 	ClearedCoding        = "ClearedCoding"
+	RemovedCodeFromFile  = "RemovedCodeFromFile"
 )
 
 type CreatedFilePayload struct {
@@ -21,3 +22,4 @@ type CreatedFilePayload struct {
 type UpdatedFilePayload = UpdateFilePayload
 type ReplacedFileContentPayload = ReplaceFileContentPayload
 type DeletedFilePayload = commands.EmptyPayload
+type RemovedCodeFromFilePayload = RemoveCodeFromFilePayload

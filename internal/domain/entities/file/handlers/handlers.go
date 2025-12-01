@@ -87,6 +87,17 @@ func NewRouter(reg *registry.RegistryState) dispatch.CommandRouter {
 					dispatch.ToEmptyDomainEvent(file.ClearCoding, file.ClearedCoding),
 				),
 			),
+
+			dispatch.LimitOnAction(file.RemoveCodeFromFile,
+				registry.ValidateDomain(
+					reg,
+					validateCorpusFile[file.RemoveCodeFromFilePayload],
+					dispatch.ToUpdateEntityEvent[file.RemoveCodeFromFilePayload, file.RemovedCodeFromFilePayload](
+						file.RemoveCodeFromFile,
+						file.RemovedCodeFromFile,
+					),
+				),
+			),
 		),
 		dispatch.ToEmptyDomainEvent(file.DeleteFile, file.DeletedFile),
 	)

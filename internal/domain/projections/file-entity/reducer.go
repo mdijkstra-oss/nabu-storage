@@ -21,8 +21,11 @@ var Reducer = projection.WithVersionIncrement(
 				projection.For(file.UpdatedCodeSections, UpdatedCodeSectionsReducer),
 				projection.For(file.RemovedCodeSections, RemovedCodeSectionsReducer),
 				projection.For(file.ClearedCoding, ClearedCodingReducer),
+				projection.For(file.RemovedCodeFromFile, RemovedCodeFromFileReducer),
 				projection.For(code.DeletedCode, DeletedCodeReducer),
 				projection.For(code.MergedCodes, MergedCodesReducer),
+				projection.For(code.ClearedCodeApplications, ClearedCodeApplicationsReducer),
+				projection.For(code.RecodedAll, RecodedAllReducer),
 			),
 			projection.DeletedProjectReducer[file.File],
 		),
@@ -133,24 +136,46 @@ func mapChunkCodes(chunks []file.Chunk, transform func([]file.CodedSection) []fi
 }
 
 func DeletedCodeReducer(current *File, message *commands.AnyMessage, _ code.DeletedCodePayload) *File {
-	codeID := message.AggregateID
-	current.Chunks = mapChunkCodes(current.Chunks, func(codes []file.CodedSection) []file.CodedSection {
-		return utils.Filter(codes, func(cs file.CodedSection) bool {
-			return cs.CodeID != codeID
-		})
-	})
+	current.Chunks = mapChunkCodes(current.Chunks, filterByCodeID(message.AggregateID))
 	return current
 }
 
 func MergedCodesReducer(current *File, _ *commands.AnyMessage, payload code.MergedCodesPayload) *File {
-	current.Chunks = mapChunkCodes(current.Chunks, func(codes []file.CodedSection) []file.CodedSection {
+	current.Chunks = mapChunkCodes(current.Chunks, remapCodeID(payload.SourceID, payload.TargetID))
+	return current
+}
+
+func filterByCodeID(codeID string) func([]file.CodedSection) []file.CodedSection {
+	return func(codes []file.CodedSection) []file.CodedSection {
+		return utils.Filter(codes, func(cs file.CodedSection) bool {
+			return cs.CodeID != codeID
+		})
+	}
+}
+
+func remapCodeID(fromID, toID string) func([]file.CodedSection) []file.CodedSection {
+	return func(codes []file.CodedSection) []file.CodedSection {
 		return utils.Map(codes, func(cs file.CodedSection) file.CodedSection {
-			if cs.CodeID == payload.SourceID {
-				cs.CodeID = payload.TargetID
+			if cs.CodeID == fromID {
+				cs.CodeID = toID
 			}
 			return cs
 		})
-	})
+	}
+}
+
+func RemovedCodeFromFileReducer(current *File, _ *commands.AnyMessage, payload file.RemovedCodeFromFilePayload) *File {
+	current.Chunks = mapChunkCodes(current.Chunks, filterByCodeID(payload.CodeID))
+	return current
+}
+
+func ClearedCodeApplicationsReducer(current *File, message *commands.AnyMessage, _ code.ClearedCodeApplicationsPayload) *File {
+	current.Chunks = mapChunkCodes(current.Chunks, filterByCodeID(message.AggregateID))
+	return current
+}
+
+func RecodedAllReducer(current *File, message *commands.AnyMessage, payload code.RecodedAllPayload) *File {
+	current.Chunks = mapChunkCodes(current.Chunks, remapCodeID(message.AggregateID, payload.TargetCodeID))
 	return current
 }
 

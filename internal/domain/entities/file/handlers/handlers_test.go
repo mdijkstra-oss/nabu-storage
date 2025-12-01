@@ -423,6 +423,30 @@ func TestFileRouter(t *testing.T) {
 			Input:     commands.ToAny(commands.NewCommand[any, any](file.ClearCoding, nil, file.EntityName, testFileMemo, domain_helpers.TestActor(), nil)),
 			ExpectErr: "coding is only allowed on corpus files",
 		},
+		{
+			Name: "RemoveCodeFromFile with valid payload",
+			Input: commands.ToAny(commands.NewCommand[file.RemoveCodeFromFilePayload, any](file.RemoveCodeFromFile, file.RemoveCodeFromFilePayload{
+				CodeID: testCodeID1,
+			}, file.EntityName, testFileWithCode, domain_helpers.TestActor(), nil)),
+			ExpectErr: "",
+			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.RemovedCodeFromFilePayload, any](file.RemovedCodeFromFile, file.RemovedCodeFromFilePayload{
+				CodeID: testCodeID1,
+			}, file.EntityName, testFileWithCode, domain_helpers.TestActor(), nil)),
+		},
+		{
+			Name: "RemoveCodeFromFile fails on non-corpus file",
+			Input: commands.ToAny(commands.NewCommand[file.RemoveCodeFromFilePayload, any](file.RemoveCodeFromFile, file.RemoveCodeFromFilePayload{
+				CodeID: testCodeID1,
+			}, file.EntityName, testFileMemo, domain_helpers.TestActor(), nil)),
+			ExpectErr: "coding is only allowed on corpus files",
+		},
+		{
+			Name: "RemoveCodeFromFile with missing CodeID",
+			Input: commands.ToAny(commands.NewCommand[file.RemoveCodeFromFilePayload, any](file.RemoveCodeFromFile, file.RemoveCodeFromFilePayload{
+				CodeID: "",
+			}, file.EntityName, testFileWithCode, domain_helpers.TestActor(), nil)),
+			ExpectErr: "validation failed: CodeID is required",
+		},
 	}
 
 	rh.RunRouterTests(t, cmds, tests, NewRouter)
