@@ -40,9 +40,9 @@ var cmds = []*commands.AnyMessage{
 	file.CreatedFileEvent(testFileLong, testProjectID, longContent),
 	file.CreatedMemoEvent(testFileMemo, testProjectID, memoContent),
 	file.CreatedFileWithSectionsEvent(testFileWithCode, testProjectID, longContent, []file.CodedSection{
-		{ID: testSectionID1, CodeID: testCodeID1, CodeSlug: "topic:first", Text: "Some text to code", Confidence: file.ConfidenceHigh},
-		{ID: testSectionID2, CodeID: testCodeID2, CodeSlug: "topic:second", Text: "more words for", Confidence: file.ConfidenceMedium},
-		{ID: testSectionID3, CodeID: testCodeID3, CodeSlug: "topic:third", Text: "words for searching", Confidence: file.ConfidenceLow},
+		{ID: testSectionID1, CodeID: testCodeID1, Text: "Some text to code", Confidence: file.ConfidenceHigh},
+		{ID: testSectionID2, CodeID: testCodeID2, Text: "more words for", Confidence: file.ConfidenceMedium},
+		{ID: testSectionID3, CodeID: testCodeID3, Text: "words for searching", Confidence: file.ConfidenceLow},
 	}),
 }
 
@@ -97,14 +97,14 @@ func TestFileRouter(t *testing.T) {
 			Input: commands.ToAny(commands.NewCommand[file.AddCodeSectionsPayload, any](file.AddCodeSections, file.AddCodeSectionsPayload{
 				ChunkID: "chunk-1",
 				Sections: []file.AddSectionOp{
-					{CodeID: testCodeID1, CodeSlug: "topic:test", Text: "Some text to code", Reason: "Test reason", Confidence: file.ConfidenceHigh},
+					{CodeID: testCodeID1, Text: "Some text to code", Reason: "Test reason", Confidence: file.ConfidenceHigh},
 				},
 			}, file.EntityName, testFileShort, domain_helpers.TestActor(), nil)),
 			ExpectErr: "",
 			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.AddedCodeSectionsPayload, any](file.AddedCodeSections, file.AddedCodeSectionsPayload{
 				ChunkID: "chunk-1",
 				Sections: []file.AddedSection{
-					{ID: "generated-id", CodeID: testCodeID1, CodeSlug: "topic:test", Text: "Some text to code", Reason: "Test reason", Confidence: file.ConfidenceHigh},
+					{ID: "generated-id", CodeID: testCodeID1, Text: "Some text to code", Reason: "Test reason", Confidence: file.ConfidenceHigh},
 				},
 			}, file.EntityName, testFileShort, domain_helpers.TestActor(), nil)),
 			IgnoreFields: ignoreGeneratedIDs,
@@ -245,24 +245,24 @@ func TestFileRouter(t *testing.T) {
 			ExpectErr: "validation failed: Sections must be at least 1 characters",
 		},
 		{
-			Name: "AddCodeSections with missing CodeSlug",
+			Name: "AddCodeSections with missing CodeID",
 			Input: commands.ToAny(commands.NewCommand[file.AddCodeSectionsPayload, any](file.AddCodeSections, file.AddCodeSectionsPayload{
 				ChunkID: "chunk-1",
 				Sections: []file.AddSectionOp{
 					{Text: "Some text", Confidence: file.ConfidenceHigh},
 				},
 			}, file.EntityName, testFileShort, domain_helpers.TestActor(), nil)),
-			ExpectErr: "validation failed: CodeSlug is required, CodeID is required",
+			ExpectErr: "validation failed: CodeID is required",
 		},
 		{
-			Name: "AddCodeSections with invalid slug (no colon)",
+			Name: "AddCodeSections with invalid CodeID",
 			Input: commands.ToAny(commands.NewCommand[file.AddCodeSectionsPayload, any](file.AddCodeSections, file.AddCodeSectionsPayload{
 				ChunkID: "chunk-1",
 				Sections: []file.AddSectionOp{
-					{CodeSlug: "topicclimate", Text: "Some text", Confidence: file.ConfidenceHigh},
+					{CodeID: "not-a-uuid", Text: "Some text", Confidence: file.ConfidenceHigh},
 				},
 			}, file.EntityName, testFileShort, domain_helpers.TestActor(), nil)),
-			ExpectErr: "validation failed: CodeSlug must match code slug format (lowercase with colon and optional dashes), CodeID is required",
+			ExpectErr: "validation failed: CodeID failed validation (valid_id)",
 		},
 		{
 			Name: "UpdateCodeSections with missing section ID",
@@ -305,17 +305,17 @@ func TestFileRouter(t *testing.T) {
 			Input: commands.ToAny(commands.NewCommand[file.AddCodeSectionsPayload, any](file.AddCodeSections, file.AddCodeSectionsPayload{
 				ChunkID: "chunk-1",
 				Sections: []file.AddSectionOp{
-					{CodeID: testCodeID1, CodeSlug: "topic:first", Text: "Some text to code", Reason: "First reason", Confidence: file.ConfidenceHigh},
-					{CodeID: testCodeID2, CodeSlug: "topic:invalid", Text: "xy", Reason: "Too short", Confidence: file.ConfidenceMedium},
-					{CodeID: testCodeID3, CodeSlug: "topic:third", Text: "more words for searching", Reason: "Third reason", Confidence: file.ConfidenceLow},
+					{CodeID: testCodeID1, Text: "Some text to code", Reason: "First reason", Confidence: file.ConfidenceHigh},
+					{CodeID: testCodeID2, Text: "xy", Reason: "Too short", Confidence: file.ConfidenceMedium},
+					{CodeID: testCodeID3, Text: "more words for searching", Reason: "Third reason", Confidence: file.ConfidenceLow},
 				},
 			}, file.EntityName, testFileLong, domain_helpers.TestActor(), nil)),
 			ExpectErr: "",
 			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.AddedCodeSectionsPayload, any](file.AddedCodeSections, file.AddedCodeSectionsPayload{
 				ChunkID: "chunk-1",
 				Sections: []file.AddedSection{
-					{ID: "generated-id", CodeID: testCodeID1, CodeSlug: "topic:first", Text: "Some text to code", Reason: "First reason", Confidence: file.ConfidenceHigh},
-					{ID: "generated-id", CodeID: testCodeID3, CodeSlug: "topic:third", Text: "more words for searching", Reason: "Third reason", Confidence: file.ConfidenceLow},
+					{ID: "generated-id", CodeID: testCodeID1, Text: "Some text to code", Reason: "First reason", Confidence: file.ConfidenceHigh},
+					{ID: "generated-id", CodeID: testCodeID3, Text: "more words for searching", Reason: "Third reason", Confidence: file.ConfidenceLow},
 				},
 				Failures: map[int]string{1: "minimum 3 words required: \"xy\""},
 			}, file.EntityName, testFileLong, domain_helpers.TestActor(), nil)),
@@ -326,8 +326,8 @@ func TestFileRouter(t *testing.T) {
 			Input: commands.ToAny(commands.NewCommand[file.AddCodeSectionsPayload, any](file.AddCodeSections, file.AddCodeSectionsPayload{
 				ChunkID: "chunk-1",
 				Sections: []file.AddSectionOp{
-					{CodeID: testCodeID1, CodeSlug: "topic:first", Text: "xy", Reason: "Too short", Confidence: file.ConfidenceHigh},
-					{CodeID: testCodeID2, CodeSlug: "topic:second", Text: "ab", Reason: "Also too short", Confidence: file.ConfidenceHigh},
+					{CodeID: testCodeID1, Text: "xy", Reason: "Too short", Confidence: file.ConfidenceHigh},
+					{CodeID: testCodeID2, Text: "ab", Reason: "Also too short", Confidence: file.ConfidenceHigh},
 				},
 			}, file.EntityName, testFileShort, domain_helpers.TestActor(), nil)),
 			ExpectErr: "validation failed",
@@ -361,21 +361,7 @@ func TestFileRouter(t *testing.T) {
 			ExpectErr: "validation failed",
 		},
 		{
-			Name: "UpdateCodeSections reassign code by slug only",
-			Input: commands.ToAny(commands.NewCommand[file.UpdateCodeSectionsPayload, any](file.UpdateCodeSections, file.UpdateCodeSectionsPayload{
-				Sections: []file.UpdateSectionOp{
-					{ID: testSectionID1, CodeSlug: "topic:second"},
-				},
-			}, file.EntityName, testFileWithCode, domain_helpers.TestActor(), nil)),
-			ExpectErr: "",
-			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.UpdatedCodeSectionsPayload, any](file.UpdatedCodeSections, file.UpdatedCodeSectionsPayload{
-				Sections: []file.UpdateSectionOp{
-					{ID: testSectionID1, CodeSlug: "topic:second", CodeID: testCodeID2},
-				},
-			}, file.EntityName, testFileWithCode, domain_helpers.TestActor(), nil)),
-		},
-		{
-			Name: "UpdateCodeSections reassign code by id only",
+			Name: "UpdateCodeSections reassign code by id",
 			Input: commands.ToAny(commands.NewCommand[file.UpdateCodeSectionsPayload, any](file.UpdateCodeSections, file.UpdateCodeSectionsPayload{
 				Sections: []file.UpdateSectionOp{
 					{ID: testSectionID1, CodeID: testCodeID3},
@@ -384,75 +370,15 @@ func TestFileRouter(t *testing.T) {
 			ExpectErr: "",
 			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.UpdatedCodeSectionsPayload, any](file.UpdatedCodeSections, file.UpdatedCodeSectionsPayload{
 				Sections: []file.UpdateSectionOp{
-					{ID: testSectionID1, CodeSlug: "topic:third", CodeID: testCodeID3},
+					{ID: testSectionID1, CodeID: testCodeID3},
 				},
 			}, file.EntityName, testFileWithCode, domain_helpers.TestActor(), nil)),
-		},
-		{
-			Name: "UpdateCodeSections reassign code with matching slug and id",
-			Input: commands.ToAny(commands.NewCommand[file.UpdateCodeSectionsPayload, any](file.UpdateCodeSections, file.UpdateCodeSectionsPayload{
-				Sections: []file.UpdateSectionOp{
-					{ID: testSectionID1, CodeSlug: "topic:second", CodeID: testCodeID2},
-				},
-			}, file.EntityName, testFileWithCode, domain_helpers.TestActor(), nil)),
-			ExpectErr: "",
-			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.UpdatedCodeSectionsPayload, any](file.UpdatedCodeSections, file.UpdatedCodeSectionsPayload{
-				Sections: []file.UpdateSectionOp{
-					{ID: testSectionID1, CodeSlug: "topic:second", CodeID: testCodeID2},
-				},
-			}, file.EntityName, testFileWithCode, domain_helpers.TestActor(), nil)),
-		},
-		{
-			Name: "UpdateCodeSections with mismatched slug and id uses valid slug",
-			Input: commands.ToAny(commands.NewCommand[file.UpdateCodeSectionsPayload, any](file.UpdateCodeSections, file.UpdateCodeSectionsPayload{
-				Sections: []file.UpdateSectionOp{
-					{ID: testSectionID1, CodeSlug: "topic:second", CodeID: testCodeID3},
-				},
-			}, file.EntityName, testFileWithCode, domain_helpers.TestActor(), nil)),
-			ExpectErr: "",
-			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.UpdatedCodeSectionsPayload, any](file.UpdatedCodeSections, file.UpdatedCodeSectionsPayload{
-				Sections: []file.UpdateSectionOp{
-					{ID: testSectionID1, CodeSlug: "topic:second", CodeID: testCodeID2},
-				},
-			}, file.EntityName, testFileWithCode, domain_helpers.TestActor(), nil)),
-		},
-		{
-			Name: "UpdateCodeSections with invalid slug but valid id uses id",
-			Input: commands.ToAny(commands.NewCommand[file.UpdateCodeSectionsPayload, any](file.UpdateCodeSections, file.UpdateCodeSectionsPayload{
-				Sections: []file.UpdateSectionOp{
-					{ID: testSectionID1, CodeSlug: "topic:nonexistent", CodeID: testCodeID2},
-				},
-			}, file.EntityName, testFileWithCode, domain_helpers.TestActor(), nil)),
-			ExpectErr: "",
-			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.UpdatedCodeSectionsPayload, any](file.UpdatedCodeSections, file.UpdatedCodeSectionsPayload{
-				Sections: []file.UpdateSectionOp{
-					{ID: testSectionID1, CodeSlug: "topic:second", CodeID: testCodeID2},
-				},
-			}, file.EntityName, testFileWithCode, domain_helpers.TestActor(), nil)),
-		},
-		{
-			Name: "UpdateCodeSections fails with nonexistent slug",
-			Input: commands.ToAny(commands.NewCommand[file.UpdateCodeSectionsPayload, any](file.UpdateCodeSections, file.UpdateCodeSectionsPayload{
-				Sections: []file.UpdateSectionOp{
-					{ID: testSectionID1, CodeSlug: "topic:nonexistent"},
-				},
-			}, file.EntityName, testFileWithCode, domain_helpers.TestActor(), nil)),
-			ExpectErr: "validation failed",
 		},
 		{
 			Name: "UpdateCodeSections fails with nonexistent code id",
 			Input: commands.ToAny(commands.NewCommand[file.UpdateCodeSectionsPayload, any](file.UpdateCodeSections, file.UpdateCodeSectionsPayload{
 				Sections: []file.UpdateSectionOp{
 					{ID: testSectionID1, CodeID: utils.NewID()},
-				},
-			}, file.EntityName, testFileWithCode, domain_helpers.TestActor(), nil)),
-			ExpectErr: "validation failed",
-		},
-		{
-			Name: "UpdateCodeSections fails when both slug and code id are invalid",
-			Input: commands.ToAny(commands.NewCommand[file.UpdateCodeSectionsPayload, any](file.UpdateCodeSections, file.UpdateCodeSectionsPayload{
-				Sections: []file.UpdateSectionOp{
-					{ID: testSectionID1, CodeSlug: "topic:nonexistent", CodeID: utils.NewID()},
 				},
 			}, file.EntityName, testFileWithCode, domain_helpers.TestActor(), nil)),
 			ExpectErr: "validation failed",

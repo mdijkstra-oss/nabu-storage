@@ -21,7 +21,6 @@ var Reducer = projection.WithHealthCheck(
 			projection.For(file.RemovedCodeSections, RemovedCodeSectionsReducer),
 			projection.For(file.ClearedCoding, ClearedCodingReducer),
 			projection.For(code.DeletedCode, DeletedCodeReducer),
-			projection.For(code.UpdatedCode, UpdatedCodeReducer),
 			projection.For(code.MergedCodes, MergedCodesReducer),
 		),
 		projection.DeletedProjectReducer[file.File],
@@ -63,7 +62,6 @@ func withLastActor(section file.CodedSection, actor commands.Actor) file.CodedSe
 func toCodedSection(section file.AddedSection, actor commands.Actor) file.CodedSection {
 	return withLastActor(file.CodedSection{
 		ID:         section.ID,
-		CodeSlug:   section.CodeSlug,
 		CodeID:     section.CodeID,
 		Text:       section.Text,
 		Reason:     section.Reason,
@@ -137,19 +135,6 @@ func DeletedCodeReducer(current *File, message *commands.AnyMessage, _ code.Dele
 	current.Chunks = mapChunkCodes(current.Chunks, func(codes []file.CodedSection) []file.CodedSection {
 		return utils.Filter(codes, func(cs file.CodedSection) bool {
 			return cs.CodeID != codeID
-		})
-	})
-	return current
-}
-
-func UpdatedCodeReducer(current *File, message *commands.AnyMessage, payload code.UpdateCodePayload) *File {
-	codeID := message.AggregateID
-	current.Chunks = mapChunkCodes(current.Chunks, func(codes []file.CodedSection) []file.CodedSection {
-		return utils.Map(codes, func(cs file.CodedSection) file.CodedSection {
-			if cs.CodeID == codeID {
-				cs.CodeSlug = payload.Slug
-			}
-			return cs
 		})
 	})
 	return current

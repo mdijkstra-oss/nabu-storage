@@ -192,7 +192,6 @@ paths:
                     chunk_id: "1"
                     sections:
                       - code_id: "660e8400-e29b-41d4-a716-446655440001"
-                        code_slug: "emotion:anxiety"
                         text: "I was really worried about the surgery"
                         reason: "Explicit expression of pre-procedure worry"
                         confidence: "high"
@@ -391,13 +390,11 @@ paths:
                         sections:
                           - id: "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a"
                             code_id: "660e8400-e29b-41d4-a716-446655440001"
-                            code_slug: "emotion:anxiety"
                             text: "I was really worried about the surgery"
                             reason: "Explicit expression of pre-procedure worry"
                             confidence: "high"
                           - id: "e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b"
                             code_id: "770e8400-e29b-41d4-a716-446655440002"
-                            code_slug: "topic:patient-experience"
                             text: "The doctor explained everything clearly"
                             reason: "Positive patient-provider communication"
                             confidence: "medium"
@@ -853,14 +850,14 @@ paths:
             format: double
             minimum: 0.0
             maximum: 1.0
-        - name: codeSlugs
+        - name: codeIds
           in: query
-          description: Filter by specific code slugs (comma-separated)
+          description: Filter by specific code IDs (comma-separated UUIDs)
           schema:
             type: array
             items:
               type: string
-              pattern: '^[a-z]+(-[a-z]+)*:[a-z]+(-[a-z]+)*$'
+              format: uuid
           style: form
           explode: false
       responses:
@@ -879,7 +876,6 @@ paths:
                       content: "Participant describes feeling anxious about the upcoming procedure. They mention worrying about potential complications."
                       codes:
                         - id: "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
-                          code_slug: "emotion:anxiety"
                           code_id: "660e8400-e29b-41d4-a716-446655440001"
                           text: "feeling anxious about the upcoming procedure"
                           reason: "Direct expression of pre-procedure anxiety"
@@ -1013,52 +1009,6 @@ paths:
                   - "We need to protect our forests and wildlife"
                 notes: "Consider splitting into sub-codes for different energy types"
                 healthy: true
-        '404':
-          description: Code not found
-
-  /queries/projects/{projectId}/codes/slug/{slug}:
-    get:
-      summary: Get code by slug
-      parameters:
-        - name: projectId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: slug
-          in: path
-          required: true
-          schema:
-            type: string
-            pattern: '^[a-z]+(-[a-z]+)*:[a-z]+(-[a-z]+)*$'
-          description: Code slug in format category:name (e.g., emotion:anxiety)
-      responses:
-        '200':
-          description: Code details
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Code'
-              example:
-                id: "660e8400-e29b-41d4-a716-446655440001"
-                project_id: "550e8400-e29b-41d4-a716-446655440000"
-                slug: "usability:friction-point"
-                color: "amber"
-                definition: "Moments where users express confusion, frustration, or struggle with interface elements"
-                inclusion_criteria: "Look for verbal confusion, repeated errors, requests for help"
-                examples: ["I don't know where to click", "This doesn't work like I expected"]
-                healthy: true
-        '400':
-          description: Invalid slug format
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                message: "validation failed: Slug must match code slug format (lowercase with colon and optional dashes)"
-                fields:
-                  Slug: "code_slug"
         '404':
           description: Code not found
 
@@ -1517,7 +1467,6 @@ components:
       type: object
       required:
         - id
-        - code_slug
         - code_id
         - text
         - confidence
@@ -1526,14 +1475,10 @@ components:
           type: string
           format: uuid
           description: Unique identifier for this coded section
-        code_slug:
-          type: string
-          pattern: '^[a-z]+(-[a-z]+)*:[a-z]+(-[a-z]+)*$'
-          minLength: 3
-          maxLength: 100
         code_id:
           type: string
           format: uuid
+          description: ID of the code applied to this section
         text:
           type: string
           minLength: 1
@@ -1807,17 +1752,14 @@ components:
     AddSectionOp:
       type: object
       required:
-        - code_slug
         - code_id
         - text
         - confidence
       properties:
-        code_slug:
-          type: string
-          pattern: '^[a-z]+(-[a-z]+)*:[a-z]+(-[a-z]+)*$'
         code_id:
           type: string
           format: uuid
+          description: ID of the code to apply
         text:
           type: string
           minLength: 1
@@ -1857,20 +1799,10 @@ components:
           type: string
           format: uuid
           description: ID of the section to update
-        code_slug:
-          type: string
-          pattern: '^[a-z]+(-[a-z]+)*:[a-z]+(-[a-z]+)*$'
-          description: |
-            New code slug to reassign section to. The code_id will be resolved
-            from the project's codes. If both slug and id are provided, slug
-            takes priority if valid; otherwise id is used.
         code_id:
           type: string
           format: uuid
-          description: |
-            New code ID to reassign section to. The code_slug will be resolved
-            from the project's codes. If both slug and id are provided, slug
-            takes priority if valid; otherwise id is used.
+          description: New code ID to reassign section to (optional)
         text:
           type: string
           minLength: 1
@@ -2196,21 +2128,18 @@ x-command-reference:
             "sections": [
               {
                 "code_id": "660e8400-e29b-41d4-a716-446655440001",
-                "code_slug": "usability:confusion",
                 "text": "I didn't understand how to submit the form",
                 "reason": "User expresses confusion about a core interface function",
                 "confidence": "high"
               },
               {
                 "code_id": "770e8400-e29b-41d4-a716-446655440002",
-                "code_slug": "emotion:frustration",
                 "text": "This is so frustrating",
                 "reason": "Direct emotional expression of frustration",
                 "confidence": "medium"
               },
               {
                 "code_id": "880e8400-e29b-41d4-a716-446655440003",
-                "code_slug": "theme:interface-design",
                 "text": "The button was hard to find",
                 "reason": "Possible indication of interface design issue, needs review",
                 "confidence": "low"
@@ -2229,8 +2158,7 @@ x-command-reference:
         - If text is provided, it must exist in the section's chunk (fuzzy matched, normalized)
         - If text is provided, it must contain at least 3 words
         - Confidence is optional (high, medium, or low)
-        - If code_slug or code_id is provided, at least one must match a code in the project
-        - If both are provided, slug is tried first; if invalid, id is used as fallback
+        - If code_id is provided, it must match a code in the project
         - Array validation errors use format sections[index]
       partial_success: |
         Supports partial success. If some sections pass validation and others fail:
@@ -2241,8 +2169,7 @@ x-command-reference:
       note: |
         Only include fields to update. Chunk ID is not required - sections are found
         by their unique ID across all chunks. To reassign a section to a different code,
-        provide code_slug and/or code_id. The system resolves the correct pair:
-        slug takes priority if valid, otherwise id is used as fallback.
+        provide code_id.
       example: |
         {
           "type": "Command",
@@ -2258,7 +2185,7 @@ x-command-reference:
               },
               {
                 "id": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
-                "code_slug": "theme:different-topic",
+                "code_id": "990e8400-e29b-41d4-a716-446655440005",
                 "reason": "Reassigned to different code"
               },
               {

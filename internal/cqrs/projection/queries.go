@@ -6,10 +6,6 @@ type IDQuery struct {
 	ID string `path:"id" validate:"required,valid_id"`
 }
 
-type SlugQuery struct {
-	Slug string `path:"slug" validate:"required,code_slug"`
-}
-
 type PaginationQuery struct {
 	Page     int `query:"page" validate:"min=1" default:"1"`
 	PageSize int `query:"page_size" validate:"min=1,max=100" default:"20"`

@@ -72,8 +72,7 @@ type FileData struct {
 
 type CodedSection struct {
 	ID         string         `json:"id" validate:"omitempty,valid_id"`
-	CodeSlug   string         `json:"code_slug" validate:"required,min=3,max=100,code_slug" normalize:"trim,lowercase"`
-	CodeID     string         `json:"code_id" validate:"required"`
+	CodeID     string         `json:"code_id" validate:"required,valid_id"`
 	Text       string         `json:"text" validate:"required,min=1,max=1500"`
 	Reason     string         `json:"reason" validate:"max=1500"`
 	Confidence Confidence     `json:"confidence" validate:"required,oneof=high medium low"`

@@ -10,14 +10,14 @@ type ChunkFilter struct {
 	SearchText  string   `query:"searchText"`
 	MinCoverage *float64 `query:"minCoverage"`
 	MaxCoverage *float64 `query:"maxCoverage"`
-	CodeSlugs   []string `query:"codeSlugs"`
+	CodeIDs     []string `query:"codeIds"`
 }
 
-func CalculateChunkCoverage(chunk file.Chunk, codeSlugs []string) float64 {
+func CalculateChunkCoverage(chunk file.Chunk, codeIDs []string) float64 {
 	sections := chunk.Codes
-	if len(codeSlugs) > 0 {
+	if len(codeIDs) > 0 {
 		sections = utils.Filter(sections, func(cs file.CodedSection) bool {
-			return utils.Contains(codeSlugs, cs.CodeSlug)
+			return utils.Contains(codeIDs, cs.CodeID)
 		})
 	}
 
@@ -37,9 +37,9 @@ func FilterChunksByText(chunks []file.Chunk, searchText string) []file.Chunk {
 	})
 }
 
-func FilterChunksByCoverage(chunks []file.Chunk, minCoverage, maxCoverage *float64, codeSlugs []string) []file.Chunk {
+func FilterChunksByCoverage(chunks []file.Chunk, minCoverage, maxCoverage *float64, codeIDs []string) []file.Chunk {
 	return utils.Filter(chunks, func(chunk file.Chunk) bool {
-		coverage := CalculateChunkCoverage(chunk, codeSlugs)
+		coverage := CalculateChunkCoverage(chunk, codeIDs)
 
 		if minCoverage != nil && coverage < *minCoverage {
 			return false
@@ -56,8 +56,8 @@ func ApplyFilter(chunks []file.Chunk, filter ChunkFilter) []file.Chunk {
 		chunks = FilterChunksByText(chunks, filter.SearchText)
 	}
 
-	if filter.MinCoverage != nil || filter.MaxCoverage != nil || len(filter.CodeSlugs) > 0 {
-		chunks = FilterChunksByCoverage(chunks, filter.MinCoverage, filter.MaxCoverage, filter.CodeSlugs)
+	if filter.MinCoverage != nil || filter.MaxCoverage != nil || len(filter.CodeIDs) > 0 {
+		chunks = FilterChunksByCoverage(chunks, filter.MinCoverage, filter.MaxCoverage, filter.CodeIDs)
 	}
 
 	return chunks

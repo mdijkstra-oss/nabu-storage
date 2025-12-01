@@ -110,7 +110,7 @@ func TestFileReducer(t *testing.T) {
 			Event: domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.AddedCodeSections, &file.AddedCodeSectionsPayload{
 				ChunkID: "1",
 				Sections: []file.AddedSection{
-					{ID: "section-id-1", CodeID: "code-1", CodeSlug: "topic:climate", Text: "Climate change impacts", Reason: "Climate ref", Confidence: file.ConfidenceHigh},
+					{ID: "section-id-1", CodeID: "code-1", Text: "Climate change impacts", Reason: "Climate ref", Confidence: file.ConfidenceHigh},
 				},
 			}),
 			Expected: buildFile("file-1", file.FileData{}, []file.Chunk{
@@ -118,7 +118,7 @@ func TestFileReducer(t *testing.T) {
 					ID:      "1",
 					Content: "Climate change impacts global warming.\n",
 					Codes: []file.CodedSection{
-						{ID: "generated-id-1", CodeID: "code-1", CodeSlug: "topic:climate", Text: "Climate change impacts", Reason: "Climate ref", Confidence: file.ConfidenceHigh, LastActor: testActor()},
+						{ID: "generated-id-1", CodeID: "code-1", Text: "Climate change impacts", Reason: "Climate ref", Confidence: file.ConfidenceHigh, LastActor: testActor()},
 					},
 				},
 			}),
@@ -130,8 +130,8 @@ func TestFileReducer(t *testing.T) {
 					ID:      "1",
 					Content: "Climate change impacts global warming.\n",
 					Codes: []file.CodedSection{
-						{ID: "section-1", CodeID: "code-1", CodeSlug: "topic:climate", Text: "Climate change impacts", Reason: "Old"},
-						{ID: "section-2", CodeID: "code-1", CodeSlug: "topic:climate", Text: "impacts global warming", Reason: "Old"},
+						{ID: "section-1", CodeID: "code-1", Text: "Climate change impacts", Reason: "Old"},
+						{ID: "section-2", CodeID: "code-1", Text: "impacts global warming", Reason: "Old"},
 					},
 				},
 			}),
@@ -145,8 +145,8 @@ func TestFileReducer(t *testing.T) {
 					ID:      "1",
 					Content: "Climate change impacts global warming.\n",
 					Codes: []file.CodedSection{
-						{ID: "section-1", CodeID: "code-1", CodeSlug: "topic:climate", Text: "Climate change impacts", Reason: "New reason", LastActor: testActor()},
-						{ID: "section-2", CodeID: "code-1", CodeSlug: "topic:climate", Text: "impacts global warming", Reason: "Old"},
+						{ID: "section-1", CodeID: "code-1", Text: "Climate change impacts", Reason: "New reason", LastActor: testActor()},
+						{ID: "section-2", CodeID: "code-1", Text: "impacts global warming", Reason: "Old"},
 					},
 				},
 			}),
@@ -158,8 +158,8 @@ func TestFileReducer(t *testing.T) {
 					ID:      "1",
 					Content: "Climate change impacts global warming.\n",
 					Codes: []file.CodedSection{
-						{ID: "section-1", CodeID: "code-1", CodeSlug: "topic:climate", Text: "Climate change impacts"},
-						{ID: "section-2", CodeID: "code-2", CodeSlug: "topic:temperature", Text: "impacts global warming"},
+						{ID: "section-1", CodeID: "code-1", Text: "Climate change impacts"},
+						{ID: "section-2", CodeID: "code-2", Text: "impacts global warming"},
 					},
 				},
 			}),
@@ -171,7 +171,7 @@ func TestFileReducer(t *testing.T) {
 					ID:      "1",
 					Content: "Climate change impacts global warming.\n",
 					Codes: []file.CodedSection{
-						{ID: "section-2", CodeID: "code-2", CodeSlug: "topic:temperature", Text: "impacts global warming"},
+						{ID: "section-2", CodeID: "code-2", Text: "impacts global warming"},
 					},
 				},
 			}),
@@ -183,9 +183,9 @@ func TestFileReducer(t *testing.T) {
 					ID:      "1",
 					Content: "Climate change impacts global warming and causes temperature rise.\n",
 					Codes: []file.CodedSection{
-						{ID: "section-1", CodeID: "code-1", CodeSlug: "topic:climate", Text: "Climate change impacts"},
-						{ID: "section-2", CodeID: "code-1", CodeSlug: "topic:climate", Text: "impacts global warming"},
-						{ID: "section-3", CodeID: "code-1", CodeSlug: "topic:climate", Text: "causes temperature rise"},
+						{ID: "section-1", CodeID: "code-1", Text: "Climate change impacts"},
+						{ID: "section-2", CodeID: "code-1", Text: "impacts global warming"},
+						{ID: "section-3", CodeID: "code-1", Text: "causes temperature rise"},
 					},
 				},
 			}),
@@ -197,8 +197,8 @@ func TestFileReducer(t *testing.T) {
 					ID:      "1",
 					Content: "Climate change impacts global warming and causes temperature rise.\n",
 					Codes: []file.CodedSection{
-						{ID: "section-1", CodeID: "code-1", CodeSlug: "topic:climate", Text: "Climate change impacts"},
-						{ID: "section-3", CodeID: "code-1", CodeSlug: "topic:climate", Text: "causes temperature rise"},
+						{ID: "section-1", CodeID: "code-1", Text: "Climate change impacts"},
+						{ID: "section-3", CodeID: "code-1", Text: "causes temperature rise"},
 					},
 				},
 			}),
@@ -210,9 +210,9 @@ func TestFileReducer(t *testing.T) {
 					ID:      "1",
 					Content: "Climate change impacts global warming and causes temperature rise.\n",
 					Codes: []file.CodedSection{
-						{ID: "section-1", CodeID: "code-1", CodeSlug: "topic:climate", Text: "Climate change impacts"},
-						{ID: "section-2", CodeID: "code-1", CodeSlug: "topic:climate", Text: "impacts global warming"},
-						{ID: "section-3", CodeID: "code-1", CodeSlug: "topic:climate", Text: "causes temperature rise"},
+						{ID: "section-1", CodeID: "code-1", Text: "Climate change impacts"},
+						{ID: "section-2", CodeID: "code-1", Text: "impacts global warming"},
+						{ID: "section-3", CodeID: "code-1", Text: "causes temperature rise"},
 					},
 				},
 			}),
@@ -224,8 +224,8 @@ func TestFileReducer(t *testing.T) {
 					ID:      "1",
 					Content: "Climate change impacts global warming and causes temperature rise.\n",
 					Codes: []file.CodedSection{
-						{ID: "section-1", CodeID: "code-1", CodeSlug: "topic:climate", Text: "Climate change impacts"},
-						{ID: "section-2", CodeID: "code-1", CodeSlug: "topic:climate", Text: "impacts global warming"},
+						{ID: "section-1", CodeID: "code-1", Text: "Climate change impacts"},
+						{ID: "section-2", CodeID: "code-1", Text: "impacts global warming"},
 					},
 				},
 			}),
@@ -237,10 +237,10 @@ func TestFileReducer(t *testing.T) {
 					ID:      "1",
 					Content: "Climate change impacts global warming and causes temperature rise.\n",
 					Codes: []file.CodedSection{
-						{ID: "section-1", CodeID: "code-1", CodeSlug: "topic:climate", Text: "Climate change impacts"},
-						{ID: "section-2", CodeID: "code-1", CodeSlug: "topic:climate", Text: "impacts global warming"},
-						{ID: "section-3", CodeID: "code-2", CodeSlug: "topic:temperature", Text: "global warming"},
-						{ID: "section-4", CodeID: "code-1", CodeSlug: "topic:climate", Text: "causes temperature rise"},
+						{ID: "section-1", CodeID: "code-1", Text: "Climate change impacts"},
+						{ID: "section-2", CodeID: "code-1", Text: "impacts global warming"},
+						{ID: "section-3", CodeID: "code-2", Text: "global warming"},
+						{ID: "section-4", CodeID: "code-1", Text: "causes temperature rise"},
 					},
 				},
 			}),
@@ -252,8 +252,8 @@ func TestFileReducer(t *testing.T) {
 					ID:      "1",
 					Content: "Climate change impacts global warming and causes temperature rise.\n",
 					Codes: []file.CodedSection{
-						{ID: "section-1", CodeID: "code-1", CodeSlug: "topic:climate", Text: "Climate change impacts"},
-						{ID: "section-3", CodeID: "code-2", CodeSlug: "topic:temperature", Text: "global warming"},
+						{ID: "section-1", CodeID: "code-1", Text: "Climate change impacts"},
+						{ID: "section-3", CodeID: "code-2", Text: "global warming"},
 					},
 				},
 			}),
@@ -265,7 +265,7 @@ func TestFileReducer(t *testing.T) {
 					ID:      "1",
 					Content: "Test content\n",
 					Codes: []file.CodedSection{
-						{ID: "section-1", CodeSlug: "topic:climate", Text: "Test"},
+						{ID: "section-1", CodeID: "code-1", Text: "Test"},
 					},
 				},
 			}),
@@ -285,8 +285,8 @@ func TestFileReducer(t *testing.T) {
 					ID:      "1",
 					Content: "Climate change impacts global warming.\n",
 					Codes: []file.CodedSection{
-						{ID: "section-1", CodeID: "code-1", CodeSlug: "topic:climate", Text: "Climate change impacts"},
-						{ID: "section-2", CodeID: "code-2", CodeSlug: "topic:temperature", Text: "impacts global warming"},
+						{ID: "section-1", CodeID: "code-1", Text: "Climate change impacts"},
+						{ID: "section-2", CodeID: "code-2", Text: "impacts global warming"},
 					},
 				},
 			}),
@@ -296,31 +296,7 @@ func TestFileReducer(t *testing.T) {
 					ID:      "1",
 					Content: "Climate change impacts global warming.\n",
 					Codes: []file.CodedSection{
-						{ID: "section-2", CodeID: "code-2", CodeSlug: "topic:temperature", Text: "impacts global warming"},
-					},
-				},
-			}),
-		},
-		{
-			Name: "UpdatedCode changes slug for all codes with matching CodeID",
-			Initial: buildFile("file-1", file.FileData{}, []file.Chunk{
-				{
-					ID:      "1",
-					Content: "Climate change impacts global warming.\n",
-					Codes: []file.CodedSection{
-						{ID: "section-1", CodeID: "code-1", CodeSlug: "topic:climate-old", Text: "Climate change impacts"},
-						{ID: "section-2", CodeID: "code-1", CodeSlug: "topic:climate-old", Text: "impacts global warming"},
-					},
-				},
-			}),
-			Event: domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.UpdatedCode, &code.UpdatedCodePayload{Slug: "topic:climate-new"}),
-			Expected: buildFile("file-1", file.FileData{}, []file.Chunk{
-				{
-					ID:      "1",
-					Content: "Climate change impacts global warming.\n",
-					Codes: []file.CodedSection{
-						{ID: "section-1", CodeID: "code-1", CodeSlug: "topic:climate-new", Text: "Climate change impacts"},
-						{ID: "section-2", CodeID: "code-1", CodeSlug: "topic:climate-new", Text: "impacts global warming"},
+						{ID: "section-2", CodeID: "code-2", Text: "impacts global warming"},
 					},
 				},
 			}),
@@ -332,8 +308,8 @@ func TestFileReducer(t *testing.T) {
 					ID:      "1",
 					Content: "Climate change impacts global warming.\n",
 					Codes: []file.CodedSection{
-						{ID: "section-1", CodeID: "code-1", CodeSlug: "topic:climate", Text: "Climate change impacts"},
-						{ID: "section-2", CodeID: "code-2", CodeSlug: "topic:temperature", Text: "impacts global warming"},
+						{ID: "section-1", CodeID: "code-1", Text: "Climate change impacts"},
+						{ID: "section-2", CodeID: "code-2", Text: "impacts global warming"},
 					},
 				},
 			}),
@@ -343,8 +319,8 @@ func TestFileReducer(t *testing.T) {
 					ID:      "1",
 					Content: "Climate change impacts global warming.\n",
 					Codes: []file.CodedSection{
-						{ID: "section-1", CodeID: "code-2", CodeSlug: "topic:climate", Text: "Climate change impacts"},
-						{ID: "section-2", CodeID: "code-2", CodeSlug: "topic:temperature", Text: "impacts global warming"},
+						{ID: "section-1", CodeID: "code-2", Text: "Climate change impacts"},
+						{ID: "section-2", CodeID: "code-2", Text: "impacts global warming"},
 					},
 				},
 			}),

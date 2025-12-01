@@ -17,11 +17,6 @@ func GetAllCodes(proj project.Project) []code.Code {
 	return utils.Values(proj.Codes)
 }
 
-func GetCodeBySlug(proj project.Project, slug string) *code.Code {
-	codes := utils.Values(proj.Codes)
-	return codeview.GetBySlug(codes, slug)
-}
-
 func IsSlugAvailable(proj project.Project, slug string, excludeID string) bool {
 	codes := utils.Values(proj.Codes)
 	return codeview.IsSlugAvailable(codes, slug, excludeID)

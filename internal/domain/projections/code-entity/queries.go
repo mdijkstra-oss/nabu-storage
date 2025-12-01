@@ -15,8 +15,3 @@ func QueryCodes(query projection.PaginationQuery, proj project.Project) []projec
 func QueryCode(query projection.IDQuery, proj project.Project) *code.Code {
 	return projection.GetFromMap(proj.Codes, query.ID)
 }
-
-func QueryCodeBySlug(query projection.SlugQuery, proj project.Project) *code.Code {
-	codes := utils.Values(proj.Codes)
-	return GetBySlug(codes, query.Slug)
-}
