@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: hermes-relay-api
-  version: 1.10.0
+  version: 1.11.0
   description: |
     CQRS-based qualitative data analysis API for coding and analyzing research data.
 
@@ -2001,6 +2001,26 @@ components:
             IDs of sections to remove.
             The system searches across all chunks in the file to find each section.
 
+    RecodeAllPayload:
+      type: object
+      required:
+        - target_code_id
+      properties:
+        target_code_id:
+          type: string
+          format: uuid
+          description: ID of the code to recode sections to
+
+    RemoveCodeFromFilePayload:
+      type: object
+      required:
+        - code_id
+      properties:
+        code_id:
+          type: string
+          format: uuid
+          description: ID of the code to remove from this file
+
 x-command-reference:
   description: |
     Complete reference of all supported commands by aggregate type.
@@ -2169,6 +2189,40 @@ x-command-reference:
           "payload": {
             "source_id": "660e8400-e29b-41d4-a716-446655440001",
             "target_id": "770e8400-e29b-41d4-a716-446655440002"
+          }
+        }
+
+    ClearCodeApplications:
+      description: Remove all applications of this code from all files in the project
+      payload: EmptyPayload
+      aggregate_id: code UUID
+      event: ClearedCodeApplications
+      note: No payload fields required. This deletes all coded sections that use this code across all files.
+      example: |
+        {
+          "type": "Command",
+          "action": "ClearCodeApplications",
+          "aggregate_type": "Code",
+          "aggregate_id": "660e8400-e29b-41d4-a716-446655440001",
+          "payload": {}
+        }
+
+    RecodeAll:
+      description: Recode all sections using this code to use a different target code
+      payload: RecodeAllPayload
+      aggregate_id: code UUID
+      event: RecodedAll
+      validation:
+        - Target code must exist
+        - Cannot recode to self
+      example: |
+        {
+          "type": "Command",
+          "action": "RecodeAll",
+          "aggregate_type": "Code",
+          "aggregate_id": "660e8400-e29b-41d4-a716-446655440001",
+          "payload": {
+            "target_code_id": "770e8400-e29b-41d4-a716-446655440002"
           }
         }
 
@@ -2402,4 +2456,22 @@ x-command-reference:
           "aggregate_type": "File",
           "aggregate_id": "770e8400-e29b-41d4-a716-446655440002",
           "payload": {}
+        }
+
+    RemoveCodeFromFile:
+      description: Remove all sections using a specific code from this file
+      payload: RemoveCodeFromFilePayload
+      aggregate_id: file UUID
+      event: RemovedCodeFromFile
+      validation:
+        - Code must exist
+      example: |
+        {
+          "type": "Command",
+          "action": "RemoveCodeFromFile",
+          "aggregate_type": "File",
+          "aggregate_id": "770e8400-e29b-41d4-a716-446655440002",
+          "payload": {
+            "code_id": "660e8400-e29b-41d4-a716-446655440001"
+          }
         }
