@@ -11,6 +11,31 @@ type wordPosition struct {
 	start, end int
 }
 
+func headingLevel(s string) int {
+	trimmed := strings.TrimLeft(s, " \t")
+	count := 0
+	for _, r := range trimmed {
+		if r == '#' {
+			count++
+		} else {
+			break
+		}
+	}
+	if count > 0 && count < len(trimmed) && (trimmed[count] == ' ' || trimmed[count] == '\t') {
+		return count
+	}
+	return 0
+}
+
+func matchIsAtHeading(chunk string, matchStart, requiredLevel int) bool {
+	lineStart := matchStart
+	for lineStart > 0 && chunk[lineStart-1] != '\n' {
+		lineStart--
+	}
+	lineContent := chunk[lineStart:]
+	return headingLevel(lineContent) == requiredLevel
+}
+
 func extractWords(text string) []wordPosition {
 	var words []wordPosition
 	inWord := false
@@ -55,6 +80,8 @@ func Find(needle, chunk string) (text string, found bool) {
 		return "", false
 	}
 
+	requiredHeadingLevel := headingLevel(needle)
+
 	words := extractWords(chunk)
 	if len(words) < len(needleTokens) {
 		return "", false
@@ -69,6 +96,9 @@ func Find(needle, chunk string) (text string, found bool) {
 		windowTokens := tokenize(windowText)
 
 		if len(windowTokens) == len(needleTokens) && tokenOverlap(needleTokens, windowTokens) >= MIN_OVERLAP && isSubsequence(needleTokens, windowTokens) {
+			if requiredHeadingLevel > 0 && !matchIsAtHeading(chunk, start, requiredHeadingLevel) {
+				continue
+			}
 			start, end = expandToWordBoundaries(chunk, start, end)
 			start, end = BalanceMarkdownTags(chunk, start, end)
 			return chunk[start:end], true
