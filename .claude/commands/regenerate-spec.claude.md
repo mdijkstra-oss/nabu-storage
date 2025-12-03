@@ -813,9 +813,88 @@ Always translate Go validation tags to OpenAPI constraints:
 After showing the diff, ALWAYS wait for explicit user confirmation before applying any changes.
 Do NOT assume consent from related discussion - only apply when user explicitly says to apply.
 
+## Entity Schema Files
+
+**In addition to the OpenAPI spec, update JSON schema files for each entity.**
+
+### Location
+Each entity has a `schema.json` file in its folder:
+- `internal/domain/entities/code/schema.json`
+- `internal/domain/entities/file/schema.json`
+- `internal/domain/entities/project/schema.json`
+
+### Discovery
+1. `ls internal/domain/entities/` to find all entity folders
+2. For each entity, check if `schema.json` exists
+3. Read `entity.go` to get current struct definition
+4. For Project: use `ProjectArrayView` from `internal/domain/projections/project-entity/view.go` (arrays not maps)
+
+### Schema Generation Rules
+1. **$schema**: Always `http://json-schema.org/draft-07/schema#`
+2. **$comment**: Include LLM guidance (e.g., "LLM: Keep in sync with entity.go")
+3. **For Project specifically**: Comment must note it uses array children and reference `ProjectArrayView`
+4. **required**: Extract from `validate:"required"` tags
+5. **properties**: Map Go types to JSON Schema types
+   - `string` → `type: "string"`
+   - `int` → `type: "integer"`
+   - `bool` → `type: "boolean"`
+   - `time.Time` → `type: "string", format: "date-time"`
+   - `[]T` → `type: "array", items: {...}`
+   - Embedded structs → flatten properties
+6. **validation**: Translate tags
+   - `min=X,max=Y` → `minLength/maxLength` or `minimum/maximum`
+   - `oneof=a b c` → `enum: ["a", "b", "c"]`
+   - Custom validators (e.g., `radix_color`) → appropriate enum
+7. **nested types**: Use `$defs` for types like Chunk, CodedSection, Actor
+8. **references**: Project schema references code and file schemas via `$ref`
+
+### Workflow Integration
+After Phase 3 (Generate & Compare OpenAPI):
+1. For each entity folder found in discovery
+2. Generate schema.json content from entity.go (or ProjectArrayView for project)
+3. Compare with existing schema.json (if exists)
+4. Include in diff output under "Entity Schemas" section
+5. Create new schema.json files for new entities
+
+### Diff Output for Entity Schemas
+```
+ENTITY SCHEMAS:
+
+📄 code/schema.json:
+  🔄 MODIFIED: Added counter_examples maxItems constraint
+
+📄 file/schema.json:
+  ✅ UNCHANGED
+
+📄 project/schema.json:
+  ➕ NEW FIELD: phase enum updated
+
+📄 newentity/schema.json:
+  ➕ NEW FILE (entity discovered, no schema exists)
+```
+
+### Example Schema Structure
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$comment": "LLM: Keep in sync with entity.go Code struct",
+  "title": "Code",
+  "type": "object",
+  "required": ["id", "project_id", "slug", "color", "definition"],
+  "properties": {
+    "id": { "type": "string" },
+    "slug": {
+      "type": "string",
+      "pattern": "^[a-z]+(-[a-z]+)*:[a-z]+(-[a-z]+)*$"
+    }
+  }
+}
+```
+
 ## Output
 
-- **File**: `open-api-spec.generated.yml` (repository root)
+- **OpenAPI File**: `open-api-spec.generated.yml` (repository root)
+- **Entity Schemas**: `internal/domain/entities/{entity}/schema.json` (one per entity)
 - **Name**: hermes-relay-api
 - **Version**: 1.0.0
 - **Server**: http://localhost:8080

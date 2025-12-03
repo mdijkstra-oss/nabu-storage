@@ -1,0 +1,99 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$comment": "LLM: Keep in sync with entity.go File struct",
+  "title": "File",
+  "type": "object",
+  "required": ["id", "healthy", "version", "project_id", "name", "chunks"],
+  "properties": {
+    "id": { "type": "string" },
+    "healthy": { "type": "boolean" },
+    "version": { "type": "integer" },
+    "project_id": { "type": "string" },
+    "name": {
+      "type": "string",
+      "maxLength": 200,
+      "description": "Filename"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 2000
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "Pretty name perhaps from context"
+    },
+    "summary": {
+      "type": "string",
+      "maxLength": 1500
+    },
+    "time": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["corpus", "codebook", "memo", "llm-memo"],
+      "description": "corpus=immutable documents being coded, codebook=coding guidelines, memo=analytical notes, llm-memo=LLM analytical notes"
+    },
+    "original": {
+      "type": "string",
+      "description": "Original file (e.g. pdf converted into File format)"
+    },
+    "locked": {
+      "type": "boolean",
+      "description": "Whether file is read-only"
+    },
+    "chunks": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Chunk" }
+    }
+  },
+  "$defs": {
+    "Chunk": {
+      "type": "object",
+      "required": ["id", "content", "codes"],
+      "properties": {
+        "id": { "type": "string" },
+        "content": { "type": "string" },
+        "codes": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/CodedSection" }
+        }
+      }
+    },
+    "CodedSection": {
+      "type": "object",
+      "required": ["code_id", "text", "confidence"],
+      "properties": {
+        "id": { "type": "string" },
+        "code_id": { "type": "string" },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1500
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 1500
+        },
+        "confidence": {
+          "type": "string",
+          "enum": ["high", "medium", "low"]
+        },
+        "last_actor": { "$ref": "#/$defs/Actor" }
+      }
+    },
+    "Actor": {
+      "type": "object",
+      "properties": {
+        "user_id": { "type": "string" },
+        "actor_type": {
+          "type": "string",
+          "enum": ["human", "llm", "system"]
+        }
+      }
+    }
+  }
+}
