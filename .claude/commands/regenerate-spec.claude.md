@@ -896,7 +896,7 @@ ENTITY SCHEMAS:
 **Keep schema HTTP endpoints and embed declarations in sync with entities.**
 
 ### Files to Update
-1. **`internal/domain/entities/schemas.go`** - embed declarations for schema files
+1. **`internal/domain/entities/schemas.go`** - embed declarations and `$ref` expansion
 2. **`internal/handlers/routes.go`** - HTTP endpoints under `/schemas/`
 
 ### Discovery & Sync
@@ -904,6 +904,23 @@ ENTITY SCHEMAS:
 2. Check `schemas.go` for existing embed declarations
 3. Check `routes.go` for existing `/schemas/{entity}` routes
 4. Compare discovered entities with existing declarations/routes
+5. **Check for `$ref` in schema files** - if a schema references another via `$ref`, the `expandProjectSchema` function (or similar) must resolve it
+
+### Schema $ref Expansion
+Schemas may use `$ref` to reference other schemas (e.g., project references code and file).
+The HTTP endpoint must serve **fully expanded** schemas with all refs resolved.
+
+The `expandProjectSchema` function in `schemas.go` resolves refs at init time:
+```go
+func init() {
+    ProjectSchema = expandProjectSchema(projectSchemaRaw, CodeSchema, FileSchema)
+}
+```
+
+**When adding new schemas with $ref:**
+1. Check if the new schema has any `$ref` to other schemas
+2. If yes, update `schemas.go` to expand those refs at init time
+3. Notify in diff output that expansion logic needs updating
 
 ### schemas.go Format
 ```go
@@ -914,13 +931,19 @@ import (
 )
 
 //go:embed project/schema.json
-var ProjectSchema []byte
+var projectSchemaRaw []byte  // raw, unexpanded
 
 //go:embed file/schema.json
 var FileSchema []byte
 
 //go:embed code/schema.json
 var CodeSchema []byte
+
+var ProjectSchema []byte  // expanded at init
+
+func init() {
+    ProjectSchema = expandProjectSchema(projectSchemaRaw, CodeSchema, FileSchema)
+}
 ```
 
 For new entity `foo`:
@@ -950,6 +973,7 @@ SCHEMA ENDPOINTS:
 
 📄 schemas.go:
   ➕ ADDED: FooSchema embed declaration
+  ⚠️  WARNING: foo/schema.json contains $ref - update expandProjectSchema or add new expand function
 
 📄 routes.go:
   ➕ ADDED: GET /schemas/foo endpoint
