@@ -126,6 +126,52 @@ func TestFind_EdgeCases(t *testing.T) {
 	runFindTests(t, tests)
 }
 
+func TestFindAll_MultipleMatches(t *testing.T) {
+	matches := FindAll("the cat", "The cat sat. Then the cat ran. Finally the cat slept.")
+
+	if len(matches) != 3 {
+		t.Errorf("FindAll() got %d matches, want 3", len(matches))
+	}
+
+	wantTexts := []string{"The cat", "the cat", "the cat"}
+	for i, m := range matches {
+		if m.Text != wantTexts[i] {
+			t.Errorf("match[%d].Text = %q, want %q", i, m.Text, wantTexts[i])
+		}
+	}
+}
+
+func TestExtractContext(t *testing.T) {
+	tests := []struct {
+		name    string
+		text    string
+		needle  string
+		context int
+		want    string
+	}{
+		{"context 1 mid", "First. Match here. Last.", "Match here", 1, "First. Match here. Last."},
+		{"context 1 start", "Match here. After.", "Match here", 1, "Match here. After."},
+		{"context 1 end", "Before. Match here", "Match here", 1, "Before. Match here"},
+		{"context 2 mid", "One. Two. Match. Four. Five.", "Match", 2, "One. Two. Match. Four. Five."},
+		{"context 2 not enough before", "Before. Match. Three. Four.", "Match", 2, "Before. Match. Three. Four."},
+		{"newline boundary", "Line one\nMatch line\nLine three", "Match line", 1, "Line one\nMatch line\nLine three"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			matches := FindAll(tt.needle, tt.text)
+			if len(matches) == 0 {
+				t.Fatalf("FindAll(%q, %q) found no matches", tt.needle, tt.text)
+			}
+			m := matches[0]
+			got := ExtractContext(tt.text, m.Start, m.End, tt.context)
+			if got != tt.want {
+				t.Errorf("ExtractContext() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestReplace(t *testing.T) {
 	tests := []struct {
 		name     string

@@ -43,6 +43,7 @@ func SetupHTTPHandlers(r chi.Router, publisher *dispatch.InMemoryPublisher, regi
 
 			r.Get("/", http.ProjectQuery(registryState, projectview.QueryProject))
 			r.Get("/events", http.RegistryQuery(registryState, registry.QueryProjectEvents))
+			r.Get("/search", http.ProjectQuery(registryState, fileview.SearchProject))
 
 			r.Route("/files", func(r chi.Router) {
 				r.Get("/", http.ProjectQuery(registryState, fileview.QueryFiles))

@@ -75,37 +75,15 @@ func isSpaceOrNBSP(r rune) bool {
 }
 
 func Find(needle, chunk string) (text string, found bool) {
-	needleTokens := tokenize(needle)
-	if len(needleTokens) == 0 {
+	matches := FindN(needle, chunk, 1)
+	if len(matches) == 0 {
 		return "", false
 	}
+	return matches[0].Text, true
+}
 
-	requiredHeadingLevel := headingLevel(needle)
-
-	words := extractWords(chunk)
-	if len(words) < len(needleTokens) {
-		return "", false
-	}
-
-	for i := 0; i <= len(words)-len(needleTokens); i++ {
-		window := words[i : i+len(needleTokens)]
-		start := window[0].start
-		end := window[len(window)-1].end
-
-		windowText := chunk[start:end]
-		windowTokens := tokenize(windowText)
-
-		if len(windowTokens) == len(needleTokens) && tokenOverlap(needleTokens, windowTokens) >= MIN_OVERLAP && isSubsequence(needleTokens, windowTokens) {
-			if requiredHeadingLevel > 0 && !matchIsAtHeading(chunk, start, requiredHeadingLevel) {
-				continue
-			}
-			start, end = expandToWordBoundaries(chunk, start, end)
-			start, end = BalanceMarkdownTags(chunk, start, end)
-			return chunk[start:end], true
-		}
-	}
-
-	return "", false
+func FindAll(needle, chunk string) []Match {
+	return FindN(needle, chunk, 0)
 }
 
 func tokenize(s string) []string {
@@ -170,6 +148,101 @@ func isSubsequence(needle, window []string) bool {
 		}
 	}
 	return needleIdx == len(needle)
+}
+
+type Match struct {
+	Text  string
+	Start int
+	End   int
+}
+
+func expandToLineStart(text string, pos int) int {
+	for pos > 0 && text[pos-1] != '\n' {
+		pos--
+	}
+	return pos
+}
+
+func FindN(needle, chunk string, limit int) []Match {
+	needleTokens := tokenize(needle)
+	if len(needleTokens) == 0 {
+		return nil
+	}
+
+	requiredHeadingLevel := headingLevel(needle)
+
+	words := extractWords(chunk)
+	if len(words) < len(needleTokens) {
+		return nil
+	}
+
+	var matches []Match
+	lastEnd := -1
+
+	for i := 0; i <= len(words)-len(needleTokens); i++ {
+		window := words[i : i+len(needleTokens)]
+		start := window[0].start
+		end := window[len(window)-1].end
+
+		if start < lastEnd {
+			continue
+		}
+
+		windowText := chunk[start:end]
+		windowTokens := tokenize(windowText)
+
+		if len(windowTokens) == len(needleTokens) && tokenOverlap(needleTokens, windowTokens) >= MIN_OVERLAP && isSubsequence(needleTokens, windowTokens) {
+			if requiredHeadingLevel > 0 && !matchIsAtHeading(chunk, start, requiredHeadingLevel) {
+				continue
+			}
+			if requiredHeadingLevel > 0 {
+				start = expandToLineStart(chunk, start)
+			}
+			start, end = expandToWordBoundaries(chunk, start, end)
+			start, end = BalanceMarkdownTags(chunk, start, end)
+			matches = append(matches, Match{Text: chunk[start:end], Start: start, End: end})
+			if limit > 0 && len(matches) >= limit {
+				return matches
+			}
+			lastEnd = end
+		}
+	}
+
+	return matches
+}
+
+func ExtractContext(text string, matchStart, matchEnd, sentenceCount int) string {
+	isSentenceEnd := func(b byte) bool {
+		return b == '.' || b == '!' || b == '?' || b == '\n'
+	}
+
+	contextStart := matchStart
+	for i := 0; i < sentenceCount; i++ {
+		for contextStart > 0 && !isSentenceEnd(text[contextStart-1]) {
+			contextStart--
+		}
+		if contextStart > 0 {
+			contextStart--
+		}
+	}
+	for contextStart > 0 && !isSentenceEnd(text[contextStart-1]) {
+		contextStart--
+	}
+
+	contextEnd := matchEnd
+	for i := 0; i < sentenceCount; i++ {
+		for contextEnd < len(text) && isSentenceEnd(text[contextEnd]) {
+			contextEnd++
+		}
+		for contextEnd < len(text) && !isSentenceEnd(text[contextEnd]) {
+			contextEnd++
+		}
+		if contextEnd < len(text) {
+			contextEnd++
+		}
+	}
+
+	return strings.TrimSpace(text[contextStart:contextEnd])
 }
 
 func Replace(content, oldText, newText string) string {

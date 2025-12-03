@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: hermes-relay-api
-  version: 1.11.0
+  version: 1.12.0
   description: |
     CQRS-based qualitative data analysis API for coding and analyzing research data.
 
@@ -738,6 +738,76 @@ paths:
         '404':
           description: Project not found
 
+  /queries/projects/{projectId}/search:
+    get:
+      summary: Search across project files
+      description: |
+        Fuzzy search across all files in a project with context extraction.
+        Returns matching text with surrounding context sentences.
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: q
+          in: query
+          required: true
+          description: Search query (minimum 3 characters)
+          schema:
+            type: string
+            minLength: 3
+        - name: context
+          in: query
+          description: Number of context sentences before and after match
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 5
+            default: 1
+        - name: since_id
+          in: query
+          description: Cursor for pagination (return results after this ID)
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: Maximum results to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Search results with context
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchCursorResult'
+              examples:
+                withResults:
+                  summary: Search results with matches
+                  value:
+                    items:
+                      - id: "file-1:1:0"
+                        file_id: "770e8400-e29b-41d4-a716-446655440002"
+                        file_name: "Interview Transcript P07"
+                        chunk_id: "1"
+                        context: "First sentence. The patient mentioned anxiety about the surgery. Last sentence."
+                        match: "anxiety"
+                    next_cursor: "file-1:1:0"
+                    has_more: true
+                empty:
+                  summary: No matches found
+                  value:
+                    items: []
+                    next_cursor: ""
+                    has_more: false
+        '404':
+          description: Project not found
+
   /queries/projects/{projectId}/files:
     get:
       summary: List all files in a project
@@ -1383,6 +1453,55 @@ components:
           type: integer
         page_size:
           type: integer
+
+    SearchResult:
+      type: object
+      required:
+        - id
+        - file_id
+        - file_name
+        - chunk_id
+        - context
+        - match
+      properties:
+        id:
+          type: string
+          description: Compound ID (file_id:chunk_id:match_index)
+        file_id:
+          type: string
+          format: uuid
+          description: ID of the file containing the match
+        file_name:
+          type: string
+          description: Name of the file containing the match
+        chunk_id:
+          type: string
+          description: Chunk ID within the file
+        context:
+          type: string
+          description: Match with surrounding context sentences
+        match:
+          type: string
+          description: The matched text
+
+    SearchCursorResult:
+      type: object
+      required:
+        - items
+        - next_cursor
+        - has_more
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchResult'
+          description: List of search results
+        next_cursor:
+          type: string
+          description: Cursor for fetching next page (use as since_id parameter)
+        has_more:
+          type: boolean
+          description: Whether more results exist after this page
 
     Code:
       type: object
