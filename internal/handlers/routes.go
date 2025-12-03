@@ -6,6 +6,7 @@ import (
 	"github.com/go-chi/cors"
 	"hermes-relay/internal/cqrs/dispatch"
 	"hermes-relay/internal/cqrs/projection"
+	"hermes-relay/internal/domain/entities"
 	codeview "hermes-relay/internal/domain/projections/code-entity"
 	fileview "hermes-relay/internal/domain/projections/file-entity"
 	projectview "hermes-relay/internal/domain/projections/project-entity"
@@ -28,6 +29,12 @@ func SetupHTTPHandlers(r chi.Router, publisher *dispatch.InMemoryPublisher, regi
 	r.Post("/commands", http.CommandHandler(publisher.Publish))
 	//r.Post("/events", http.EventHandler(publisher.Publish))
 	r.Get("/ws/{projectId}", websocket.Handler(hub, registryState, publisher.Subscribe))
+
+	r.Route("/schemas", func(r chi.Router) {
+		r.Get("/project", http.SchemaHandler(entities.ProjectSchema))
+		r.Get("/file", http.SchemaHandler(entities.FileSchema))
+		r.Get("/code", http.SchemaHandler(entities.CodeSchema))
+	})
 
 	// ⚠️ No joins / complex queries
 	// That would probably mean that you'd have to reduce into a new entity

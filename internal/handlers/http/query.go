@@ -139,3 +139,11 @@ func respondWithJSON(w http.ResponseWriter, result any) {
 	}
 	WriteResponse(w, successQueryOutput(result))
 }
+
+func SchemaHandler(schema []byte) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(schema)
+	}
+}

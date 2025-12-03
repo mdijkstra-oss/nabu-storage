@@ -891,10 +891,77 @@ ENTITY SCHEMAS:
 }
 ```
 
+## Schema Endpoints & Embed File
+
+**Keep schema HTTP endpoints and embed declarations in sync with entities.**
+
+### Files to Update
+1. **`internal/domain/entities/schemas.go`** - embed declarations for schema files
+2. **`internal/handlers/routes.go`** - HTTP endpoints under `/schemas/`
+
+### Discovery & Sync
+1. List entities from `ls internal/domain/entities/`
+2. Check `schemas.go` for existing embed declarations
+3. Check `routes.go` for existing `/schemas/{entity}` routes
+4. Compare discovered entities with existing declarations/routes
+
+### schemas.go Format
+```go
+package entities
+
+import (
+	_ "embed"
+)
+
+//go:embed project/schema.json
+var ProjectSchema []byte
+
+//go:embed file/schema.json
+var FileSchema []byte
+
+//go:embed code/schema.json
+var CodeSchema []byte
+```
+
+For new entity `foo`:
+```go
+//go:embed foo/schema.json
+var FooSchema []byte
+```
+
+### routes.go Format
+Schema routes are in the `/schemas` route group:
+```go
+r.Route("/schemas", func(r chi.Router) {
+    r.Get("/project", http.SchemaHandler(entities.ProjectSchema))
+    r.Get("/file", http.SchemaHandler(entities.FileSchema))
+    r.Get("/code", http.SchemaHandler(entities.CodeSchema))
+})
+```
+
+For new entity `foo`:
+```go
+r.Get("/foo", http.SchemaHandler(entities.FooSchema))
+```
+
+### Diff Output for Schema Endpoints
+```
+SCHEMA ENDPOINTS:
+
+📄 schemas.go:
+  ➕ ADDED: FooSchema embed declaration
+
+📄 routes.go:
+  ➕ ADDED: GET /schemas/foo endpoint
+  ➖ REMOVED: GET /schemas/oldentity endpoint (entity deleted)
+```
+
 ## Output
 
 - **OpenAPI File**: `open-api-spec.generated.yml` (repository root)
 - **Entity Schemas**: `internal/domain/entities/{entity}/schema.json` (one per entity)
+- **Schema Embeds**: `internal/domain/entities/schemas.go`
+- **Schema Routes**: `internal/handlers/routes.go` (`/schemas/*` endpoints)
 - **Name**: hermes-relay-api
 - **Version**: 1.0.0
 - **Server**: http://localhost:8080
