@@ -7,6 +7,7 @@ import (
 	"hermes-relay/internal/cqrs/dispatch"
 	"hermes-relay/internal/cqrs/projection"
 	"hermes-relay/internal/domain/entities"
+	chartview "hermes-relay/internal/domain/projections/chart-entity"
 	codeview "hermes-relay/internal/domain/projections/code-entity"
 	fileview "hermes-relay/internal/domain/projections/file-entity"
 	projectview "hermes-relay/internal/domain/projections/project-entity"
@@ -34,6 +35,7 @@ func SetupHTTPHandlers(r chi.Router, publisher *dispatch.InMemoryPublisher, regi
 		r.Get("/project", http.SchemaHandler(entities.ProjectSchema))
 		r.Get("/file", http.SchemaHandler(entities.FileSchema))
 		r.Get("/code", http.SchemaHandler(entities.CodeSchema))
+		r.Get("/chart", http.SchemaHandler(entities.ChartSchema))
 	})
 
 	// ⚠️ No joins / complex queries
@@ -64,6 +66,11 @@ func SetupHTTPHandlers(r chi.Router, publisher *dispatch.InMemoryPublisher, regi
 				r.Get("/", http.ProjectQuery(registryState, codeview.QueryCodes))
 				r.Get("/{id}", http.ProjectQuery(registryState, codeview.QueryCode))
 				r.Get("/{id}/sections", http.ProjectQuery(registryState, codeview.QuerySections))
+			})
+
+			r.Route("/charts", func(r chi.Router) {
+				r.Get("/", http.ProjectQuery(registryState, chartview.QueryCharts))
+				r.Get("/{id}", http.ProjectQuery(registryState, chartview.QueryChart))
 			})
 		})
 	})

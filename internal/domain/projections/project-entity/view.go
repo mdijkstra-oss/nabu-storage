@@ -1,6 +1,7 @@
 package projectview
 
 import (
+	"hermes-relay/internal/domain/entities/chart"
 	"hermes-relay/internal/domain/entities/code"
 	"hermes-relay/internal/domain/entities/file"
 	"hermes-relay/internal/domain/entities/project"
@@ -16,8 +17,9 @@ type ProjectView struct {
 	Version int    `json:"version"`
 	Healthy bool   `json:"healthy"`
 	project.ProjectData
-	Codes map[string]code.Code            `json:"codes"`
-	Files map[string]fileview.FileSummary `json:"files"`
+	Charts map[string]chart.Chart          `json:"charts"`
+	Codes  map[string]code.Code            `json:"codes"`
+	Files  map[string]fileview.FileSummary `json:"files"`
 }
 
 func (pv ProjectView) GetID() string {
@@ -35,6 +37,7 @@ func ToView(p project.Project) ProjectView {
 		Version:     p.Version,
 		Healthy:     p.Healthy,
 		ProjectData: p.ProjectData,
+		Charts:      p.Charts,
 		Codes:       p.Codes,
 		Files:       fileSummaries,
 	}
@@ -47,8 +50,9 @@ type ProjectArrayView struct {
 	Version int    `json:"version"`
 	Healthy bool   `json:"healthy"`
 	project.ProjectData
-	Codes []code.Code `json:"codes"`
-	Files []file.File `json:"files"`
+	Charts []chart.Chart `json:"charts"`
+	Codes  []code.Code   `json:"codes"`
+	Files  []file.File   `json:"files"`
 }
 
 func ToArrayView(p project.Project) ProjectArrayView {
@@ -57,6 +61,7 @@ func ToArrayView(p project.Project) ProjectArrayView {
 		Version:     p.Version,
 		Healthy:     p.Healthy,
 		ProjectData: p.ProjectData,
+		Charts:      utils.Values(p.Charts),
 		Codes:       utils.Values(p.Codes),
 		Files:       utils.Values(p.Files),
 	}

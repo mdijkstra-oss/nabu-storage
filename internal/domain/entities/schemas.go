@@ -15,13 +15,16 @@ var FileSchema []byte
 //go:embed code/schema.json
 var CodeSchema []byte
 
+//go:embed chart/schema.json
+var ChartSchema []byte
+
 var ProjectSchema []byte
 
 func init() {
-	ProjectSchema = expandProjectSchema(projectSchemaRaw, CodeSchema, FileSchema)
+	ProjectSchema = expandProjectSchema(projectSchemaRaw, ChartSchema, CodeSchema, FileSchema)
 }
 
-func expandProjectSchema(project, code, file []byte) []byte {
+func expandProjectSchema(project, chart, code, file []byte) []byte {
 	mustUnmarshal := func(data []byte, v any) {
 		if err := json.Unmarshal(data, v); err != nil {
 			panic("invalid embedded schema: " + err.Error())
@@ -30,6 +33,10 @@ func expandProjectSchema(project, code, file []byte) []byte {
 
 	var schema map[string]any
 	mustUnmarshal(project, &schema)
+
+	var chartSchema map[string]any
+	mustUnmarshal(chart, &chartSchema)
+	delete(chartSchema, "$schema")
 
 	var codeSchema map[string]any
 	mustUnmarshal(code, &codeSchema)
@@ -40,6 +47,9 @@ func expandProjectSchema(project, code, file []byte) []byte {
 	delete(fileSchema, "$schema")
 
 	props := schema["properties"].(map[string]any)
+	charts := props["charts"].(map[string]any)
+	charts["items"] = chartSchema
+
 	codes := props["codes"].(map[string]any)
 	codes["items"] = codeSchema
 

@@ -3,7 +3,7 @@
   "$comment": "LLM: This schema uses array children (ProjectArrayView). Keep in sync with projections/project-entity/view.go ProjectArrayView struct. The Go entity uses map children for fast lookup, but this schema uses arrays for SQL/JSON compatibility.",
   "title": "Project",
   "type": "object",
-  "required": ["id", "healthy", "version", "name", "phase", "codes", "files"],
+  "required": ["id", "healthy", "version", "name", "phase", "charts", "codes", "files"],
   "properties": {
     "id": { "type": "string" },
     "healthy": { "type": "boolean" },
@@ -19,6 +19,10 @@
     "phase": {
       "type": "string",
       "enum": ["explore", "code", "validate", "analyze"]
+    },
+    "charts": {
+      "type": "array",
+      "items": { "$ref": "../chart/schema.json" }
     },
     "codes": {
       "type": "array",

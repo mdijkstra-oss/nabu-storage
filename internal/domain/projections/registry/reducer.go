@@ -3,6 +3,7 @@ package registry
 import (
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/cqrs/projection"
+	"hermes-relay/internal/domain/entities/chart"
 	"hermes-relay/internal/domain/entities/code"
 	"hermes-relay/internal/domain/entities/file"
 	"hermes-relay/internal/domain/entities/project"
@@ -65,7 +66,7 @@ func extractProjectID(registry *Registry, event *commands.AnyMessage) string {
 }
 
 func updateLookupTable(lookup map[string]string, event *commands.AnyMessage, projectID string) {
-	if event.AggregateType != code.EntityName && event.AggregateType != file.EntityName {
+	if event.AggregateType != chart.EntityName && event.AggregateType != code.EntityName && event.AggregateType != file.EntityName {
 		return
 	}
 

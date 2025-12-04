@@ -2,6 +2,7 @@ package project
 
 import (
 	"hermes-relay/internal/cqrs/commands"
+	"hermes-relay/internal/domain/entities/chart"
 	"hermes-relay/internal/domain/entities/code"
 	"hermes-relay/internal/domain/entities/file"
 	"hermes-relay/internal/lib/test-helpers/domain-helpers"
@@ -19,6 +20,7 @@ func BuildTestProject(id string, overrides ProjectData) Project {
 		Healthy:     true,
 		Version:     1,
 		ProjectData: merged,
+		Charts:      make(map[string]chart.Chart),
 		Codes:       make(map[string]code.Code),
 		Files:       make(map[string]file.File),
 	}

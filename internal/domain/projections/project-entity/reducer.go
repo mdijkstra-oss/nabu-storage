@@ -3,9 +3,11 @@ package projectview
 import (
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/cqrs/projection"
+	"hermes-relay/internal/domain/entities/chart"
 	"hermes-relay/internal/domain/entities/code"
 	"hermes-relay/internal/domain/entities/file"
 	"hermes-relay/internal/domain/entities/project"
+	chartview "hermes-relay/internal/domain/projections/chart-entity"
 	codeview "hermes-relay/internal/domain/projections/code-entity"
 	fileview "hermes-relay/internal/domain/projections/file-entity"
 	"hermes-relay/internal/lib/utils"
@@ -28,6 +30,15 @@ var Reducer = projection.WithImmutabilityCheck(
 	projection.CombineReducers(
 		projectReducer,
 		projection.IfExists(
+			projection.ApplyChildReducerToMap(
+				func(p *Project) map[string]chart.Chart { return p.Charts },
+				func(p *Project, charts map[string]chart.Chart) *Project {
+					updated := *p
+					updated.Charts = charts
+					return &updated
+				},
+				chartview.Reducer,
+			),
 			projection.ApplyChildReducerToMap(
 				func(p *Project) map[string]code.Code { return p.Codes },
 				func(p *Project, codes map[string]code.Code) *Project {
@@ -55,6 +66,7 @@ func CreatedProjectReducer(_ *Project, message *commands.AnyMessage, payload *pr
 		ID:          message.AggregateID,
 		Healthy:     true,
 		ProjectData: *payload,
+		Charts:      make(map[string]chart.Chart),
 		Codes:       make(map[string]code.Code),
 		Files:       make(map[string]file.File),
 	}

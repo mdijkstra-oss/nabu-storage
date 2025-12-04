@@ -3,6 +3,7 @@ package domain
 import (
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/cqrs/dispatch"
+	charthandlers "hermes-relay/internal/domain/entities/chart/handlers"
 	codehandlers "hermes-relay/internal/domain/entities/code/handlers"
 	filehandlers "hermes-relay/internal/domain/entities/file/handlers"
 	projecthandlers "hermes-relay/internal/domain/entities/project/handlers"
@@ -15,6 +16,7 @@ func NewCommandRouter(registryState *registry.RegistryState) dispatch.CommandRou
 			registry.EnsureEntityHealth(registryState,
 				registry.EnsureExpectedVersion(registryState,
 					dispatch.CombineRouters(
+						charthandlers.NewRouter(registryState),
 						codehandlers.NewRouter(registryState),
 						filehandlers.NewRouter(registryState),
 						projecthandlers.NewRouter(registryState),
