@@ -2,6 +2,7 @@ package projection
 
 import (
 	"hermes-relay/internal/cqrs/commands"
+	"hermes-relay/internal/lib/utils"
 	"reflect"
 )
 
@@ -25,6 +26,11 @@ func PinnedEntity[T Pinnable](current *T, _ *commands.AnyMessage, _ *commands.Em
 
 func UnpinnedEntity[T Pinnable](current *T, _ *commands.AnyMessage, _ *commands.EmptyPayload) *T {
 	return (*current).WithPinned(false).(*T)
+}
+
+func UpdatedEntity[T, P any](current *T, _ *commands.AnyMessage, payload *P) *T {
+	updated := utils.ApplyPartialUpdate(*current, payload)
+	return &updated
 }
 
 func DeletedProjectReducer[T ProjectChild](current *T, message *commands.AnyMessage) *T {

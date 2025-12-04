@@ -14,7 +14,7 @@ var Reducer = projection.WithVersionIncrement(
 		projection.CombineReducers(
 			projection.For(file.CreatedFile, CreatedFileReducer),
 			projection.IfExists(
-				projection.For(file.UpdatedFile, UpdatedFileReducer),
+				projection.For(file.UpdatedFile, projection.UpdatedEntity[File, file.UpdatedFilePayload]),
 				projection.For(file.PinnedFile, projection.PinnedEntity[File]),
 				projection.For(file.UnpinnedFile, projection.UnpinnedEntity[File]),
 				projection.For(file.ReplacedFileContent, ReplacedFileContentReducer),
@@ -45,11 +45,6 @@ func CreatedFileReducer(_ *File, message *commands.AnyMessage, payload *file.Cre
 		FileData: fileData,
 		Chunks:   payload.Chunks,
 	}
-}
-
-func UpdatedFileReducer(current *File, _ *commands.AnyMessage, payload *file.UpdatedFilePayload) *File {
-	updated := utils.ApplyPartialUpdate(*current, payload)
-	return &updated
 }
 
 func ReplacedFileContentReducer(current *File, _ *commands.AnyMessage, payload *file.ReplacedFileContentPayload) *File {

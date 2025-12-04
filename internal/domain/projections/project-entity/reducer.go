@@ -10,7 +10,6 @@ import (
 	chartview "hermes-relay/internal/domain/projections/chart-entity"
 	codeview "hermes-relay/internal/domain/projections/code-entity"
 	fileview "hermes-relay/internal/domain/projections/file-entity"
-	"hermes-relay/internal/lib/utils"
 )
 
 var projectReducer = projection.WithVersionIncrement(
@@ -18,7 +17,7 @@ var projectReducer = projection.WithVersionIncrement(
 		projection.CombineReducers(
 			projection.For(project.CreatedProject, CreatedProjectReducer),
 			projection.IfExists(
-				projection.For(project.UpdatedProject, UpdatedProjectReducer),
+				projection.For(project.UpdatedProject, projection.UpdatedEntity[Project, project.UpdatedProjectPayload]),
 				projection.For(project.PinnedProject, projection.PinnedEntity[Project]),
 				projection.For(project.UnpinnedProject, projection.UnpinnedEntity[Project]),
 				projection.For(project.ChangedPhase, ChangedPhaseReducer),
@@ -72,11 +71,6 @@ func CreatedProjectReducer(_ *Project, message *commands.AnyMessage, payload *pr
 		Codes:       make(map[string]code.Code),
 		Files:       make(map[string]file.File),
 	}
-}
-
-func UpdatedProjectReducer(current *Project, _ *commands.AnyMessage, payload *project.UpdatedProjectPayload) *Project {
-	updated := utils.ApplyPartialUpdate(*current, payload)
-	return &updated
 }
 
 func ChangedPhaseReducer(current *Project, _ *commands.AnyMessage, payload *project.ChangedPhasePayload) *Project {

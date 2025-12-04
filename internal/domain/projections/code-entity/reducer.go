@@ -4,7 +4,6 @@ import (
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/cqrs/projection"
 	"hermes-relay/internal/domain/entities/code"
-	"hermes-relay/internal/lib/utils"
 )
 
 var Reducer = projection.WithVersionIncrement(
@@ -12,7 +11,7 @@ var Reducer = projection.WithVersionIncrement(
 		projection.CombineReducers(
 			projection.For(code.CreatedCode, CreatedCodeReducer),
 			projection.IfExists(
-				projection.For(code.UpdatedCode, UpdatedCodeReducer),
+				projection.For(code.UpdatedCode, projection.UpdatedEntity[Code, code.UpdatedCodePayload]),
 				projection.For(code.PinnedCode, projection.PinnedEntity[Code]),
 				projection.For(code.UnpinnedCode, projection.UnpinnedEntity[Code]),
 				projection.For(code.DeletedCode, projection.DeletedEntity[Code]),
@@ -29,11 +28,6 @@ func CreatedCodeReducer(_ *Code, message *commands.AnyMessage, payload *code.Cre
 		Healthy:  true,
 		CodeData: *payload,
 	}
-}
-
-func UpdatedCodeReducer(current *Code, _ *commands.AnyMessage, payload *code.UpdatedCodePayload) *Code {
-	updated := utils.ApplyPartialUpdate(*current, payload)
-	return &updated
 }
 
 func MergedCodesReducer(current *Code, message *commands.AnyMessage, payload *code.MergedCodesPayload) *Code {
