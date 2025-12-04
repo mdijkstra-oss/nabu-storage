@@ -77,3 +77,8 @@ func (c Chart) WithVersion(v int) any {
 	c.Version = v
 	return &c
 }
+
+func (c Chart) WithPinned(pinned bool) any {
+	c.Pinned = pinned
+	return &c
+}

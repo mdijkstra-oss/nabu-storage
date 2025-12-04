@@ -15,6 +15,8 @@ var Reducer = projection.WithVersionIncrement(
 			projection.For(file.CreatedFile, CreatedFileReducer),
 			projection.IfExists(
 				projection.For(file.UpdatedFile, UpdatedFileReducer),
+				projection.For(file.PinnedFile, projection.PinnedEntity[File]),
+				projection.For(file.UnpinnedFile, projection.UnpinnedEntity[File]),
 				projection.For(file.ReplacedFileContent, ReplacedFileContentReducer),
 				projection.For(file.DeletedFile, projection.DeletedEntity[File]),
 				projection.For(file.AddedCodeSections, AddedCodeSectionsReducer),

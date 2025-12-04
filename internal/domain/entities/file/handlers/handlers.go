@@ -24,6 +24,8 @@ func NewRouter(reg *registry.RegistryState) dispatch.CommandRouter {
 				),
 			),
 			dispatch.ToUpdateEntityEvent[file.UpdateFilePayload, file.UpdatedFilePayload](file.UpdateFile, file.UpdatedFile),
+			dispatch.ToEmptyDomainEvent(file.PinFile, file.PinnedFile),
+			dispatch.ToEmptyDomainEvent(file.UnpinFile, file.UnpinnedFile),
 
 			dispatch.LimitOnAction(file.ReplaceFileContent,
 				registry.ValidateDomain[file.ReplaceFileContentPayload](

@@ -19,6 +19,7 @@ type ProjectData struct {
 	Name        string `json:"name" validate:"required,max=200" normalize:"trim"`
 	Description string `json:"description" validate:"max=2000" normalize:"trim"`
 	Phase       Phase  `json:"phase" validate:"oneof=explore code validate analyze"`
+	Pinned      bool   `json:"pinned"`
 }
 
 type Project struct {
@@ -54,6 +55,11 @@ func (p Project) GetVersion() int {
 
 func (p Project) WithVersion(v int) any {
 	p.Version = v
+	return &p
+}
+
+func (p Project) WithPinned(pinned bool) any {
+	p.Pinned = pinned
 	return &p
 }
 

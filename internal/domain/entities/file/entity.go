@@ -39,6 +39,11 @@ func (f File) WithVersion(v int) any {
 	return &f
 }
 
+func (f File) WithPinned(pinned bool) any {
+	f.Pinned = pinned
+	return &f
+}
+
 type FileType string
 
 const (
@@ -81,6 +86,7 @@ type FileData struct {
 	Type        FileType  `json:"type" validate:"omitempty,oneof=corpus codebook memo llm-memo"`
 	Original    string    `json:"original"` // original file (eg pdf converted into File format)
 	Locked      bool      `json:"locked"`   // whether file is read-only
+	Pinned      bool      `json:"pinned"`
 }
 
 type CodedSection struct {

@@ -31,6 +31,8 @@ func NewRouter(reg *registry.RegistryState) dispatch.CommandRouter {
 			),
 		),
 
+		dispatch.ToEmptyDomainEvent(code.PinCode, code.PinnedCode),
+		dispatch.ToEmptyDomainEvent(code.UnpinCode, code.UnpinnedCode),
 		dispatch.ToEmptyDomainEvent(code.DeleteCode, code.DeletedCode),
 		dispatch.ToEmptyDomainEvent(code.ClearCodeApplications, code.ClearedCodeApplications),
 

@@ -19,6 +19,8 @@ var projectReducer = projection.WithVersionIncrement(
 			projection.For(project.CreatedProject, CreatedProjectReducer),
 			projection.IfExists(
 				projection.For(project.UpdatedProject, UpdatedProjectReducer),
+				projection.For(project.PinnedProject, projection.PinnedEntity[Project]),
+				projection.For(project.UnpinnedProject, projection.UnpinnedEntity[Project]),
 				projection.For(project.ChangedPhase, ChangedPhaseReducer),
 				projection.For(project.DeletedProject, projection.DeletedEntity[Project]),
 			),

@@ -5,16 +5,18 @@ import "hermes-relay/internal/cqrs/commands"
 const EntityName commands.AggregateType = "File"
 
 const (
-	CreateFile          commands.Action = "CreateFile"
-	UpdateFile          commands.Action = "UpdateFile"
-	ReplaceFileContent  commands.Action = "ReplaceFileContent"
-	EditFileContent     commands.Action = "EditFileContent"
-	DeleteFile          commands.Action = "DeleteFile"
-	AddCodeSections     commands.Action = "AddCodeSections"
-	UpdateCodeSections  commands.Action = "UpdateCodeSections"
-	RemoveCodeSections  commands.Action = "RemoveCodeSections"
-	ClearCoding         commands.Action = "ClearCoding"
-	RemoveCodeFromFile  commands.Action = "RemoveCodeFromFile"
+	CreateFile         commands.Action = "CreateFile"
+	UpdateFile         commands.Action = "UpdateFile"
+	PinFile            commands.Action = "PinFile"
+	UnpinFile          commands.Action = "UnpinFile"
+	ReplaceFileContent commands.Action = "ReplaceFileContent"
+	EditFileContent    commands.Action = "EditFileContent"
+	DeleteFile         commands.Action = "DeleteFile"
+	AddCodeSections    commands.Action = "AddCodeSections"
+	UpdateCodeSections commands.Action = "UpdateCodeSections"
+	RemoveCodeSections commands.Action = "RemoveCodeSections"
+	ClearCoding        commands.Action = "ClearCoding"
+	RemoveCodeFromFile commands.Action = "RemoveCodeFromFile"
 )
 
 type CreateFilePayload struct {
@@ -39,6 +41,8 @@ type EditFileContentPayload struct {
 	NewText string `json:"new_text" validate:"required"`
 }
 
+type PinFilePayload = commands.EmptyPayload
+type UnpinFilePayload = commands.EmptyPayload
 type DeleteFilePayload = commands.EmptyPayload
 
 type RemoveCodeFromFilePayload struct {

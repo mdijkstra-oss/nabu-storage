@@ -7,6 +7,8 @@ import (
 const (
 	CreatedCode             commands.Action = "CreatedCode"
 	UpdatedCode             commands.Action = "UpdatedCode"
+	PinnedCode              commands.Action = "PinnedCode"
+	UnpinnedCode            commands.Action = "UnpinnedCode"
 	DeletedCode             commands.Action = "DeletedCode"
 	MergedCodes             commands.Action = "MergedCodes"
 	ClearedCodeApplications commands.Action = "ClearedCodeApplications"
@@ -15,6 +17,8 @@ const (
 
 type CreatedCodePayload = CodeData
 type UpdatedCodePayload = UpdateCodeData
+type PinnedCodePayload = commands.EmptyPayload
+type UnpinnedCodePayload = commands.EmptyPayload
 type DeletedCodePayload = commands.EmptyPayload
 type MergedCodesPayload = MergeCodesData
 type ClearedCodeApplicationsPayload = commands.EmptyPayload

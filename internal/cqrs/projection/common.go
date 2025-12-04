@@ -9,10 +9,22 @@ type ProjectChild interface {
 	GetProjectID() string
 }
 
+type Pinnable interface {
+	WithPinned(bool) any
+}
+
 // DeletedEntity is a generic reducer for entity deletion events.
 // It returns nil to remove the entity from the projection.
 func DeletedEntity[T any](_ *T, _ *commands.AnyMessage, _ any) *T {
 	return nil
+}
+
+func PinnedEntity[T Pinnable](current *T, _ *commands.AnyMessage, _ *commands.EmptyPayload) *T {
+	return (*current).WithPinned(true).(*T)
+}
+
+func UnpinnedEntity[T Pinnable](current *T, _ *commands.AnyMessage, _ *commands.EmptyPayload) *T {
+	return (*current).WithPinned(false).(*T)
 }
 
 func DeletedProjectReducer[T ProjectChild](current *T, message *commands.AnyMessage) *T {

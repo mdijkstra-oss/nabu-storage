@@ -15,8 +15,8 @@ var Reducer = projection.WithVersionIncrement(
 			projection.For(chart.CreatedChart, CreatedChartReducer),
 			projection.IfExists(
 				projection.For(chart.UpdatedChart, UpdatedChartReducer),
-				projection.For(chart.PinnedChart, PinnedChartReducer),
-				projection.For(chart.UnpinnedChart, UnpinnedChartReducer),
+				projection.For(chart.PinnedChart, projection.PinnedEntity[Chart]),
+				projection.For(chart.UnpinnedChart, projection.UnpinnedEntity[Chart]),
 				projection.For(chart.DeletedChart, projection.DeletedEntity[Chart]),
 			),
 			projection.DeletedProjectReducer[chart.Chart],
@@ -40,14 +40,3 @@ func UpdatedChartReducer(current *Chart, _ *commands.AnyMessage, payload *chart.
 	return &updated
 }
 
-func PinnedChartReducer(current *Chart, _ *commands.AnyMessage, _ *commands.EmptyPayload) *Chart {
-	updated := *current
-	updated.Pinned = true
-	return &updated
-}
-
-func UnpinnedChartReducer(current *Chart, _ *commands.AnyMessage, _ *commands.EmptyPayload) *Chart {
-	updated := *current
-	updated.Pinned = false
-	return &updated
-}

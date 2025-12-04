@@ -15,7 +15,8 @@ type CodeData struct {
 	ProjectID string `json:"project_id" validate:"required"`
 
 	// eg emotion:anxiety, theme:power-dynamics
-	Slug string `json:"slug" validate:"required,min=3,max=100,code_slug" normalize:"trim,lowercase"`
+	Slug   string `json:"slug" validate:"required,min=3,max=100,code_slug" normalize:"trim,lowercase"`
+	Pinned bool   `json:"pinned"`
 
 	// Radix base color: gray, mauve, slate, sage, olive, sand, tomato, red, ruby, crimson, pink, plum,
 	// purple, violet, iris, indigo, blue, cyan, teal, jade, green, grass, bronze, gold, brown, orange,
@@ -66,5 +67,10 @@ func (c Code) GetVersion() int {
 
 func (c Code) WithVersion(v int) any {
 	c.Version = v
+	return &c
+}
+
+func (c Code) WithPinned(pinned bool) any {
+	c.Pinned = pinned
 	return &c
 }

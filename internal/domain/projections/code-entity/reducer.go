@@ -13,6 +13,8 @@ var Reducer = projection.WithVersionIncrement(
 			projection.For(code.CreatedCode, CreatedCodeReducer),
 			projection.IfExists(
 				projection.For(code.UpdatedCode, UpdatedCodeReducer),
+				projection.For(code.PinnedCode, projection.PinnedEntity[Code]),
+				projection.For(code.UnpinnedCode, projection.UnpinnedEntity[Code]),
 				projection.For(code.DeletedCode, projection.DeletedEntity[Code]),
 				projection.For(code.MergedCodes, MergedCodesReducer),
 			),
