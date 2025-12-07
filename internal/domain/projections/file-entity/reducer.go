@@ -49,7 +49,7 @@ func CreatedFileReducer(_ *File, message *commands.AnyMessage, payload *file.Cre
 
 func ReplacedFileContentReducer(current *File, _ *commands.AnyMessage, payload *file.ReplacedFileContentPayload) *File {
 	current.Chunks = []file.Chunk{{
-		ID:      "1",
+		ID:      current.Chunks[0].ID,
 		Content: payload.Content,
 		Codes:   []file.CodedSection{},
 	}}

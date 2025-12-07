@@ -19,5 +19,5 @@ Working memory maintained across sessions. Tracks patterns, preferences, and obs
 
 ## File Observations
 
-[Add per-file notes as coding progresses]
+[Add per-file notes as coding progresses - only interpretations, no queryable simple data]
 

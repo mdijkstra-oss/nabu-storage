@@ -122,5 +122,8 @@ func isCreatedAction(action commands.Action) bool {
 func WriteResponse(w http.ResponseWriter, response Response) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(response.StatusCode)
+	if response.StatusCode >= 300 {
+		slog.Error("error response", "status", response.StatusCode, "body", string(response.Body))
+	}
 	utils.Should(w.Write(response.Body))
 }

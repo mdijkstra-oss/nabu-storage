@@ -132,9 +132,9 @@ func createChunksForType(fileType file.FileType, content string) []file.Chunk {
 
 func chunkContent(content string) []file.Chunk {
 	blocks := chunker.ChunkBlocks(content, chunker.FullPage*5, (chunker.FullPage*5)+chunker.HalfPage)
-	return utils.MapWithIndex(blocks, func(i int, block string) file.Chunk {
+	return utils.Map(blocks, func(block string) file.Chunk {
 		return file.Chunk{
-			ID:      fmt.Sprintf("%d", i+1),
+			ID:      utils.NewID(),
 			Content: block,
 			Codes:   []file.CodedSection{},
 		}
@@ -143,15 +143,16 @@ func chunkContent(content string) []file.Chunk {
 
 func singleChunk(content string) []file.Chunk {
 	return []file.Chunk{{
-		ID:      "1",
+		ID:      utils.NewID(),
 		Content: content,
 		Codes:   []file.CodedSection{},
 	}}
 }
 
 func validateAndNormalizeText(text, chunkContent string) (string, error) {
-	if find.CountWords(text) < 3 {
-		return "", fmt.Errorf("minimum 3 words required: %q", text)
+	wordCount := find.CountWords(text)
+	if wordCount < 3 {
+		return "", fmt.Errorf("text too short (%d words, need 3+) - expand selection: %q", wordCount, text)
 	}
 
 	normalizedText, found := find.Find(text, chunkContent)

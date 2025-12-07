@@ -6,6 +6,7 @@ import (
 	"hermes-relay/internal/domain/entities/code"
 	"hermes-relay/internal/domain/entities/file"
 	"hermes-relay/internal/domain/entities/project"
+	th "hermes-relay/internal/lib/test-helpers"
 	"hermes-relay/internal/lib/test-helpers/domain-helpers"
 	rh "hermes-relay/internal/lib/test-helpers/router-helpers"
 	"hermes-relay/internal/lib/utils"
@@ -16,6 +17,7 @@ var (
 	healthyProjectID = utils.NewID()
 	healthyCodeID    = utils.NewID()
 	healthyFileID    = utils.NewID()
+	testChunkID      = utils.NewID()
 )
 
 var setupCommands = []*commands.AnyMessage{
@@ -52,7 +54,7 @@ var setupCommands = []*commands.AnyMessage{
 				Type:      file.FileTypeCorpus,
 				Locked:    true,
 			},
-			Chunks: []file.Chunk{{ID: "1", Content: "Test content"}},
+			Chunks: []file.Chunk{{ID: testChunkID, Content: "Test content"}},
 		},
 		file.EntityName,
 		healthyFileID,
@@ -196,13 +198,16 @@ func TestCommandRouter(t *testing.T) {
 						Type:      file.FileTypeCorpus,
 						Locked:    true,
 					},
-					Chunks: []file.Chunk{{ID: "1", Content: "Content\n", Codes: []file.CodedSection{}}},
+					Chunks: []file.Chunk{{ID: "generated-id", Content: "Content\n", Codes: []file.CodedSection{}}},
 				},
 				file.EntityName,
 				"",
 				domain_helpers.TestActor(),
 				nil,
 			)),
+			IgnoreFields: []th.IgnoreFieldsOption{
+				{Type: file.Chunk{}, Fields: []string{"ID"}, EnsureValidUUID: true},
+			},
 		},
 		{
 			Name: "File update succeeds on healthy file in healthy project",

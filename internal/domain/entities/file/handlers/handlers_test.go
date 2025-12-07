@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/domain/entities/code"
 	"hermes-relay/internal/domain/entities/file"
@@ -15,20 +14,24 @@ import (
 )
 
 var (
-	testProjectID    = utils.NewID()
-	testCodeID1      = utils.NewID()
-	testCodeID2      = utils.NewID()
-	testCodeID3      = utils.NewID()
-	testSectionID1   = utils.NewID()
-	testSectionID2   = utils.NewID()
-	testSectionID3   = utils.NewID()
-	testFileShort    = utils.NewID()
-	testFileLong     = utils.NewID()
-	testFileMemo     = utils.NewID()
-	testFileWithCode = utils.NewID()
-	shortContent     = "Some text to code here"
-	longContent      = "Some text to code here and more words for searching"
-	memoContent      = "This is a memo with some editable content here"
+	testProjectID      = utils.NewID()
+	testCodeID1        = utils.NewID()
+	testCodeID2        = utils.NewID()
+	testCodeID3        = utils.NewID()
+	testSectionID1     = utils.NewID()
+	testSectionID2     = utils.NewID()
+	testSectionID3     = utils.NewID()
+	testFileShort      = utils.NewID()
+	testFileLong       = utils.NewID()
+	testFileMemo       = utils.NewID()
+	testFileWithCode   = utils.NewID()
+	testChunkShort     = utils.NewID()
+	testChunkLong      = utils.NewID()
+	testChunkMemo      = utils.NewID()
+	testChunkWithCode  = utils.NewID()
+	shortContent       = "Some text to code here"
+	longContent        = "Some text to code here and more words for searching"
+	memoContent        = "This is a memo with some editable content here"
 )
 
 var cmds = []*commands.AnyMessage{
@@ -36,18 +39,22 @@ var cmds = []*commands.AnyMessage{
 	code.CreatedCodeEvent(testCodeID1, testProjectID, "topic:first"),
 	code.CreatedCodeEvent(testCodeID2, testProjectID, "topic:second"),
 	code.CreatedCodeEvent(testCodeID3, testProjectID, "topic:third"),
-	file.CreatedFileEvent(testFileShort, testProjectID, shortContent),
-	file.CreatedFileEvent(testFileLong, testProjectID, longContent),
-	file.CreatedMemoEvent(testFileMemo, testProjectID, memoContent),
-	file.CreatedFileWithSectionsEvent(testFileWithCode, testProjectID, longContent, []file.CodedSection{
+	file.CreatedFileEventWithChunkID(testFileShort, testProjectID, shortContent, file.FileTypeCorpus, testChunkShort),
+	file.CreatedFileEventWithChunkID(testFileLong, testProjectID, longContent, file.FileTypeCorpus, testChunkLong),
+	file.CreatedFileEventWithChunkID(testFileMemo, testProjectID, memoContent, file.FileTypeMemo, testChunkMemo),
+	file.CreatedFileWithSectionsAndChunkID(testFileWithCode, testProjectID, longContent, []file.CodedSection{
 		{ID: testSectionID1, CodeID: testCodeID1, Text: "Some text to code", Confidence: file.ConfidenceHigh},
 		{ID: testSectionID2, CodeID: testCodeID2, Text: "more words for", Confidence: file.ConfidenceMedium},
 		{ID: testSectionID3, CodeID: testCodeID3, Text: "words for searching", Confidence: file.ConfidenceLow},
-	}),
+	}, testChunkWithCode),
 }
 
 var ignoreGeneratedIDs = []th.IgnoreFieldsOption{
 	{Type: file.AddedSection{}, Fields: []string{"ID"}, EnsureValidUUID: true},
+}
+
+var ignoreChunkIDs = []th.IgnoreFieldsOption{
+	{Type: file.Chunk{}, Fields: []string{"ID"}, EnsureValidUUID: true},
 }
 
 func TestFileRouter(t *testing.T) {
@@ -68,9 +75,10 @@ func TestFileRouter(t *testing.T) {
 					Locked:    true,
 				},
 				Chunks: []file.Chunk{
-					{ID: "1", Content: "Test content\n", Codes: []file.CodedSection{}},
+					{ID: "generated-id", Content: "Test content\n", Codes: []file.CodedSection{}},
 				},
 			}, file.EntityName, "", domain_helpers.TestActor(), nil)),
+			IgnoreFields: ignoreChunkIDs,
 		},
 		{
 			Name: "CreateFile with minimal required fields",
@@ -88,21 +96,22 @@ func TestFileRouter(t *testing.T) {
 					Locked:    true,
 				},
 				Chunks: []file.Chunk{
-					{ID: "1", Content: "Content\n", Codes: []file.CodedSection{}},
+					{ID: "generated-id", Content: "Content\n", Codes: []file.CodedSection{}},
 				},
 			}, file.EntityName, "", domain_helpers.TestActor(), nil)),
+			IgnoreFields: ignoreChunkIDs,
 		},
 		{
 			Name: "AddCodeSections with valid payload",
 			Input: commands.ToAny(commands.NewCommand[file.AddCodeSectionsPayload, any](file.AddCodeSections, file.AddCodeSectionsPayload{
-				ChunkID: "chunk-1",
+				ChunkID: testChunkShort,
 				Sections: []file.AddSectionOp{
 					{CodeID: testCodeID1, Text: "Some text to code", Reason: "Test reason", Confidence: file.ConfidenceHigh},
 				},
 			}, file.EntityName, testFileShort, domain_helpers.TestActor(), nil)),
 			ExpectErr: "",
 			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.AddedCodeSectionsPayload, any](file.AddedCodeSections, file.AddedCodeSectionsPayload{
-				ChunkID: "chunk-1",
+				ChunkID: testChunkShort,
 				Sections: []file.AddedSection{
 					{ID: "generated-id", CodeID: testCodeID1, Text: "Some text to code", Reason: "Test reason", Confidence: file.ConfidenceHigh},
 				},
@@ -239,7 +248,7 @@ func TestFileRouter(t *testing.T) {
 		{
 			Name: "AddCodeSections with empty sections array",
 			Input: commands.ToAny(commands.NewCommand[file.AddCodeSectionsPayload, any](file.AddCodeSections, file.AddCodeSectionsPayload{
-				ChunkID:  "chunk-1",
+				ChunkID:  testChunkShort,
 				Sections: []file.AddSectionOp{},
 			}, file.EntityName, testFileShort, domain_helpers.TestActor(), nil)),
 			ExpectErr: "validation failed: Sections must be at least 1 characters",
@@ -247,7 +256,7 @@ func TestFileRouter(t *testing.T) {
 		{
 			Name: "AddCodeSections with missing CodeID",
 			Input: commands.ToAny(commands.NewCommand[file.AddCodeSectionsPayload, any](file.AddCodeSections, file.AddCodeSectionsPayload{
-				ChunkID: "chunk-1",
+				ChunkID: testChunkShort,
 				Sections: []file.AddSectionOp{
 					{Text: "Some text", Confidence: file.ConfidenceHigh},
 				},
@@ -257,7 +266,7 @@ func TestFileRouter(t *testing.T) {
 		{
 			Name: "AddCodeSections with invalid CodeID",
 			Input: commands.ToAny(commands.NewCommand[file.AddCodeSectionsPayload, any](file.AddCodeSections, file.AddCodeSectionsPayload{
-				ChunkID: "chunk-1",
+				ChunkID: testChunkShort,
 				Sections: []file.AddSectionOp{
 					{CodeID: "not-a-uuid", Text: "Some text", Confidence: file.ConfidenceHigh},
 				},
@@ -303,7 +312,7 @@ func TestFileRouter(t *testing.T) {
 		{
 			Name: "AddCodeSections partial success - 2 valid, 1 invalid",
 			Input: commands.ToAny(commands.NewCommand[file.AddCodeSectionsPayload, any](file.AddCodeSections, file.AddCodeSectionsPayload{
-				ChunkID: "chunk-1",
+				ChunkID: testChunkLong,
 				Sections: []file.AddSectionOp{
 					{CodeID: testCodeID1, Text: "Some text to code", Reason: "First reason", Confidence: file.ConfidenceHigh},
 					{CodeID: testCodeID2, Text: "xy", Reason: "Too short", Confidence: file.ConfidenceMedium},
@@ -312,25 +321,24 @@ func TestFileRouter(t *testing.T) {
 			}, file.EntityName, testFileLong, domain_helpers.TestActor(), nil)),
 			ExpectErr: "",
 			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.AddedCodeSectionsPayload, any](file.AddedCodeSections, file.AddedCodeSectionsPayload{
-				ChunkID: "chunk-1",
+				ChunkID: testChunkLong,
 				Sections: []file.AddedSection{
 					{ID: "generated-id", CodeID: testCodeID1, Text: "Some text to code", Reason: "First reason", Confidence: file.ConfidenceHigh},
 					{ID: "generated-id", CodeID: testCodeID3, Text: "more words for searching", Reason: "Third reason", Confidence: file.ConfidenceLow},
 				},
-				Failures: map[int]string{1: "minimum 3 words required: \"xy\""},
+				Failures: map[int]string{1: "text too short (1 words, need 3+) - expand selection: \"xy\""},
 			}, file.EntityName, testFileLong, domain_helpers.TestActor(), nil)),
 			IgnoreFields: ignoreGeneratedIDs,
 		},
 		{
-			Name: "AddCodeSections all fail - returns validation error",
+			Name: "AddCodeSections all fail - returns validation error with details",
 			Input: commands.ToAny(commands.NewCommand[file.AddCodeSectionsPayload, any](file.AddCodeSections, file.AddCodeSectionsPayload{
-				ChunkID: "chunk-1",
+				ChunkID: testChunkShort,
 				Sections: []file.AddSectionOp{
 					{CodeID: testCodeID1, Text: "xy", Reason: "Too short", Confidence: file.ConfidenceHigh},
-					{CodeID: testCodeID2, Text: "ab", Reason: "Also too short", Confidence: file.ConfidenceHigh},
 				},
 			}, file.EntityName, testFileShort, domain_helpers.TestActor(), nil)),
-			ExpectErr: "validation failed",
+			ExpectErr: "validation failed: sections[0] text too short (1 words, need 3+) - expand selection: \"xy\"",
 		},
 		{
 			Name: "UpdateCodeSections partial success - 2 valid, 1 invalid",
@@ -347,7 +355,7 @@ func TestFileRouter(t *testing.T) {
 					{ID: testSectionID1, Text: "Some text to code", Reason: "First update"},
 					{ID: testSectionID3, Text: "more words for searching", Reason: "Third update"},
 				},
-				Failures: map[int]string{1: "minimum 3 words required: \"xy\""},
+				Failures: map[int]string{1: "text too short (1 words, need 3+) - expand selection: \"xy\""},
 			}, file.EntityName, testFileWithCode, domain_helpers.TestActor(), nil)),
 		},
 		{
@@ -395,7 +403,7 @@ func TestFileRouter(t *testing.T) {
 		{
 			Name: "AddCodeSections fails on non-corpus file",
 			Input: commands.ToAny(commands.NewCommand[file.AddCodeSectionsPayload, any](file.AddCodeSections, file.AddCodeSectionsPayload{
-				ChunkID: "1",
+				ChunkID: testChunkMemo,
 				Sections: []file.AddSectionOp{
 					{CodeID: testCodeID1, Text: "some editable content", Confidence: file.ConfidenceHigh},
 				},
@@ -489,8 +497,8 @@ func TestFileCreationChunking(t *testing.T) {
 		}
 
 		chunkIDsValid := true
-		for i, chunk := range payload.Chunks {
-			if chunk.ID != fmt.Sprintf("%d", i+1) {
+		for _, chunk := range payload.Chunks {
+			if !utils.ValidID(chunk.ID) {
 				chunkIDsValid = false
 			}
 			if chunk.Content == "" || chunk.Codes == nil {

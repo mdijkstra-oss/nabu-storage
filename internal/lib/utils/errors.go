@@ -78,8 +78,9 @@ func ToValidationError(err error) *ValidationError {
 	if errors.As(err, &validationErrs) {
 		var messages []string
 		for _, fe := range validationErrs {
-			ve.Fields[fe.Field()] = fe.Tag()
-			messages = append(messages, formatFieldError(fe))
+			msg := formatFieldError(fe)
+			ve.Fields[fe.Field()] = msg
+			messages = append(messages, msg)
 		}
 		if len(messages) > 0 {
 			ve.Message = "validation failed: " + messages[0]
@@ -87,6 +88,8 @@ func ToValidationError(err error) *ValidationError {
 				ve.Message += ", " + messages[i]
 			}
 		}
+	} else {
+		ve.Message = "validation failed: " + err.Error()
 	}
 
 	return ve
