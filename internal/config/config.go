@@ -19,7 +19,7 @@ func Load() Config {
 		Port:           getEnv("PORT", "8080"),
 		LogLevel:       parseLogLevel(getEnv("LOG_LEVEL", "info")),
 		PersistenceDir: getPersistenceDir(),
-		CorsOrigins:    parseCorsOrigins(getEnv("CORS_ORIGINS", "http://localhost:5173")),
+		CorsOrigins:    parseCorsOrigins(getEnv("CORS_ORIGINS", "*")),
 	}
 }
 
