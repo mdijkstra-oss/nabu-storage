@@ -183,14 +183,13 @@ paths:
                     old_text: "Initial analysis reveals"
                     new_text: "Comprehensive analysis confirms"
               addCodeSections:
-                summary: Add code sections to a file chunk
+                summary: Add code sections to a file
                 value:
                   type: Command
                   action: AddCodeSections
                   aggregate_type: File
                   aggregate_id: "770e8400-e29b-41d4-a716-446655440002"
                   payload:
-                    chunk_id: "72d5ce29-bd93-4b71-88be-902fa3431717 "
                     sections:
                       - code_id: "660e8400-e29b-41d4-a716-446655440001"
                         text: "I was really worried about the surgery"
@@ -204,20 +203,18 @@ paths:
                   aggregate_type: File
                   aggregate_id: "770e8400-e29b-41d4-a716-446655440002"
                   payload:
-                    chunk_id: "72d5ce29-bd93-4b71-88be-902fa3431717 "
                     sections:
                       - id: "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
                         reason: "Updated reasoning for this code application"
                         confidence: "medium"
               removeCodeSections:
-                summary: Remove code sections from a chunk
+                summary: Remove code sections from a file
                 value:
                   type: Command
                   action: RemoveCodeSections
                   aggregate_type: File
                   aggregate_id: "770e8400-e29b-41d4-a716-446655440002"
                   payload:
-                    chunk_id: "72d5ce29-bd93-4b71-88be-902fa3431717 "
                     section_ids:
                       - "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
                       - "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e"
@@ -387,7 +384,6 @@ paths:
                       timestamp: "2025-01-15T10:30:00Z"
                       version: 1
                       payload:
-                        chunk_id: "72d5ce29-bd93-4b71-88be-902fa3431717 "
                         sections:
                           - id: "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a"
                             code_id: "660e8400-e29b-41d4-a716-446655440001"
@@ -447,12 +443,6 @@ paths:
                     message: "validation failed"
                     fields:
                       file: "file is locked"
-                chunkedFileBlocked:
-                  summary: Chunked file modification blocked
-                  value:
-                    message: "validation failed"
-                    fields:
-                      file: "chunked files cannot be modified"
                 textNotFound:
                   summary: Text not found in file
                   value:
@@ -468,9 +458,9 @@ paths:
                 arrayValidationMultiple:
                   summary: Array item validation errors (multiple failures)
                   value:
-                    message: "validation failed: sections[0] text not found in chunk: \"missing text\", sections[2] minimum 3 words required: \"no\""
+                    message: "validation failed: sections[0] text not found in file: \"missing text\", sections[2] minimum 3 words required: \"no\""
                     fields:
-                      sections[0]: "text not found in chunk: \"missing text\""
+                      sections[0]: "text not found in file: \"missing text\""
                       sections[2]: "minimum 3 words required: \"no\""
         '404':
           description: Referenced entity not found
@@ -842,7 +832,6 @@ paths:
                       - id: "file-1:1:0"
                         file_id: "770e8400-e29b-41d4-a716-446655440002"
                         file_name: "Interview Transcript P07"
-                        chunk_id: "72d5ce29-bd93-4b71-88be-902fa3431717 "
                         context: "First sentence. The patient mentioned anxiety about the surgery. Last sentence."
                         match: "anxiety"
                     next_cursor: "file-1:1:0"
@@ -859,7 +848,7 @@ paths:
   /queries/projects/{projectId}/files:
     get:
       summary: List all files in a project
-      description: Returns file metadata without chunks for efficient listing
+      description: Returns file metadata without content or codes for efficient listing
       parameters:
         - name: projectId
           in: path
@@ -869,7 +858,7 @@ paths:
             format: uuid
       responses:
         '200':
-          description: List of files (without chunks)
+          description: List of files (without content or codes)
           content:
             application/json:
               schema:
@@ -897,8 +886,8 @@ paths:
 
   /queries/projects/{projectId}/files/{id}:
     get:
-      summary: Get file metadata by ID
-      description: Returns file metadata without chunks. Use /files/{id}/chunks to get file content.
+      summary: Get file by ID
+      description: Returns file with full content and codes
       parameters:
         - name: projectId
           in: path
@@ -914,11 +903,11 @@ paths:
             format: uuid
       responses:
         '200':
-          description: File metadata (without chunks)
+          description: File with content and codes
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/FileSummary'
+                $ref: '#/components/schemas/File'
               example:
                 id: "770e8400-e29b-41d4-a716-446655440002"
                 project_id: "550e8400-e29b-41d4-a716-446655440000"
@@ -930,102 +919,15 @@ paths:
                 type: corpus
                 locked: true
                 healthy: true
+                content: "The transition to remote work was challenging at first..."
+                codes:
+                  - id: "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+                    code_id: "660e8400-e29b-41d4-a716-446655440001"
+                    text: "challenging at first"
+                    reason: "Expression of difficulty during transition"
+                    confidence: "high"
         '404':
           description: File not found
-
-  /queries/projects/{projectId}/files/{id}/chunks:
-    get:
-      summary: Get file chunks with optional filtering
-      description: |
-        Retrieve file chunks with optional filtering by:
-        - Text search
-        - Coverage percentage (proportion of chunk text that is coded)
-        - Specific code slugs
-
-      parameters:
-        - name: projectId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: chunk_id
-          in: query
-          description: Specific chunk to retrieve (uuid) on empty will return first chunk
-          schema:
-            type: string
-        - name: searchText
-          in: query
-          description: Filter chunks containing this text
-          schema:
-            type: string
-        - name: minCoverage
-          in: query
-          description: Minimum coding coverage (0.0 to 1.0)
-          schema:
-            type: number
-            format: double
-            minimum: 0.0
-            maximum: 1.0
-        - name: maxCoverage
-          in: query
-          description: Maximum coding coverage (0.0 to 1.0)
-          schema:
-            type: number
-            format: double
-            minimum: 0.0
-            maximum: 1.0
-        - name: codeIds
-          in: query
-          description: Filter by specific code IDs (comma-separated UUIDs)
-          schema:
-            type: array
-            items:
-              type: string
-              format: uuid
-          style: form
-          explode: false
-      responses:
-        '200':
-          description: Chunk data with navigation info
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ChunkResult'
-              examples:
-                firstChunk:
-                  summary: First chunk with codes
-                  value:
-                    chunk:
-                      id: "b8c00074-5774-4be9-8139-e9a51ae5f24b"
-                      content: "Participant describes feeling anxious about the upcoming procedure. They mention worrying about potential complications."
-                      codes:
-                        - id: "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
-                          code_id: "660e8400-e29b-41d4-a716-446655440001"
-                          text: "feeling anxious about the upcoming procedure"
-                          reason: "Direct expression of pre-procedure anxiety"
-                          confidence: "high"
-                    chunk_id: "72d5ce29-bd93-4b71-88be-902fa3431717 "
-                    total_chunks: 5
-                    next: "be1155cd-7dd6-4f3e-9641-bf512c1fbc2a"
-                lastChunk:
-                  summary: Last chunk (no next)
-                  value:
-                    chunk:
-                      id: "57793feb-5421-45bf-a1b7-be4c035b2261"
-                      content: "Final thoughts and reflections on the experience."
-                      codes: []
-                    chunk_id: "57793feb-5421-45bf-a1b7-be4c035b2261"
-                    total_chunks: 5
-                    next: null
-        '404':
-          description: File or chunk not found
 
   /queries/projects/{projectId}/codebook:
     get:
@@ -1199,7 +1101,6 @@ paths:
                   - id: "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
                     file_id: "770e8400-e29b-41d4-a716-446655440002"
                     file_name: "Interview Transcript P07"
-                    chunk_id: "772b86dd-437a-439d-a434-d11de8887eac"
                     code_id: "660e8400-e29b-41d4-a716-446655440001"
                     text: "I was really worried about the surgery"
                     reason: "Explicit pre-procedure anxiety"
@@ -1210,7 +1111,6 @@ paths:
                   - id: "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e"
                     file_id: "880e8400-e29b-41d4-a716-446655440003"
                     file_name: "Interview Transcript P12"
-                    chunk_id: "72d5ce29-bd93-4b71-88be-902fa3431717 "
                     code_id: "660e8400-e29b-41d4-a716-446655440001"
                     text: "The waiting was nerve-wracking"
                     reason: "Anxiety during wait period"
@@ -1433,9 +1333,9 @@ components:
         arrayItemMultiple:
           summary: Array validation errors (multiple items)
           value:
-            message: "validation failed: sections[0] text not found in chunk: \"missing text\", sections[2] minimum 3 words required: \"no\""
+            message: "validation failed: sections[0] text not found in file: \"missing text\", sections[2] minimum 3 words required: \"no\""
             fields:
-              sections[0]: "text not found in chunk: \"missing text\""
+              sections[0]: "text not found in file: \"missing text\""
               sections[2]: "minimum 3 words required: \"no\""
 
     BatchResponse:
@@ -1496,7 +1396,7 @@ components:
             Keys are the 0-based indices of items that failed validation.
           example:
             "1": "minimum 3 words required: \"xy\""
-            "3": "text not found in chunk: \"missing text\""
+            "3": "text not found in file: \"missing text\""
 
     EventCursorResult:
       type: object
@@ -1573,7 +1473,7 @@ components:
           type: object
           additionalProperties:
             $ref: '#/components/schemas/FileSummary'
-          description: Map of file IDs to FileSummary objects (without chunks)
+          description: Map of file IDs to FileSummary objects (without content or codes)
         healthy:
           type: boolean
           description: Whether the project is in a healthy state
@@ -1603,13 +1503,12 @@ components:
         - id
         - file_id
         - file_name
-        - chunk_id
         - context
         - match
       properties:
         id:
           type: string
-          description: Compound ID (file_id:chunk_id:match_index)
+          description: Compound ID (file_id:match_index)
         file_id:
           type: string
           format: uuid
@@ -1617,9 +1516,6 @@ components:
         file_name:
           type: string
           description: Name of the file containing the match
-        chunk_id:
-          type: string
-          description: Chunk UUID within the file
         context:
           type: string
           description: Match with surrounding context sentences
@@ -1725,6 +1621,9 @@ components:
         healthy:
           type: boolean
           description: Whether the code is in a healthy state
+        pinned:
+          type: boolean
+          description: Whether the code is pinned to the top
 
     CodePaginationResult:
       type: object
@@ -1801,19 +1700,26 @@ components:
         locked:
           type: boolean
           description: Whether file is read-only (corpus files are locked)
+        pinned:
+          type: boolean
+          description: Whether the file is pinned to the top
 
     File:
       allOf:
         - $ref: '#/components/schemas/FileSummary'
         - type: object
           required:
-            - chunks
+            - content
+            - codes
           properties:
-            chunks:
+            content:
+              type: string
+              description: File content as text
+            codes:
               type: array
               items:
-                $ref: '#/components/schemas/Chunk'
-              description: File divided into chunks for coding
+                $ref: '#/components/schemas/CodedSection'
+              description: Code applications within this file
 
     Chart:
       type: object
@@ -1908,24 +1814,6 @@ components:
         page_size:
           type: integer
 
-    Chunk:
-      type: object
-      required:
-        - id
-        - content
-      properties:
-        id:
-          type: string
-          description: Chunk ID (UUID)
-        content:
-          type: string
-          description: Chunk text content
-        codes:
-          type: array
-          items:
-            $ref: '#/components/schemas/CodedSection'
-          description: Code applications within this chunk
-
     CodedSection:
       type: object
       required:
@@ -1969,7 +1857,6 @@ components:
         - id
         - file_id
         - file_name
-        - chunk_id
         - code_id
         - text
         - confidence
@@ -1985,9 +1872,6 @@ components:
         file_name:
           type: string
           description: Name of the file containing this section
-        chunk_id:
-          type: string
-          description: Chunk UUID within the file (e.g., "772b86dd-437a-439d-a434-d11de8887eac")
         code_id:
           type: string
           format: uuid
@@ -2030,26 +1914,6 @@ components:
         page_size:
           type: integer
           description: Number of items per page
-
-    ChunkResult:
-      type: object
-      required:
-        - chunk
-        - chunk_id
-        - total_chunks
-      properties:
-        chunk:
-          $ref: '#/components/schemas/Chunk'
-        chunk_id:
-          type: string
-          description: Chunk UUID within the file (e.g., "772b86dd-437a-439d-a434-d11de8887eac")
-        total_chunks:
-          type: integer
-          description: Total number of chunks in file
-        next:
-          type: integer
-          nullable: true
-          description: Next chunk ID (null if this is the last chunk)
 
     CreateProjectPayload:
       type: object
@@ -2260,7 +2124,7 @@ components:
           enum: [corpus, codebook, memo, llm-memo]
           description: |
             File type (defaults to corpus if not specified):
-            - corpus: Documents being coded (locked, chunked)
+            - corpus: Documents being coded (locked)
             - codebook: Coding guidelines (one per project)
             - memo: Analytical notes
             - llm-memo: LLM analytical notes
@@ -2305,12 +2169,8 @@ components:
     AddCodeSectionsPayload:
       type: object
       required:
-        - chunk_id
         - sections
       properties:
-        chunk_id:
-          type: string
-          description: Chunk UUID within the file (e.g., "772b86dd-437a-439d-a434-d11de8887eac")
         sections:
           type: array
           minItems: 1
@@ -2356,7 +2216,7 @@ components:
             $ref: '#/components/schemas/UpdateSectionOp'
           description: |
             Sections to update, identified by their unique section ID.
-            The system searches across all chunks in the file to find each section.
+            The system searches across the file to find each section.
 
     UpdateSectionOp:
       type: object
@@ -2396,7 +2256,7 @@ components:
             format: uuid
           description: |
             IDs of sections to remove.
-            The system searches across all chunks in the file to find each section.
+            The system searches across the file to find each section.
 
     RecodeAllPayload:
       type: object
@@ -2474,6 +2334,36 @@ x-command-reference:
         {
           "type": "Command",
           "action": "DeleteProject",
+          "aggregate_type": "Project",
+          "aggregate_id": "550e8400-e29b-41d4-a716-446655440000",
+          "payload": {}
+        }
+
+    PinProject:
+      description: Pin a project to the top
+      payload: EmptyPayload
+      aggregate_id: project UUID
+      event: PinnedProject
+      note: No payload fields required
+      example: |
+        {
+          "type": "Command",
+          "action": "PinProject",
+          "aggregate_type": "Project",
+          "aggregate_id": "550e8400-e29b-41d4-a716-446655440000",
+          "payload": {}
+        }
+
+    UnpinProject:
+      description: Unpin a project
+      payload: EmptyPayload
+      aggregate_id: project UUID
+      event: UnpinnedProject
+      note: No payload fields required
+      example: |
+        {
+          "type": "Command",
+          "action": "UnpinProject",
           "aggregate_type": "Project",
           "aggregate_id": "550e8400-e29b-41d4-a716-446655440000",
           "payload": {}
@@ -2668,6 +2558,36 @@ x-command-reference:
           "payload": {}
         }
 
+    PinCode:
+      description: Pin a code to the top
+      payload: EmptyPayload
+      aggregate_id: code UUID
+      event: PinnedCode
+      note: No payload fields required
+      example: |
+        {
+          "type": "Command",
+          "action": "PinCode",
+          "aggregate_type": "Code",
+          "aggregate_id": "660e8400-e29b-41d4-a716-446655440001",
+          "payload": {}
+        }
+
+    UnpinCode:
+      description: Unpin a code
+      payload: EmptyPayload
+      aggregate_id: code UUID
+      event: UnpinnedCode
+      note: No payload fields required
+      example: |
+        {
+          "type": "Command",
+          "action": "UnpinCode",
+          "aggregate_type": "Code",
+          "aggregate_id": "660e8400-e29b-41d4-a716-446655440001",
+          "payload": {}
+        }
+
     MergeCodes:
       description: Merge two codes (source code deleted, all its codings moved to target)
       payload: MergeCodesPayload
@@ -2730,8 +2650,8 @@ x-command-reference:
       event: CreatedFile
       note: |
         - Type defaults to "corpus" if not specified
-        - Corpus files are automatically chunked and locked
-        - Codebook, memo, and llm-memo files are single-chunk and editable
+        - Corpus files are automatically locked
+        - Codebook, memo, and llm-memo files are editable
         - Only one codebook file allowed per project
       example: |
         {
@@ -2772,7 +2692,6 @@ x-command-reference:
       event: ReplacedFileContent
       validation:
         - File must not be locked (corpus files are locked)
-        - File must not be chunked (corpus files are chunked and immutable)
       note: Only works on memo, codebook, and llm-memo files. Corpus files cannot be modified after creation.
       example: |
         {
@@ -2792,7 +2711,6 @@ x-command-reference:
       event: ReplacedFileContent
       validation:
         - File must not be locked
-        - File must not be chunked (corpus files cannot be modified)
         - File must have content
         - old_text must be found in file (fuzzy matched)
       note: Uses fuzzy matching to find text, then replaces with exact new_text
@@ -2823,13 +2741,43 @@ x-command-reference:
           "payload": {}
         }
 
+    PinFile:
+      description: Pin a file to the top
+      payload: EmptyPayload
+      aggregate_id: file UUID
+      event: PinnedFile
+      note: No payload fields required
+      example: |
+        {
+          "type": "Command",
+          "action": "PinFile",
+          "aggregate_type": "File",
+          "aggregate_id": "770e8400-e29b-41d4-a716-446655440002",
+          "payload": {}
+        }
+
+    UnpinFile:
+      description: Unpin a file
+      payload: EmptyPayload
+      aggregate_id: file UUID
+      event: UnpinnedFile
+      note: No payload fields required
+      example: |
+        {
+          "type": "Command",
+          "action": "UnpinFile",
+          "aggregate_type": "File",
+          "aggregate_id": "770e8400-e29b-41d4-a716-446655440002",
+          "payload": {}
+        }
+
     AddCodeSections:
-      description: Add new code sections to a file chunk
+      description: Add new code sections to a file
       payload: AddCodeSectionsPayload
       aggregate_id: file UUID
       event: AddedCodeSections
       validation:
-        - Text must exist in the chunk (fuzzy matched, normalized)
+        - Text must exist in the file (fuzzy matched, normalized)
         - Text must contain at least 3 words
         - Confidence is required (high, medium, or low)
         - Array validation errors use format sections[index]
@@ -2846,7 +2794,6 @@ x-command-reference:
           "aggregate_type": "File",
           "aggregate_id": "770e8400-e29b-41d4-a716-446655440002",
           "payload": {
-            "chunk_id": "b8c00074-5774-4be9-8139-e9a51ae5f24b",
             "sections": [
               {
                 "code_id": "660e8400-e29b-41d4-a716-446655440001",
@@ -2876,8 +2823,8 @@ x-command-reference:
       aggregate_id: file UUID
       event: UpdatedCodeSections
       validation:
-        - Section ID must exist in the file (searches all chunks automatically)
-        - If text is provided, it must exist in the section's chunk (fuzzy matched, normalized)
+        - Section ID must exist in the file
+        - If text is provided, it must exist in the file (fuzzy matched, normalized)
         - If text is provided, it must contain at least 3 words
         - Confidence is optional (high, medium, or low)
         - If code_id is provided, it must match a code in the project
@@ -2889,9 +2836,8 @@ x-command-reference:
         - Failed sections are listed in the failures map with original array index
         If ALL sections fail validation, returns HTTP 400 with validation error.
       note: |
-        Only include fields to update. Chunk ID is not required - sections are found
-        by their unique ID across all chunks. To reassign a section to a different code,
-        provide code_id.
+        Only include fields to update. Sections are found by their unique ID.
+        To reassign a section to a different code, provide code_id.
       example: |
         {
           "type": "Command",
@@ -2924,7 +2870,7 @@ x-command-reference:
       aggregate_id: file UUID
       event: RemovedCodeSections
       note: |
-        Chunk ID is not required - sections are found by their unique ID across all chunks.
+        Sections are found by their unique ID.
       example: |
         {
           "type": "Command",

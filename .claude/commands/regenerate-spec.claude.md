@@ -130,8 +130,6 @@ Generate a complete OpenAPI 3.0 spec for this CQRS-based qualitative data analys
 **Top-level schemas in `components/schemas`**: Alphabetical order
 - AnyMessage
 - BatchResponse
-- Chunk
-- ChunkResult
 - Code
 - CodePaginationResult
 - (etc.)
@@ -292,7 +290,6 @@ These are the typical locations. If files don't exist at these paths, search for
 - `internal/domain/projections/{entity}-entity/view.go` - response types
 - `internal/domain/projections/{entity}-entity/query.go` - custom query types
 - `internal/domain/projections/{entity}-entity/filter.go` - **CRITICAL** for query parameters
-- `internal/domain/projections/{entity}-entity/chunk/filter.go` - chunk-specific filters
 
 **Generic query patterns (check these):**
 - `internal/cqrs/projection/queries.go` OR `internal/projection/queries.go`
@@ -307,7 +304,7 @@ For EACH endpoint in `routes.go`, check for:
 1. **`internal/domain/projections/{entity}-entity/filter.go`** - entity-specific filters
 2. **`internal/domain/projections/{entity}-entity/query.go`** - custom query structs
 3. Look for struct fields with `query:"paramName"` tags
-4. Example from chunks: `SearchText string \`query:"searchText"\``
+4. Example: `SearchText string \`query:"searchText"\`` becomes query parameter "searchText"
 5. All `query:` tagged fields MUST be documented as query parameters in the OpenAPI spec
 
 ### HTTP Layer
@@ -382,12 +379,6 @@ For EVERY endpoint, check for query parameter structs:
 - `PaginationQuery` struct shows accepted parameters
 - `PaginationResult[T]` struct shows response format
 - Default values should be inferred from validation tags
-
-**Chunks**: If `ChunkResult` type exists in projections:
-- Check the struct for exact fields
-- Chunk IDs are opaque identifiers (if no ID provided in query, first chunk is returned)
-- IMPORTANT: Check `internal/domain/projections/file-entity/chunk/filter.go` for filter query parameters
-- Common chunk filters: searchText, minCoverage, maxCoverage, codeSlugs
 
 ### GET /ws/
 Read `socket.go` for WebSocket implementation details:
@@ -845,7 +836,7 @@ Each entity has a `schema.json` file in its folder:
    - `min=X,max=Y` → `minLength/maxLength` or `minimum/maximum`
    - `oneof=a b c` → `enum: ["a", "b", "c"]`
    - Custom validators (e.g., `radix_color`) → appropriate enum
-7. **nested types**: Use `$defs` for types like Chunk, CodedSection, Actor
+7. **nested types**: Use `$defs` for types like CodedSection, Actor
 8. **references**: Project schema references code and file schemas via `$ref`
 
 ### Workflow Integration
