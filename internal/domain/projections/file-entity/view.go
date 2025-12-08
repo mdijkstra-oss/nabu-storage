@@ -4,7 +4,7 @@ import "hermes-relay/internal/domain/entities/file"
 
 type File = file.File
 
-// FileSummary contains file metadata without chunks
+// FileSummary contains file metadata without content
 type FileSummary struct {
 	ID      string `json:"id"`
 	Version int    `json:"version"`
@@ -12,7 +12,7 @@ type FileSummary struct {
 	file.FileData
 }
 
-// ToSummary strips chunks from File for context-efficient responses
+// ToSummary strips content and codes from File for context-efficient responses
 func ToSummary(f File) FileSummary {
 	return FileSummary{
 		ID:       f.ID,

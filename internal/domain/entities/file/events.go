@@ -18,7 +18,8 @@ const (
 
 type CreatedFilePayload struct {
 	FileData
-	Chunks []Chunk `json:"chunks"`
+	Content string         `json:"content"`
+	Codes   []CodedSection `json:"codes"`
 }
 
 type UpdatedFilePayload = UpdateFilePayload

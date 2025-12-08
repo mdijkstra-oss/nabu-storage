@@ -3,7 +3,7 @@
   "$comment": "LLM: Keep in sync with entity.go File struct",
   "title": "File",
   "type": "object",
-  "required": ["id", "healthy", "version", "project_id", "name", "chunks"],
+  "required": ["id", "healthy", "version", "project_id", "name", "content", "codes"],
   "properties": {
     "id": { "type": "string" },
     "healthy": { "type": "boolean" },
@@ -45,24 +45,18 @@
       "type": "boolean",
       "description": "Whether file is read-only"
     },
-    "chunks": {
+    "pinned": { "type": "boolean" },
+    "content": {
+      "type": "string",
+      "description": "Full file content"
+    },
+    "codes": {
       "type": "array",
-      "items": { "$ref": "#/$defs/Chunk" }
+      "items": { "$ref": "#/$defs/CodedSection" },
+      "description": "Coded sections within file content"
     }
   },
   "$defs": {
-    "Chunk": {
-      "type": "object",
-      "required": ["id", "content", "codes"],
-      "properties": {
-        "id": { "type": "string" },
-        "content": { "type": "string" },
-        "codes": {
-          "type": "array",
-          "items": { "$ref": "#/$defs/CodedSection" }
-        }
-      }
-    },
     "CodedSection": {
       "type": "object",
       "required": ["code_id", "text", "confidence"],

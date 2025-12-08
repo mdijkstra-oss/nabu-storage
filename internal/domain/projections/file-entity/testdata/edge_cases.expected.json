@@ -10,24 +10,19 @@
   "type": "source",
   "original": "",
   "locked": false,
-  "chunks": [
+  "content": "The quick brown fox jumps high. This is a well-known fact about animals.",
+  "codes": [
     {
-      "id": "chunk-1",
-      "content": "The quick brown fox jumps high. This is a well-known fact about animals.",
-      "codes": [
-        {
-          "code_slug": "test:whitespace",
-          "code_id": "code-1",
-          "text": "quick brown fox",
-          "reason": "Leading/trailing whitespace should still match"
-        },
-        {
-          "code_slug": "test:hyphen",
-          "code_id": "code-3",
-          "text": "well-known fact about",
-          "reason": "Space instead of hyphen should still match"
-        }
-      ]
+      "code_slug": "test:whitespace",
+      "code_id": "code-1",
+      "text": "  quick brown fox  ",
+      "reason": "Leading/trailing whitespace should still match"
+    },
+    {
+      "code_slug": "test:hyphen",
+      "code_id": "code-3",
+      "text": "well known fact about",
+      "reason": "Space instead of hyphen should still match"
     }
   ]
 }

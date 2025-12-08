@@ -11,7 +11,6 @@ type CodedSectionView struct {
 	ID         string            `json:"id"`
 	FileID     string            `json:"file_id"`
 	FileName   string            `json:"file_name"`
-	ChunkID    string            `json:"chunk_id"`
 	CodeID     string            `json:"code_id"`
 	Text       string            `json:"text"`
 	Reason     string            `json:"reason"`
@@ -36,11 +35,9 @@ func GetSectionsForCode(proj project.Project, codeID string) []CodedSectionView 
 	var sections []CodedSectionView
 
 	for _, f := range proj.Files {
-		for _, chunk := range f.Chunks {
-			for _, section := range chunk.Codes {
-				if section.CodeID == codeID {
-					sections = append(sections, toSectionView(section, f, chunk))
-				}
+		for _, section := range f.Codes {
+			if section.CodeID == codeID {
+				sections = append(sections, toSectionView(section, f))
 			}
 		}
 	}
@@ -48,9 +45,6 @@ func GetSectionsForCode(proj project.Project, codeID string) []CodedSectionView 
 	utils.Sort(sections, func(a, b CodedSectionView) bool {
 		if a.FileName != b.FileName {
 			return a.FileName < b.FileName
-		}
-		if a.ChunkID != b.ChunkID {
-			return a.ChunkID < b.ChunkID
 		}
 		return a.ID < b.ID
 	})
@@ -74,12 +68,11 @@ func FilterSections(sections []CodedSectionView, filter SectionFilter) []CodedSe
 	return sections
 }
 
-func toSectionView(section file.CodedSection, f file.File, chunk file.Chunk) CodedSectionView {
+func toSectionView(section file.CodedSection, f file.File) CodedSectionView {
 	return CodedSectionView{
 		ID:         section.ID,
 		FileID:     f.ID,
 		FileName:   f.Name,
-		ChunkID:    chunk.ID,
 		CodeID:     section.CodeID,
 		Text:       section.Text,
 		Reason:     section.Reason,

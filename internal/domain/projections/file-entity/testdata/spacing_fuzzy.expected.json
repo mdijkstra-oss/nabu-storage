@@ -10,30 +10,25 @@
   "type": "source",
   "original": "",
   "locked": false,
-  "chunks": [
+  "content": "This document contains CORRECT SPACING FOUND in the text. It also has ANOTHER MATCH HERE with proper formatting. Finally, we have THIRD SECTION WORKS perfectly aligned.",
+  "codes": [
     {
-      "id": "chunk-1",
-      "content": "This document contains CORRECT SPACING FOUND in the text. It also has ANOTHER MATCH HERE with proper formatting. Finally, we have THIRD SECTION WORKS perfectly aligned.",
-      "codes": [
-        {
-          "code_slug": "test:spacing",
-          "code_id": "code-1",
-          "text": "CORRECT SPACING FOUND",
-          "reason": "Extra spaces should still match"
-        },
-        {
-          "code_slug": "test:tabs",
-          "code_id": "code-2",
-          "text": "ANOTHER MATCH HERE",
-          "reason": "Tabs instead of spaces should still match"
-        },
-        {
-          "code_slug": "test:mixed",
-          "code_id": "code-3",
-          "text": "THIRD SECTION WORKS",
-          "reason": "Mixed spacing should still match"
-        }
-      ]
+      "code_slug": "test:spacing",
+      "code_id": "code-1",
+      "text": "CORRECT   SPACING  FOUND",
+      "reason": "Extra spaces should still match"
+    },
+    {
+      "code_slug": "test:tabs",
+      "code_id": "code-2",
+      "text": "ANOTHER\t\tMATCH\tHERE",
+      "reason": "Tabs instead of spaces should still match"
+    },
+    {
+      "code_slug": "test:mixed",
+      "code_id": "code-3",
+      "text": "THIRD  SECTION   WORKS",
+      "reason": "Mixed spacing should still match"
     }
   ]
 }

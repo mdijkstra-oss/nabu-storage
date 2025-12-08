@@ -37,22 +37,20 @@ var Reducer = projection.WithVersionIncrement(
 func CreatedFileReducer(_ *File, message *commands.AnyMessage, payload *file.CreatedFilePayload) *File {
 	fileData := payload.FileData
 	if fileData.Time.IsZero() {
-		fileData.Time = time.Now() // Todo: get from somewhere? eg upload system I suppose
+		fileData.Time = time.Now()
 	}
 	return &File{
 		ID:       message.AggregateID,
 		Healthy:  true,
 		FileData: fileData,
-		Chunks:   payload.Chunks,
+		Content:  payload.Content,
+		Codes:    payload.Codes,
 	}
 }
 
 func ReplacedFileContentReducer(current *File, _ *commands.AnyMessage, payload *file.ReplacedFileContentPayload) *File {
-	current.Chunks = []file.Chunk{{
-		ID:      current.Chunks[0].ID,
-		Content: payload.Content,
-		Codes:   []file.CodedSection{},
-	}}
+	current.Content = payload.Content
+	current.Codes = []file.CodedSection{}
 	return current
 }
 
@@ -72,73 +70,50 @@ func toCodedSection(section file.AddedSection, actor commands.Actor) file.CodedS
 }
 
 func AddedCodeSectionsReducer(current *File, message *commands.AnyMessage, payload *file.AddedCodeSectionsPayload) *File {
-	current.Chunks = utils.Map(current.Chunks, func(chunk file.Chunk) file.Chunk {
-		if chunk.ID != payload.ChunkID {
-			return chunk
-		}
-
-		sections := utils.Map(payload.Sections, func(s file.AddedSection) file.CodedSection {
-			return toCodedSection(s, message.Actor)
-		})
-		chunk.Codes = append(chunk.Codes, sections...)
-		return chunk
+	sections := utils.Map(payload.Sections, func(s file.AddedSection) file.CodedSection {
+		return toCodedSection(s, message.Actor)
 	})
+	current.Codes = append(current.Codes, sections...)
 	return current
 }
 
 func UpdatedCodeSectionsReducer(current *File, message *commands.AnyMessage, payload *file.UpdateCodeSectionsPayload) *File {
-	current.Chunks = utils.Map(current.Chunks, func(chunk file.Chunk) file.Chunk {
-		chunk.Codes = utils.Map(chunk.Codes, func(section file.CodedSection) file.CodedSection {
-			for _, op := range payload.Sections {
-				if section.ID == op.ID {
-					updated := utils.ApplyPartialUpdate(section, op)
-					return withLastActor(updated, message.Actor)
-				}
+	current.Codes = utils.Map(current.Codes, func(section file.CodedSection) file.CodedSection {
+		for _, op := range payload.Sections {
+			if section.ID == op.ID {
+				updated := utils.ApplyPartialUpdate(section, op)
+				return withLastActor(updated, message.Actor)
 			}
-			return section
-		})
-		return chunk
+		}
+		return section
 	})
 	return current
 }
 
 func RemovedCodeSectionsReducer(current *File, _ *commands.AnyMessage, payload *file.RemoveCodeSectionsPayload) *File {
-	current.Chunks = utils.Map(current.Chunks, func(chunk file.Chunk) file.Chunk {
-		chunk.Codes = utils.Filter(chunk.Codes, func(section file.CodedSection) bool {
-			for _, id := range payload.SectionIDs {
-				if section.ID == id {
-					return false
-				}
+	current.Codes = utils.Filter(current.Codes, func(section file.CodedSection) bool {
+		for _, id := range payload.SectionIDs {
+			if section.ID == id {
+				return false
 			}
-			return true
-		})
-		return chunk
+		}
+		return true
 	})
 	return current
 }
 
 func ClearedCodingReducer(current *File, message *commands.AnyMessage, payload any) *File {
-	current.Chunks = utils.Map(current.Chunks, func(chunk file.Chunk) file.Chunk {
-		chunk.Codes = []file.CodedSection{}
-		return chunk
-	})
+	current.Codes = []file.CodedSection{}
 	return current
 }
 
-func mapChunkCodes(chunks []file.Chunk, transform func([]file.CodedSection) []file.CodedSection) []file.Chunk {
-	return utils.Map(chunks, func(chunk file.Chunk) file.Chunk {
-		chunk.Codes = transform(chunk.Codes)
-		return chunk
-	})
-}
-
 func DeletedCodeReducer(current *File, message *commands.AnyMessage, _ code.DeletedCodePayload) *File {
-	current.Chunks = mapChunkCodes(current.Chunks, filterByCodeID(message.AggregateID))
+	current.Codes = filterByCodeID(message.AggregateID)(current.Codes)
 	return current
 }
 
 func MergedCodesReducer(current *File, _ *commands.AnyMessage, payload code.MergedCodesPayload) *File {
-	current.Chunks = mapChunkCodes(current.Chunks, remapCodeID(payload.SourceID, payload.TargetID))
+	current.Codes = remapCodeID(payload.SourceID, payload.TargetID)(current.Codes)
 	return current
 }
 
@@ -162,17 +137,17 @@ func remapCodeID(fromID, toID string) func([]file.CodedSection) []file.CodedSect
 }
 
 func RemovedCodeFromFileReducer(current *File, _ *commands.AnyMessage, payload file.RemovedCodeFromFilePayload) *File {
-	current.Chunks = mapChunkCodes(current.Chunks, filterByCodeID(payload.CodeID))
+	current.Codes = filterByCodeID(payload.CodeID)(current.Codes)
 	return current
 }
 
 func ClearedCodeApplicationsReducer(current *File, message *commands.AnyMessage, _ code.ClearedCodeApplicationsPayload) *File {
-	current.Chunks = mapChunkCodes(current.Chunks, filterByCodeID(message.AggregateID))
+	current.Codes = filterByCodeID(message.AggregateID)(current.Codes)
 	return current
 }
 
 func RecodedAllReducer(current *File, message *commands.AnyMessage, payload code.RecodedAllPayload) *File {
-	current.Chunks = mapChunkCodes(current.Chunks, remapCodeID(message.AggregateID, payload.TargetCodeID))
+	current.Codes = remapCodeID(message.AggregateID, payload.TargetCodeID)(current.Codes)
 	return current
 }
 

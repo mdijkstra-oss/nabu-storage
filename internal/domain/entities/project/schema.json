@@ -20,6 +20,7 @@
       "type": "string",
       "enum": ["explore", "code", "validate", "analyze"]
     },
+    "pinned": { "type": "boolean" },
     "charts": {
       "type": "array",
       "items": { "$ref": "../chart/schema.json" }

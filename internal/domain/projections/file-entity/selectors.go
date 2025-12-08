@@ -3,8 +3,6 @@ package fileview
 import (
 	"hermes-relay/internal/cqrs/projection"
 	"hermes-relay/internal/domain/entities/file"
-	"hermes-relay/internal/domain/entities/project"
-	"hermes-relay/internal/lib/utils"
 )
 
 func GetByID(files []file.File, id string) *file.File {
@@ -15,29 +13,10 @@ func Exists(files []file.File, id string) bool {
 	return projection.EntityExists(files, id)
 }
 
-func FindChunk(chunks []file.Chunk, chunkID string) *file.Chunk {
-	for i := range chunks {
-		if chunks[i].ID == chunkID {
-			return &chunks[i]
-		}
-	}
-	return nil
-}
-
-func GetFileChunk(proj project.Project, fileID, chunkID string) (*file.Chunk, error) {
-	chunk := FindChunk(proj.Files[fileID].Chunks, chunkID)
-	if chunk == nil {
-		return nil, utils.FieldNotFound("chunk_id")
-	}
-	return chunk, nil
-}
-
-func FindChunkBySectionID(f file.File, sectionID string) *file.Chunk {
-	for i := range f.Chunks {
-		for _, section := range f.Chunks[i].Codes {
-			if section.ID == sectionID {
-				return &f.Chunks[i]
-			}
+func FindSection(f file.File, sectionID string) *file.CodedSection {
+	for i := range f.Codes {
+		if f.Codes[i].ID == sectionID {
+			return &f.Codes[i]
 		}
 	}
 	return nil

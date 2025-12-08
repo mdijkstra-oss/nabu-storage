@@ -41,7 +41,7 @@ func (d *DiskPersistence) PersistEvent(message *commands.AnyMessage) error {
 		return fmt.Errorf("cannot persist event without aggregate type")
 	}
 	if message.AggregateID == "" {
-		return fmt.Errorf("cannot persist event without aggregate ChunkID")
+		return fmt.Errorf("cannot persist event without aggregate ID")
 	}
 
 	filePath := d.getEventFilePath(message.AggregateType, message.AggregateID)
@@ -122,7 +122,7 @@ func (d *DiskPersistence) loadEventsForType(aggregateType string) ([]commands.An
 		}
 
 		filePath := filepath.Join(typePath, entry.Name())
-		fileEvents, err := readEventsFromFile(filePath)
+		fileEvents, err := ReadEventsFromFile(filePath)
 		if err != nil {
 			slog.Warn("failed to read event file",
 				"path", filePath,
@@ -140,7 +140,7 @@ func (d *DiskPersistence) getEventFilePath(aggregateType commands.AggregateType,
 	return filepath.Join(d.basePath, string(aggregateType), aggregateID+".jsonl")
 }
 
-func readEventsFromFile(filePath string) ([]commands.AnyMessage, error) {
+func ReadEventsFromFile(filePath string) ([]commands.AnyMessage, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, err

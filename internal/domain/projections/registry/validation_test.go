@@ -14,7 +14,7 @@ func TestEnsureExpectedVersion(t *testing.T) {
 	createProject := domain_helpers.NewDomainEvent(project.EntityName, "proj-1", project.CreatedProject, &project.CreatedProjectPayload{Name: "Test"})
 	updateProject := domain_helpers.NewDomainEvent(project.EntityName, "proj-1", project.UpdatedProject, &project.UpdatedProjectPayload{Name: "Updated"})
 	createCode := domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.CreatedCode, &code.CreatedCodePayload{ProjectID: "proj-1", Slug: "test", Color: "red", Definition: "Test"})
-	createFile := domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.CreatedFile, &file.CreatedFilePayload{FileData: file.FileData{ProjectID: "proj-1", Name: "test.md", Type: file.FileTypeCorpus}, Chunks: []file.Chunk{}})
+	createFile := domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.CreatedFile, &file.CreatedFilePayload{FileData: file.FileData{ProjectID: "proj-1", Name: "test.md", Type: file.FileTypeCorpus}, Content: "", Codes: []file.CodedSection{}})
 
 	handlerCalled := false
 	passthrough := func(msg *commands.AnyMessage, pub dispatch.PublishFunc) (*commands.AnyMessage, error) {

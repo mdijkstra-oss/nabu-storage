@@ -42,7 +42,7 @@ func For[T any, P any](action commands.Action, reducer func(*T, *commands.AnyMes
 				"aggregateID", event.AggregateID,
 				"timestamp", event.Timestamp,
 				"error", err)
-			panic(fmt.Sprintf("corrupt %s event for %s (ChunkID: %s): %v",
+			panic(fmt.Sprintf("corrupt %s event for %s (ID: %s): %v",
 				action, event.AggregateType, event.AggregateID, err))
 		}
 

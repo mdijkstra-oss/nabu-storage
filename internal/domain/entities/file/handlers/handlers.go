@@ -8,9 +8,9 @@ import (
 	"hermes-relay/internal/domain/entities/project"
 	fileview "hermes-relay/internal/domain/projections/file-entity"
 	"hermes-relay/internal/domain/projections/registry"
-	"hermes-relay/internal/lib/text-search/chunker"
 	"hermes-relay/internal/lib/text-search/find"
 	"hermes-relay/internal/lib/utils"
+	"strings"
 )
 
 func NewRouter(reg *registry.RegistryState) dispatch.CommandRouter {
@@ -111,6 +111,11 @@ func createFileFromPayload(payload *file.CreateFilePayload) file.CreatedFilePayl
 		fileType = file.FileTypeCorpus
 	}
 
+	content := payload.Content
+	if content != "" && !strings.HasSuffix(content, "\n") {
+		content = content + "\n"
+	}
+
 	return file.CreatedFilePayload{
 		FileData: file.FileData{
 			ProjectID:   payload.ProjectID,
@@ -119,45 +124,20 @@ func createFileFromPayload(payload *file.CreateFilePayload) file.CreatedFilePayl
 			Type:        fileType,
 			Locked:      fileType.IsLocked(),
 		},
-		Chunks: createChunksForType(fileType, payload.Content),
-	}
-}
-
-func createChunksForType(fileType file.FileType, content string) []file.Chunk {
-	if fileType.IsChunked() {
-		return chunkContent(content)
-	}
-	return singleChunk(content)
-}
-
-func chunkContent(content string) []file.Chunk {
-	blocks := chunker.ChunkBlocks(content, chunker.FullPage*5, (chunker.FullPage*5)+chunker.HalfPage)
-	return utils.Map(blocks, func(block string) file.Chunk {
-		return file.Chunk{
-			ID:      utils.NewID(),
-			Content: block,
-			Codes:   []file.CodedSection{},
-		}
-	})
-}
-
-func singleChunk(content string) []file.Chunk {
-	return []file.Chunk{{
-		ID:      utils.NewID(),
 		Content: content,
 		Codes:   []file.CodedSection{},
-	}}
+	}
 }
 
-func validateAndNormalizeText(text, chunkContent string) (string, error) {
+func validateAndNormalizeText(text, fileContent string) (string, error) {
 	wordCount := find.CountWords(text)
 	if wordCount < 3 {
 		return "", fmt.Errorf("text too short (%d words, need 3+) - expand selection: %q", wordCount, text)
 	}
 
-	normalizedText, found := find.Find(text, chunkContent)
+	normalizedText, found := find.Find(text, fileContent)
 	if !found {
-		return "", fmt.Errorf("text not found in chunk: %q", text)
+		return "", fmt.Errorf("text not found in file: %q", text)
 	}
 
 	return normalizedText, nil
@@ -168,16 +148,13 @@ func normalizeAddSections(proj project.Project, payload file.AddCodeSectionsPayl
 		return file.AddCodeSectionsPayload{}, err
 	}
 
-	chunk, err := fileview.GetFileChunk(proj, msg.AggregateID, payload.ChunkID)
-	if err != nil {
-		return file.AddCodeSectionsPayload{}, err
-	}
+	f := proj.Files[msg.AggregateID]
 
 	normalizedSections := []file.AddSectionOp{}
 	failures := make(map[int]string)
 
 	for i, op := range payload.Sections {
-		normalizedText, err := validateAndNormalizeText(op.Text, chunk.Content)
+		normalizedText, err := validateAndNormalizeText(op.Text, f.Content)
 		if err != nil {
 			failures[i] = err.Error()
 			continue
@@ -201,7 +178,6 @@ func normalizeAddSections(proj project.Project, payload file.AddCodeSectionsPayl
 	}
 
 	return file.AddCodeSectionsPayload{
-		ChunkID:  payload.ChunkID,
 		Sections: normalizedSections,
 		Failures: resultFailures,
 	}, nil
@@ -209,7 +185,6 @@ func normalizeAddSections(proj project.Project, payload file.AddCodeSectionsPayl
 
 func addSectionIDs(payload *file.AddCodeSectionsPayload) file.AddedCodeSectionsPayload {
 	return file.AddedCodeSectionsPayload{
-		ChunkID: payload.ChunkID,
 		Sections: utils.Map(payload.Sections, func(op file.AddSectionOp) file.AddedSection {
 			return file.AddedSection{
 				ID:         utils.NewID(),
@@ -234,8 +209,8 @@ func normalizeUpdateSections(proj project.Project, payload file.UpdateCodeSectio
 	failures := make(map[int]string)
 
 	for i, op := range payload.Sections {
-		chunk := fileview.FindChunkBySectionID(f, op.ID)
-		if chunk == nil {
+		section := fileview.FindSection(f, op.ID)
+		if section == nil {
 			failures[i] = fmt.Sprintf("section not found: %s", op.ID)
 			continue
 		}
@@ -247,7 +222,7 @@ func normalizeUpdateSections(proj project.Project, payload file.UpdateCodeSectio
 		}
 
 		if op.Text != "" {
-			normalizedText, err := validateAndNormalizeText(op.Text, chunk.Content)
+			normalizedText, err := validateAndNormalizeText(op.Text, f.Content)
 			if err != nil {
 				failures[i] = err.Error()
 				continue
@@ -307,9 +282,6 @@ func errIfLocked(proj project.Project, msg *commands.AnyMessage) error {
 	if f.Locked {
 		return utils.FieldError("file", "file is locked")
 	}
-	if f.Type.IsChunked() {
-		return utils.FieldError("file", "chunked files cannot be modified")
-	}
 	return nil
 }
 
@@ -335,16 +307,16 @@ func transformEditFileContent(proj project.Project, payload file.EditFileContent
 	}
 
 	f := proj.Files[msg.AggregateID]
-	if len(f.Chunks) == 0 {
+	if f.Content == "" {
 		return file.ReplacedFileContentPayload{}, utils.FieldError("file", "has no content")
 	}
 
-	foundText, found := find.Find(payload.OldText, f.Chunks[0].Content)
+	foundText, found := find.Find(payload.OldText, f.Content)
 	if !found {
 		return file.ReplacedFileContentPayload{}, utils.FieldError("old_text", "not found in file")
 	}
 
 	return file.ReplacedFileContentPayload{
-		Content: find.Replace(f.Chunks[0].Content, foundText, payload.NewText),
+		Content: find.Replace(f.Content, foundText, payload.NewText),
 	}, nil
 }

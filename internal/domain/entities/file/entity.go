@@ -10,7 +10,8 @@ type File struct {
 	Healthy bool   `json:"healthy"`
 	Version int    `json:"version"`
 	FileData
-	Chunks []Chunk `json:"chunks"`
+	Content string         `json:"content"`
+	Codes   []CodedSection `json:"codes"`
 }
 
 func (f File) GetID() string {
@@ -57,13 +58,6 @@ func (t FileType) IsLocked() bool {
 	return t == FileTypeCorpus
 }
 
-// IsChunked: INVARIANT - chunked files are immutable after creation.
-// Chunk IDs become permanent references for CodedSections. Re-chunking would
-// invalidate all existing coding work. Content edits are blocked for chunked files.
-func (t FileType) IsChunked() bool {
-	return t == FileTypeCorpus
-}
-
 func (t FileType) IsSingleton() bool {
 	return t == FileTypeCodebook || t == FileTypeLLMMemo
 }
@@ -96,10 +90,4 @@ type CodedSection struct {
 	Reason     string         `json:"reason" validate:"max=1500"`
 	Confidence Confidence     `json:"confidence" validate:"required,oneof=high medium low"`
 	LastActor  commands.Actor `json:"last_actor"`
-}
-
-type Chunk struct {
-	ID      string         `json:"id" validate:"required"`
-	Content string         `json:"content"`
-	Codes   []CodedSection `json:"codes"`
 }

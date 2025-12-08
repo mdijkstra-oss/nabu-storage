@@ -83,7 +83,7 @@ func TestProjectRouter(t *testing.T) {
 			ExpectErr: "validation failed: Name is required",
 		},
 		{
-			Name:        "DeleteProject with valid aggregate ChunkID",
+			Name:        "DeleteProject with valid aggregate ID",
 			Input:       commands.ToAny(commands.NewCommand[project.DeleteProjectPayload, any](project.DeleteProject, project.DeleteProjectPayload{}, project.EntityName, testProjectID, domain_helpers.TestActor(), nil)),
 			ExpectErr:   "",
 			ExpectEvent: commands.ToAny(commands.NewDomainEvent[any, any](project.DeletedProject, nil, project.EntityName, testProjectID, domain_helpers.TestActor(), nil)),

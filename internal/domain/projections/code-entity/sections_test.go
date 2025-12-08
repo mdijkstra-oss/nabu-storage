@@ -69,7 +69,6 @@ func TestCodedSectionViewContainsFileContext(t *testing.T) {
 	s1 := findSection(sections, "f1-c1-s1")
 	th.AssertEqual(t, s1.FileID, "file-1", "file_id")
 	th.AssertEqual(t, s1.FileName, "Interview A", "file_name")
-	th.AssertEqual(t, s1.ChunkID, "1", "chunk_id")
 	th.AssertEqual(t, s1.Text, "worried about", "text")
 	th.AssertEqual(t, s1.Confidence, file.ConfidenceHigh, "confidence")
 

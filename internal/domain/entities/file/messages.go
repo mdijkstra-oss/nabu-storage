@@ -24,13 +24,11 @@ type AddedSection struct {
 }
 
 type AddCodeSectionsPayload struct {
-	ChunkID  string         `json:"chunk_id" validate:"required"`
 	Sections []AddSectionOp `json:"sections" validate:"min=1,dive"`
 	Failures map[int]string `json:"failures,omitempty"`
 }
 
 type AddedCodeSectionsPayload struct {
-	ChunkID  string         `json:"chunk_id" validate:"required"`
 	Sections []AddedSection `json:"sections" validate:"min=1,dive"`
 	Failures map[int]string `json:"failures,omitempty"`
 }
@@ -41,7 +39,6 @@ func (p AddedCodeSectionsPayload) GetFailures() map[int]string {
 
 func (p AddedCodeSectionsPayload) WithoutFailures() any {
 	return AddedCodeSectionsPayload{
-		ChunkID:  p.ChunkID,
 		Sections: p.Sections,
 	}
 }

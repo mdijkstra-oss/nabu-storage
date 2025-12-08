@@ -6,7 +6,6 @@ import (
 	"hermes-relay/internal/cqrs/projection"
 	"hermes-relay/internal/domain/entities/file"
 	"hermes-relay/internal/domain/entities/project"
-	"hermes-relay/internal/domain/projections/file-entity/chunk"
 	"hermes-relay/internal/lib/text-search/find"
 	"hermes-relay/internal/lib/utils"
 )
@@ -16,21 +15,12 @@ func QueryFiles(query projection.PaginationQuery, proj project.Project) []FileSu
 	return utils.Map(files, ToSummary)
 }
 
-func QueryFile(query projection.IDQuery, proj project.Project) *FileSummary {
+func QueryFile(query projection.IDQuery, proj project.Project) *File {
 	f := projection.GetFromMap(proj.Files, query.ID)
 	if f == nil {
 		return nil
 	}
-	summary := ToSummary(*f)
-	return &summary
-}
-
-func QueryChunk(query chunk.ChunkQuery, proj project.Project) *chunk.ChunkResult {
-	f := projection.GetFromMap(proj.Files, query.ID)
-	if f == nil {
-		return nil
-	}
-	return chunk.GetChunk(*f, query)
+	return f
 }
 
 type CodebookContent struct {
@@ -39,10 +29,10 @@ type CodebookContent struct {
 
 func QueryCodebook(query projection.EmptyQuery, proj project.Project) *CodebookContent {
 	codebook := GetCodebook(proj)
-	if codebook == nil || len(codebook.Chunks) == 0 {
+	if codebook == nil {
 		return nil
 	}
-	return &CodebookContent{Content: codebook.Chunks[0].Content}
+	return &CodebookContent{Content: codebook.Content}
 }
 
 func FindFileByType(proj project.Project, fileType file.FileType) *file.File {
@@ -69,7 +59,6 @@ type SearchResult struct {
 	ID       string `json:"id"`
 	FileID   string `json:"file_id"`
 	FileName string `json:"file_name"`
-	ChunkID  string `json:"chunk_id"`
 	Context  string `json:"context"`
 	Match    string `json:"match"`
 }
@@ -121,27 +110,20 @@ func filterSearchBySinceID(items []SearchResult, sinceID string) []SearchResult 
 }
 
 func searchFile(f file.File, query SearchQuery) []SearchResult {
-	return utils.FlatMap(f.Chunks, func(c file.Chunk) []SearchResult {
-		return searchChunk(f, c, query)
-	})
-}
-
-func SearchResultID(fileID, chunkID string, matchIndex int) string {
-	return fileID + ":" + chunkID + ":" + strconv.Itoa(matchIndex)
-}
-
-func searchChunk(f file.File, c file.Chunk, query SearchQuery) []SearchResult {
-	matches := find.FindAll(query.Query, c.Content)
+	matches := find.FindAll(query.Query, f.Content)
 	results := make([]SearchResult, len(matches))
 	for i, m := range matches {
 		results[i] = SearchResult{
-			ID:       SearchResultID(f.ID, c.ID, i),
+			ID:       SearchResultID(f.ID, i),
 			FileID:   f.ID,
 			FileName: f.Name,
-			ChunkID:  c.ID,
-			Context:  find.ExtractContext(c.Content, m.Start, m.End, query.ContextSentences),
+			Context:  find.ExtractContext(f.Content, m.Start, m.End, query.ContextSentences),
 			Match:    m.Text,
 		}
 	}
 	return results
+}
+
+func SearchResultID(fileID string, matchIndex int) string {
+	return fileID + ":" + strconv.Itoa(matchIndex)
 }

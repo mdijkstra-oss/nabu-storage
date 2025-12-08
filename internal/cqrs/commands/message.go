@@ -72,15 +72,15 @@ type AnyMessage = Message[any]
 // Parent
 /*
 type Event struct {
-    ChunkID            string
+    ID            string
     AggregateID   string
     Version       int
-    CausationID   string  // immediate cause (command/event ChunkID)
-    CorrelationID string  // workflow/request ChunkID
+    CausationID   string  // immediate cause (command/event ID)
+    CorrelationID string  // workflow/request ID
 }
 Example:
 
-User request: correlation ChunkID = "req-123"
+User request: correlation ID = "req-123"
 CreateAccount command: causation = "req-123"
 AccountCreated event: causation = "cmd-456", correlation = "req-123"
 WelcomeEmailSent event: causation = "account-created-789", correlation = "req-123"

@@ -13,9 +13,10 @@ func buildProject(files map[string]file.File) *project.Project {
 	return &proj
 }
 
-func buildFile(id, name string, chunks []file.Chunk) file.File {
+func buildFile(id, name, content string, codes []file.CodedSection) file.File {
 	f := file.BuildTestFile(id, file.FileData{ProjectID: "proj-1", Name: name})
-	f.Chunks = chunks
+	f.Content = content
+	f.Codes = codes
 	return f
 }
 
@@ -33,19 +34,15 @@ func TestDecidePatchWithStateChanges(t *testing.T) {
 		{
 			Name: "Removing coded sections generates patch",
 			Before: buildProject(map[string]file.File{
-				"file-1": buildFile("file-1", "test.txt", []file.Chunk{
-					file.BuildTestChunk("chunk-1", "content", []file.CodedSection{
-						file.BuildTestCodedSection("s1", "c1", "text1"),
-						file.BuildTestCodedSection("s2", "c2", "text2"),
-						file.BuildTestCodedSection("s3", "c3", "text3"),
-					}),
+				"file-1": buildFile("file-1", "test.txt", "content", []file.CodedSection{
+					file.BuildTestCodedSection("s1", "c1", "text1"),
+					file.BuildTestCodedSection("s2", "c2", "text2"),
+					file.BuildTestCodedSection("s3", "c3", "text3"),
 				}),
 			}),
 			After: buildProject(map[string]file.File{
-				"file-1": buildFile("file-1", "test.txt", []file.Chunk{
-					file.BuildTestChunk("chunk-1", "content", []file.CodedSection{
-						file.BuildTestCodedSection("s3", "c3", "text3"),
-					}),
+				"file-1": buildFile("file-1", "test.txt", "content", []file.CodedSection{
+					file.BuildTestCodedSection("s3", "c3", "text3"),
 				}),
 			}),
 			IsActive:        true,
@@ -55,15 +52,11 @@ func TestDecidePatchWithStateChanges(t *testing.T) {
 		{
 			Name: "Adding coded sections generates patch",
 			Before: buildProject(map[string]file.File{
-				"file-1": buildFile("file-1", "test.txt", []file.Chunk{
-					file.BuildTestChunk("chunk-1", "content", []file.CodedSection{}),
-				}),
+				"file-1": buildFile("file-1", "test.txt", "content", []file.CodedSection{}),
 			}),
 			After: buildProject(map[string]file.File{
-				"file-1": buildFile("file-1", "test.txt", []file.Chunk{
-					file.BuildTestChunk("chunk-1", "content", []file.CodedSection{
-						file.BuildTestCodedSection("s1", "c1", "new"),
-					}),
+				"file-1": buildFile("file-1", "test.txt", "content", []file.CodedSection{
+					file.BuildTestCodedSection("s1", "c1", "new"),
 				}),
 			}),
 			IsActive:        true,
@@ -73,26 +66,22 @@ func TestDecidePatchWithStateChanges(t *testing.T) {
 		{
 			Name: "Changing file name generates patch",
 			Before: buildProject(map[string]file.File{
-				"file-1": buildFile("file-1", "old.txt", []file.Chunk{}),
+				"file-1": buildFile("file-1", "old.txt", "", []file.CodedSection{}),
 			}),
 			After: buildProject(map[string]file.File{
-				"file-1": buildFile("file-1", "new.txt", []file.Chunk{}),
+				"file-1": buildFile("file-1", "new.txt", "", []file.CodedSection{}),
 			}),
 			IsActive:        true,
 			ExpectedType:    ActionTypePatch,
 			ExpectNullPatch: false,
 		},
 		{
-			Name: "Changing chunk content generates patch",
+			Name: "Changing file content generates patch",
 			Before: buildProject(map[string]file.File{
-				"file-1": buildFile("file-1", "test.txt", []file.Chunk{
-					file.BuildTestChunk("chunk-1", "old content", []file.CodedSection{}),
-				}),
+				"file-1": buildFile("file-1", "test.txt", "old content", []file.CodedSection{}),
 			}),
 			After: buildProject(map[string]file.File{
-				"file-1": buildFile("file-1", "test.txt", []file.Chunk{
-					file.BuildTestChunk("chunk-1", "new content", []file.CodedSection{}),
-				}),
+				"file-1": buildFile("file-1", "test.txt", "new content", []file.CodedSection{}),
 			}),
 			IsActive:        true,
 			ExpectedType:    ActionTypePatch,
@@ -125,7 +114,7 @@ func TestDecidePatchWithStateChanges(t *testing.T) {
 		{
 			Name:            "Inactive project returns none",
 			Before:          buildProject(map[string]file.File{}),
-			After:           buildProject(map[string]file.File{"file-1": buildFile("file-1", "new.txt", []file.Chunk{})}),
+			After:           buildProject(map[string]file.File{"file-1": buildFile("file-1", "new.txt", "", []file.CodedSection{})}),
 			IsActive:        false,
 			ExpectedType:    ActionTypeNone,
 			ExpectNullPatch: true,

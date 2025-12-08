@@ -25,15 +25,8 @@ func BuildTestFile(id string, overrides FileData) File {
 		Healthy:  true,
 		Version:  1,
 		FileData: merged,
-		Chunks:   []Chunk{},
-	}
-}
-
-func BuildTestChunk(id, content string, codes []CodedSection) Chunk {
-	return Chunk{
-		ID:      id,
-		Content: content,
-		Codes:   codes,
+		Content:  "",
+		Codes:    []CodedSection{},
 	}
 }
 
@@ -55,10 +48,6 @@ func CreatedMemoEvent(id, projectID, content string) *commands.AnyMessage {
 }
 
 func CreatedFileEventWithType(id, projectID, content string, fileType FileType) *commands.AnyMessage {
-	return CreatedFileEventWithChunkID(id, projectID, content, fileType, utils.NewID())
-}
-
-func CreatedFileEventWithChunkID(id, projectID, content string, fileType FileType, chunkID string) *commands.AnyMessage {
 	return domain_helpers.NewDomainEvent(EntityName, id, CreatedFile, CreatedFilePayload{
 		FileData: FileData{
 			ProjectID: projectID,
@@ -66,17 +55,12 @@ func CreatedFileEventWithChunkID(id, projectID, content string, fileType FileTyp
 			Type:      fileType,
 			Locked:    fileType.IsLocked(),
 		},
-		Chunks: []Chunk{
-			{ID: chunkID, Content: content, Codes: []CodedSection{}},
-		},
+		Content: content,
+		Codes:   []CodedSection{},
 	})
 }
 
 func CreatedFileWithSectionsEvent(id, projectID, content string, sections []CodedSection) *commands.AnyMessage {
-	return CreatedFileWithSectionsAndChunkID(id, projectID, content, sections, utils.NewID())
-}
-
-func CreatedFileWithSectionsAndChunkID(id, projectID, content string, sections []CodedSection, chunkID string) *commands.AnyMessage {
 	return domain_helpers.NewDomainEvent(EntityName, id, CreatedFile, CreatedFilePayload{
 		FileData: FileData{
 			ProjectID: projectID,
@@ -84,8 +68,7 @@ func CreatedFileWithSectionsAndChunkID(id, projectID, content string, sections [
 			Type:      FileTypeCorpus,
 			Locked:    true,
 		},
-		Chunks: []Chunk{
-			{ID: chunkID, Content: content, Codes: sections},
-		},
+		Content: content,
+		Codes:   sections,
 	})
 }

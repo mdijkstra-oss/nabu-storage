@@ -37,7 +37,7 @@ func TestRegistryReducer(t *testing.T) {
 		{
 			Name:    "CreatedFile adds file to project and updates lookup",
 			Initial: registryWith(emptyProject("project-1", "Test Project")),
-			Event:   domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.CreatedFile, &file.CreatedFilePayload{FileData: file.FileData{ProjectID: "project-1", Name: "test.md", Type: file.FileTypeCorpus}, Chunks: []file.Chunk{}}),
+			Event:   domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.CreatedFile, &file.CreatedFilePayload{FileData: file.FileData{ProjectID: "project-1", Name: "test.md", Type: file.FileTypeCorpus}, Content: "", Codes: []file.CodedSection{}}),
 			Expected: registryWith(
 				projectWith("project-1", "Test Project", "", nil, map[string]file.File{"file-1": testFile("file-1", "project-1", "test.md")}),
 				withLookup("File:file-1", "project-1"),
@@ -192,7 +192,8 @@ func TestResolveProjectID(t *testing.T) {
 				Setup: func(rs *RegistryState) {},
 				Event: domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.CreatedFile, &file.CreatedFilePayload{
 					FileData: file.FileData{ProjectID: "proj-456", Name: "test.md", Type: file.FileTypeCorpus},
-					Chunks:   []file.Chunk{},
+					Content:  "",
+				Codes:    []file.CodedSection{},
 				}),
 			},
 			Expected: "proj-456",
@@ -220,7 +221,8 @@ func TestResolveProjectID(t *testing.T) {
 					}))
 					rs.ApplyEvent(domain_helpers.NewDomainEvent(file.EntityName, "file-99", file.CreatedFile, &file.CreatedFilePayload{
 						FileData: file.FileData{ProjectID: "proj-100", Name: "existing.md", Type: file.FileTypeCorpus},
-						Chunks:   []file.Chunk{},
+						Content:  "",
+				Codes:    []file.CodedSection{},
 					}))
 				},
 				Event: &commands.AnyMessage{

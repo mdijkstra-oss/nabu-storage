@@ -41,6 +41,7 @@
       "type": "array",
       "items": { "type": "string" },
       "description": "2-3 snippets that might seem like they fit but don't."
-    }
+    },
+    "pinned": { "type": "boolean" }
   }
 }
