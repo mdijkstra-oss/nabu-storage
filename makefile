@@ -1,3 +1,6 @@
+include .env
+export
+
 .PHONY: setup
 setup:
 	go install github.com/evilmartians/lefthook@latest
@@ -7,11 +10,15 @@ setup:
 
 .PHONY: start
 start:
-	HERMES_DEV=true go run cmd/main.go
+	go run cmd/main.go
+
+.PHONY: start-prod
+start-prod:
+	@set -a && . ./.prod.env && set +a && go run cmd/main.go
 
 .PHONY: dev
 dev:
-	HERMES_DEV=true watchexec -e go -r make start
+	watchexec -e go -r make start
 
 .PHONY: test
 test:
