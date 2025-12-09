@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: hermes-relay-api
-  version: 1.13.0
+  version: 1.14.0
   description: |
     CQRS-based qualitative data analysis API for coding and analyzing research data.
 
@@ -929,6 +929,53 @@ paths:
         '404':
           description: File not found
 
+  /queries/projects/{projectId}/files/{id}/parts:
+    get:
+      summary: Get file content in paginated parts
+      description: |
+        Returns file content split into parts (~12KB each) with associated codes for each part.
+        Large files are automatically split at newline boundaries. Use for progressive loading or LLM processing.
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number (1-indexed)
+      responses:
+        '200':
+          description: File part with content and codes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FilePartResult'
+              example:
+                content: "The transition to remote work was challenging at first. Many employees struggled with the lack of face-to-face interaction..."
+                codes:
+                  - id: "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+                    code_id: "660e8400-e29b-41d4-a716-446655440001"
+                    text: "challenging at first"
+                    reason: "Expression of difficulty during transition"
+                    confidence: "high"
+                total: 3
+                next: 2
+        '404':
+          description: File not found or page out of bounds
+
   /queries/projects/{projectId}/codebook:
     get:
       summary: Get project codebook content
@@ -1542,6 +1589,14 @@ components:
           type: boolean
           description: Whether more results exist after this page
 
+    FilePartQuery:
+      type: object
+      description: Query parameters for retrieving file parts
+      properties:
+        part_type:
+          type: string
+          description: Type of file part to retrieve
+
     Code:
       type: object
       required:
@@ -1720,6 +1775,28 @@ components:
               items:
                 $ref: '#/components/schemas/CodedSection'
               description: Code applications within this file
+
+    FilePartResult:
+      type: object
+      required:
+        - content
+        - codes
+        - total
+      properties:
+        content:
+          type: string
+          description: Part content as text
+        codes:
+          type: array
+          items:
+            $ref: '#/components/schemas/CodedSection'
+          description: Code applications within this part
+        total:
+          type: integer
+          description: Total number of parts in the file
+        next:
+          type: integer
+          description: Next page number (omitted if this is the last part)
 
     Chart:
       type: object
@@ -1914,6 +1991,17 @@ components:
         page_size:
           type: integer
           description: Number of items per page
+
+    ModifiedCodeSectionsPayload:
+      type: object
+      required:
+        - sections
+      properties:
+        sections:
+          type: array
+          items:
+            $ref: '#/components/schemas/CodedSection'
+          description: Code sections that were modified
 
     CreateProjectPayload:
       type: object
@@ -2775,7 +2863,7 @@ x-command-reference:
       description: Add new code sections to a file
       payload: AddCodeSectionsPayload
       aggregate_id: file UUID
-      event: AddedCodeSections
+      event: ModifiedCodeSections
       validation:
         - Text must exist in the file (fuzzy matched, normalized)
         - Text must contain at least 3 words
@@ -2821,7 +2909,7 @@ x-command-reference:
       description: Update existing code sections in a file, including reassigning to different codes
       payload: UpdateCodeSectionsPayload
       aggregate_id: file UUID
-      event: UpdatedCodeSections
+      event: ModifiedCodeSections
       validation:
         - Section ID must exist in the file
         - If text is provided, it must exist in the file (fuzzy matched, normalized)
@@ -2868,7 +2956,7 @@ x-command-reference:
       description: Remove code sections from a file
       payload: RemoveCodeSectionsPayload
       aggregate_id: file UUID
-      event: RemovedCodeSections
+      event: ModifiedCodeSections
       note: |
         Sections are found by their unique ID.
       example: |

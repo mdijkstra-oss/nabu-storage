@@ -5,6 +5,8 @@ import (
 	"strings"
 )
 
+const DefaultPartSize = 12000
+
 type FilePart struct {
 	Content string         `json:"content"`
 	Codes   []CodedSection `json:"codes"`

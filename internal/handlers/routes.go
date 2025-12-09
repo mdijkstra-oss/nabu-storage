@@ -57,6 +57,7 @@ func SetupHTTPHandlers(r chi.Router, publisher *dispatch.InMemoryPublisher, regi
 			r.Route("/files", func(r chi.Router) {
 				r.Get("/", http.ProjectQuery(registryState, fileview.QueryFiles))
 				r.Get("/{id}", http.ProjectQuery(registryState, fileview.QueryFile))
+				r.Get("/{id}/parts", http.ProjectQuery(registryState, fileview.QueryFileParts))
 			})
 
 			r.Get("/codebook", http.ProjectQuery(registryState, fileview.QueryCodebook))

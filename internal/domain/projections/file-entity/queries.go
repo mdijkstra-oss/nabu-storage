@@ -128,3 +128,46 @@ func searchFile(f file.File, query SearchQuery) []SearchResult {
 func SearchResultID(fileID string, matchIndex int) string {
 	return fileID + ":" + strconv.Itoa(matchIndex)
 }
+
+type FilePartQuery struct {
+	ID   string `path:"id" validate:"required"`
+	Page int    `query:"page" validate:"min=1" default:"1"`
+}
+
+type FilePartResult struct {
+	Content string              `json:"content"`
+	Codes   []file.CodedSection `json:"codes"`
+	Total   int                 `json:"total"`
+	Next    *int                `json:"next,omitempty"`
+}
+
+func QueryFileParts(query FilePartQuery, proj project.Project) *FilePartResult {
+	f := projection.GetFromMap(proj.Files, query.ID)
+	if f == nil {
+		return nil
+	}
+
+	parts := file.SplitIntoParts(f.Content, f.Codes, file.DefaultPartSize)
+	if len(parts) == 0 {
+		return nil
+	}
+
+	pageIndex := query.Page - 1
+	if pageIndex < 0 || pageIndex >= len(parts) {
+		return nil
+	}
+
+	part := parts[pageIndex]
+	result := FilePartResult{
+		Content: part.Content,
+		Codes:   part.Codes,
+		Total:   len(parts),
+	}
+
+	if query.Page < len(parts) {
+		nextPage := query.Page + 1
+		result.Next = &nextPage
+	}
+
+	return &result
+}
