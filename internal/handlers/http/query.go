@@ -6,6 +6,7 @@ import (
 	"hermes-relay/internal/domain/entities/project"
 	"hermes-relay/internal/domain/projections/registry"
 	"hermes-relay/internal/lib/utils"
+	"log/slog"
 	"net/http"
 )
 
@@ -129,12 +130,16 @@ func RegistryQuery[Q, R any](
 }
 
 func respondWithError(w http.ResponseWriter, err error) {
-	WriteResponse(w, typedErrorOutput(err))
+	response := typedErrorOutput(err)
+	slog.Error("query error", "status", response.StatusCode, "response", string(response.Body))
+	WriteResponse(w, response)
 }
 
 func respondWithJSON(w http.ResponseWriter, result any) {
 	if utils.IsNilPtr(result) {
-		WriteResponse(w, typedErrorOutput(&utils.NotFoundError{Message: "not found"}))
+		response := typedErrorOutput(&utils.NotFoundError{Message: "not found"})
+		slog.Error("query error", "status", response.StatusCode, "response", string(response.Body))
+		WriteResponse(w, response)
 		return
 	}
 	WriteResponse(w, successQueryOutput(result))

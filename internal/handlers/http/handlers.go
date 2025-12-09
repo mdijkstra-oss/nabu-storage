@@ -25,6 +25,9 @@ func httpHandler(processor func(Request, dispatch.PublishFunc) Response, publish
 		}
 
 		response := processor(Request{Body: body}, publish)
+		if response.StatusCode >= 300 {
+			slog.Error("error response", "status", response.StatusCode, "request", string(body), "response", string(response.Body))
+		}
 		WriteResponse(w, response)
 	}
 }
