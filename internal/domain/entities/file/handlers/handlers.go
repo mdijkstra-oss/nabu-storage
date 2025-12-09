@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/cqrs/dispatch"
+	"hermes-relay/internal/domain/entities/code"
 	"hermes-relay/internal/domain/entities/file"
 	"hermes-relay/internal/domain/entities/project"
 	fileview "hermes-relay/internal/domain/projections/file-entity"
@@ -224,89 +225,120 @@ func handleRemoveCodeSections(proj project.Project, payload file.RemoveCodeSecti
 	return normalizeModifiedSections(proj, mapRemoveToModified(payload), msg)
 }
 
+type operationContext struct {
+	fileContent  string
+	fileCodes    []file.CodedSection
+	projectCodes map[string]code.Code
+}
+
+type operationHandler func(file.SectionOp, operationContext) (file.SectionOp, error)
+
+var operationHandlers = map[string]operationHandler{
+	"add":    normalizeAddOp,
+	"update": normalizeUpdateOp,
+	"delete": normalizeDeleteOp,
+}
+
+func sectionExists(sectionID string, codes []file.CodedSection) bool {
+	for _, section := range codes {
+		if section.ID == sectionID {
+			return true
+		}
+	}
+	return false
+}
+
+func codeExists(codeID string, codes map[string]code.Code) bool {
+	_, exists := codes[codeID]
+	return exists
+}
+
+func normalizeAddOp(op file.SectionOp, ctx operationContext) (file.SectionOp, error) {
+	normalizedText, err := validateAndNormalizeText(op.Text, ctx.fileContent)
+	if err != nil {
+		return file.SectionOp{}, err
+	}
+
+	similarSection := findSimilarSection(op.CodeID, normalizedText, ctx.fileCodes)
+	if similarSection != nil {
+		return file.SectionOp{
+			Op:         "update",
+			ID:         similarSection.ID,
+			CodeID:     op.CodeID,
+			Text:       normalizedText,
+			Reason:     op.Reason,
+			Confidence: op.Confidence,
+		}, nil
+	}
+
+	return file.SectionOp{
+		Op:         "add",
+		CodeID:     op.CodeID,
+		Text:       normalizedText,
+		Reason:     op.Reason,
+		Confidence: op.Confidence,
+	}, nil
+}
+
+func normalizeUpdateOp(op file.SectionOp, ctx operationContext) (file.SectionOp, error) {
+	if !sectionExists(op.ID, ctx.fileCodes) {
+		return file.SectionOp{}, fmt.Errorf("section not found")
+	}
+
+	if op.CodeID != "" && !codeExists(op.CodeID, ctx.projectCodes) {
+		return file.SectionOp{}, fmt.Errorf("code not found")
+	}
+
+	if op.Text != "" {
+		normalizedText, err := validateAndNormalizeText(op.Text, ctx.fileContent)
+		if err != nil {
+			return file.SectionOp{}, err
+		}
+		return file.SectionOp{
+			Op:         "update",
+			ID:         op.ID,
+			CodeID:     op.CodeID,
+			Text:       normalizedText,
+			Reason:     op.Reason,
+			Confidence: op.Confidence,
+		}, nil
+	}
+
+	return op, nil
+}
+
+func normalizeDeleteOp(op file.SectionOp, ctx operationContext) (file.SectionOp, error) {
+	return op, nil
+}
+
 func normalizeModifiedSections(proj project.Project, payload file.ModifiedCodeSectionsPayload, msg *commands.AnyMessage) (file.ModifiedCodeSectionsPayload, error) {
 	if err := errIfNotCorpus(proj, msg); err != nil {
 		return file.ModifiedCodeSectionsPayload{}, err
 	}
 
 	f := proj.Files[msg.AggregateID]
+	ctx := operationContext{
+		fileContent:  f.Content,
+		fileCodes:    f.Codes,
+		projectCodes: proj.Codes,
+	}
 
 	operations := []file.SectionOp{}
 	failures := make(map[int]string)
 
 	for i, op := range payload.Operations {
-		switch op.Op {
-		case "add":
-			normalizedText, err := validateAndNormalizeText(op.Text, f.Content)
-			if err != nil {
-				failures[i] = err.Error()
-				continue
-			}
-
-			similarSection := findSimilarSection(op.CodeID, normalizedText, f.Codes)
-			if similarSection != nil {
-				operations = append(operations, file.SectionOp{
-					Op:         "update",
-					ID:         similarSection.ID,
-					CodeID:     op.CodeID,
-					Text:       normalizedText,
-					Reason:     op.Reason,
-					Confidence: op.Confidence,
-				})
-			} else {
-				operations = append(operations, file.SectionOp{
-					Op:         "add",
-					CodeID:     op.CodeID,
-					Text:       normalizedText,
-					Reason:     op.Reason,
-					Confidence: op.Confidence,
-				})
-			}
-
-		case "update":
-			var sectionExists bool
-			for _, section := range f.Codes {
-				if section.ID == op.ID {
-					sectionExists = true
-					break
-				}
-			}
-			if !sectionExists {
-				failures[i] = "section not found"
-				continue
-			}
-
-			if op.CodeID != "" {
-				if _, exists := proj.Codes[op.CodeID]; !exists {
-					failures[i] = "code not found"
-					continue
-				}
-			}
-
-			if op.Text != "" {
-				normalizedText, err := validateAndNormalizeText(op.Text, f.Content)
-				if err != nil {
-					failures[i] = err.Error()
-					continue
-				}
-				operations = append(operations, file.SectionOp{
-					Op:         "update",
-					ID:         op.ID,
-					CodeID:     op.CodeID,
-					Text:       normalizedText,
-					Reason:     op.Reason,
-					Confidence: op.Confidence,
-				})
-			} else {
-				operations = append(operations, op)
-			}
-
-		case "delete":
-			operations = append(operations, op)
-
-		default:
+		handler, exists := operationHandlers[op.Op]
+		if !exists {
 			panic("unknown operation type: " + op.Op)
 		}
+
+		normalizedOp, err := handler(op, ctx)
+		if err != nil {
+			failures[i] = err.Error()
+			continue
+		}
+
+		operations = append(operations, normalizedOp)
 	}
 
 	if len(failures) == len(payload.Operations) {
