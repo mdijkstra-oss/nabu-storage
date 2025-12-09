@@ -15,6 +15,10 @@ func testActor() commands.Actor {
 	return domain_helpers.TestActor()
 }
 
+var (
+	confidenceHigh = file.ConfidenceHigh
+)
+
 func buildFile(id string, overrides file.FileData, content string, codes []file.CodedSection) *File {
 	f := file.BuildTestFile(id, overrides)
 	f.Content = content
@@ -89,9 +93,9 @@ func TestFileReducer(t *testing.T) {
 		{
 			Name:    "AddedCodeSections adds sections to file with LastActor",
 			Initial: buildFile("file-1", file.FileData{}, "Climate change impacts global warming.\n", []file.CodedSection{}),
-			Event: domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.AddedCodeSections, &file.AddedCodeSectionsPayload{
-				Sections: []file.AddedSection{
-					{ID: "section-id-1", CodeID: "code-1", Text: "Climate change impacts", Reason: "Climate ref", Confidence: file.ConfidenceHigh},
+			Event: domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.ModifiedCodeSections, &file.ModifiedCodeSectionsPayload{
+				Operations: []file.SectionOp{
+					{Op: "add", ID: "section-id-1", CodeID: "code-1", Text: "Climate change impacts", Reason: "Climate ref", Confidence: &confidenceHigh},
 				},
 			}),
 			Expected: buildFile("file-1", file.FileData{}, "Climate change impacts global warming.\n", []file.CodedSection{
@@ -104,9 +108,9 @@ func TestFileReducer(t *testing.T) {
 				{ID: "section-1", CodeID: "code-1", Text: "Climate change impacts", Reason: "Old"},
 				{ID: "section-2", CodeID: "code-1", Text: "impacts global warming", Reason: "Old"},
 			}),
-			Event: domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.UpdatedCodeSections, &file.UpdateCodeSectionsPayload{
-				Sections: []file.UpdateSectionOp{
-					{ID: "section-1", Text: "Climate change impacts", Reason: "New reason"},
+			Event: domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.ModifiedCodeSections, &file.ModifiedCodeSectionsPayload{
+				Operations: []file.SectionOp{
+					{Op: "update", ID: "section-1", Text: "Climate change impacts", Reason: "New reason"},
 				},
 			}),
 			Expected: buildFile("file-1", file.FileData{}, "Climate change impacts global warming.\n", []file.CodedSection{
@@ -120,8 +124,10 @@ func TestFileReducer(t *testing.T) {
 				{ID: "section-1", CodeID: "code-1", Text: "Climate change impacts"},
 				{ID: "section-2", CodeID: "code-2", Text: "impacts global warming"},
 			}),
-			Event: domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.RemovedCodeSections, &file.RemoveCodeSectionsPayload{
-				SectionIDs: []string{"section-1"},
+			Event: domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.ModifiedCodeSections, &file.ModifiedCodeSectionsPayload{
+				Operations: []file.SectionOp{
+					{Op: "delete", ID: "section-1"},
+				},
 			}),
 			Expected: buildFile("file-1", file.FileData{}, "Climate change impacts global warming.\n", []file.CodedSection{
 				{ID: "section-2", CodeID: "code-2", Text: "impacts global warming"},
@@ -134,8 +140,10 @@ func TestFileReducer(t *testing.T) {
 				{ID: "section-2", CodeID: "code-1", Text: "impacts global warming"},
 				{ID: "section-3", CodeID: "code-1", Text: "causes temperature rise"},
 			}),
-			Event: domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.RemovedCodeSections, &file.RemoveCodeSectionsPayload{
-				SectionIDs: []string{"section-2"},
+			Event: domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.ModifiedCodeSections, &file.ModifiedCodeSectionsPayload{
+				Operations: []file.SectionOp{
+					{Op: "delete", ID: "section-2"},
+				},
 			}),
 			Expected: buildFile("file-1", file.FileData{}, "Climate change impacts global warming and causes temperature rise.\n", []file.CodedSection{
 				{ID: "section-1", CodeID: "code-1", Text: "Climate change impacts"},
@@ -149,8 +157,10 @@ func TestFileReducer(t *testing.T) {
 				{ID: "section-2", CodeID: "code-1", Text: "impacts global warming"},
 				{ID: "section-3", CodeID: "code-1", Text: "causes temperature rise"},
 			}),
-			Event: domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.RemovedCodeSections, &file.RemoveCodeSectionsPayload{
-				SectionIDs: []string{"section-3"},
+			Event: domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.ModifiedCodeSections, &file.ModifiedCodeSectionsPayload{
+				Operations: []file.SectionOp{
+					{Op: "delete", ID: "section-3"},
+				},
 			}),
 			Expected: buildFile("file-1", file.FileData{}, "Climate change impacts global warming and causes temperature rise.\n", []file.CodedSection{
 				{ID: "section-1", CodeID: "code-1", Text: "Climate change impacts"},
@@ -165,8 +175,11 @@ func TestFileReducer(t *testing.T) {
 				{ID: "section-3", CodeID: "code-2", Text: "global warming"},
 				{ID: "section-4", CodeID: "code-1", Text: "causes temperature rise"},
 			}),
-			Event: domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.RemovedCodeSections, &file.RemoveCodeSectionsPayload{
-				SectionIDs: []string{"section-2", "section-4"},
+			Event: domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.ModifiedCodeSections, &file.ModifiedCodeSectionsPayload{
+				Operations: []file.SectionOp{
+					{Op: "delete", ID: "section-2"},
+					{Op: "delete", ID: "section-4"},
+				},
 			}),
 			Expected: buildFile("file-1", file.FileData{}, "Climate change impacts global warming and causes temperature rise.\n", []file.CodedSection{
 				{ID: "section-1", CodeID: "code-1", Text: "Climate change impacts"},

@@ -13,16 +13,20 @@
   "content": "The quick brown fox jumps high. This is a well-known fact about animals.",
   "codes": [
     {
+      "id": "sec-1",
       "code_slug": "test:whitespace",
       "code_id": "code-1",
       "text": "  quick brown fox  ",
-      "reason": "Leading/trailing whitespace should still match"
+      "reason": "Leading/trailing whitespace should still match",
+      "confidence": "high"
     },
     {
+      "id": "sec-2",
       "code_slug": "test:hyphen",
       "code_id": "code-3",
       "text": "well known fact about",
-      "reason": "Space instead of hyphen should still match"
+      "reason": "Space instead of hyphen should still match",
+      "confidence": "high"
     }
   ]
 }

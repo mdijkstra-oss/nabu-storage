@@ -19,9 +19,7 @@ var Reducer = projection.WithVersionIncrement(
 				projection.For(file.UnpinnedFile, projection.UnpinnedEntity[File]),
 				projection.For(file.ReplacedFileContent, ReplacedFileContentReducer),
 				projection.For(file.DeletedFile, projection.DeletedEntity[File]),
-				projection.For(file.AddedCodeSections, AddedCodeSectionsReducer),
-				projection.For(file.UpdatedCodeSections, UpdatedCodeSectionsReducer),
-				projection.For(file.RemovedCodeSections, RemovedCodeSectionsReducer),
+				projection.For(file.ModifiedCodeSections, ModifiedCodeSectionsReducer),
 				projection.For(file.ClearedCoding, ClearedCodingReducer),
 				projection.For(file.RemovedCodeFromFile, RemovedCodeFromFileReducer),
 				projection.For(code.DeletedCode, DeletedCodeReducer),
@@ -54,51 +52,64 @@ func ReplacedFileContentReducer(current *File, _ *commands.AnyMessage, payload *
 	return current
 }
 
-func withLastActor(section file.CodedSection, actor commands.Actor) file.CodedSection {
-	section.LastActor = actor
-	return section
+func applySectionAddition(codes []file.CodedSection, op file.SectionOp, actor commands.Actor) []file.CodedSection {
+	newSection := file.CodedSection{
+		ID:         op.ID,
+		CodeID:     op.CodeID,
+		Text:       op.Text,
+		Reason:     op.Reason,
+		Confidence: *op.Confidence,
+		LastActor:  actor,
+	}
+	return append(codes, newSection)
 }
 
-func toCodedSection(section file.AddedSection, actor commands.Actor) file.CodedSection {
-	return withLastActor(file.CodedSection{
-		ID:         section.ID,
-		CodeID:     section.CodeID,
-		Text:       section.Text,
-		Reason:     section.Reason,
-		Confidence: section.Confidence,
-	}, actor)
-}
-
-func AddedCodeSectionsReducer(current *File, message *commands.AnyMessage, payload *file.AddedCodeSectionsPayload) *File {
-	sections := utils.Map(payload.Sections, func(s file.AddedSection) file.CodedSection {
-		return toCodedSection(s, message.Actor)
-	})
-	current.Codes = append(current.Codes, sections...)
-	return current
-}
-
-func UpdatedCodeSectionsReducer(current *File, message *commands.AnyMessage, payload *file.UpdateCodeSectionsPayload) *File {
-	current.Codes = utils.Map(current.Codes, func(section file.CodedSection) file.CodedSection {
-		for _, op := range payload.Sections {
-			if section.ID == op.ID {
-				updated := utils.ApplyPartialUpdate(section, op)
-				return withLastActor(updated, message.Actor)
+func applySectionUpdate(codes []file.CodedSection, op file.SectionOp, actor commands.Actor) []file.CodedSection {
+	return utils.Map(codes, func(section file.CodedSection) file.CodedSection {
+		if section.ID == op.ID {
+			if op.CodeID != "" {
+				section.CodeID = op.CodeID
 			}
+			if op.Text != "" {
+				section.Text = op.Text
+			}
+			if op.Reason != "" {
+				section.Reason = op.Reason
+			}
+			if op.Confidence != nil {
+				section.Confidence = *op.Confidence
+			}
+			section.LastActor = actor
 		}
 		return section
 	})
-	return current
 }
 
-func RemovedCodeSectionsReducer(current *File, _ *commands.AnyMessage, payload *file.RemoveCodeSectionsPayload) *File {
-	current.Codes = utils.Filter(current.Codes, func(section file.CodedSection) bool {
-		for _, id := range payload.SectionIDs {
-			if section.ID == id {
-				return false
-			}
-		}
-		return true
+func applySectionDeletion(codes []file.CodedSection, op file.SectionOp) []file.CodedSection {
+	return utils.Filter(codes, func(section file.CodedSection) bool {
+		return section.ID != op.ID
 	})
+}
+
+func applySectionOperation(codes []file.CodedSection, op file.SectionOp, actor commands.Actor) []file.CodedSection {
+	switch op.Op {
+	case "add":
+		return applySectionAddition(codes, op, actor)
+	case "update":
+		return applySectionUpdate(codes, op, actor)
+	case "delete":
+		return applySectionDeletion(codes, op)
+	default:
+		panic("unknown operation type: " + op.Op)
+	}
+}
+
+func ModifiedCodeSectionsReducer(current *File, message *commands.AnyMessage, payload *file.ModifiedCodeSectionsPayload) *File {
+	codes := current.Codes
+	for _, op := range payload.Operations {
+		codes = applySectionOperation(codes, op, message.Actor)
+	}
+	current.Codes = codes
 	return current
 }
 

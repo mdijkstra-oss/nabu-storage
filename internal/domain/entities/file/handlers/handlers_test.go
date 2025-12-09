@@ -27,6 +27,9 @@ var (
 	shortContent     = "Some text to code here"
 	longContent      = "Some text to code here and more words for searching"
 	memoContent      = "This is a memo with some editable content here"
+
+	confidenceHigh = file.ConfidenceHigh
+	confidenceLow  = file.ConfidenceLow
 )
 
 var cmds = []*commands.AnyMessage{
@@ -45,7 +48,7 @@ var cmds = []*commands.AnyMessage{
 }
 
 var ignoreGeneratedIDs = []th.IgnoreFieldsOption{
-	{Type: file.AddedSection{}, Fields: []string{"ID"}, EnsureValidUUID: true},
+	{Type: file.SectionOp{}, Fields: []string{"ID"}, EnsureValidUUID: true},
 }
 
 func TestFileRouter(t *testing.T) {
@@ -96,9 +99,9 @@ func TestFileRouter(t *testing.T) {
 				},
 			}, file.EntityName, testFileShort, domain_helpers.TestActor(), nil)),
 			ExpectErr: "",
-			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.AddedCodeSectionsPayload, any](file.AddedCodeSections, file.AddedCodeSectionsPayload{
-				Sections: []file.AddedSection{
-					{ID: "generated-id", CodeID: testCodeID1, Text: "Some text to code", Reason: "Test reason", Confidence: file.ConfidenceHigh},
+			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.ModifiedCodeSectionsPayload, any](file.ModifiedCodeSections, file.ModifiedCodeSectionsPayload{
+				Operations: []file.SectionOp{
+					{Op: "add", ID: "generated-id", CodeID: testCodeID1, Text: "Some text to code", Reason: "Test reason", Confidence: &confidenceHigh},
 				},
 			}, file.EntityName, testFileShort, domain_helpers.TestActor(), nil)),
 			IgnoreFields: ignoreGeneratedIDs,
@@ -111,9 +114,9 @@ func TestFileRouter(t *testing.T) {
 				},
 			}, file.EntityName, testFileWithCode, domain_helpers.TestActor(), nil)),
 			ExpectErr: "",
-			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.UpdatedCodeSectionsPayload, any](file.UpdatedCodeSections, file.UpdatedCodeSectionsPayload{
-				Sections: []file.UpdateSectionOp{
-					{ID: testSectionID1, Text: "Some text to code", Reason: "Updated reason"},
+			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.ModifiedCodeSectionsPayload, any](file.ModifiedCodeSections, file.ModifiedCodeSectionsPayload{
+				Operations: []file.SectionOp{
+					{Op: "update", ID: testSectionID1, Text: "Some text to code", Reason: "Updated reason"},
 				},
 			}, file.EntityName, testFileWithCode, domain_helpers.TestActor(), nil)),
 		},
@@ -123,8 +126,11 @@ func TestFileRouter(t *testing.T) {
 				SectionIDs: []string{testSectionID1, testSectionID2},
 			}, file.EntityName, testFileWithCode, domain_helpers.TestActor(), nil)),
 			ExpectErr: "",
-			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.RemoveCodeSectionsPayload, any](file.RemovedCodeSections, file.RemoveCodeSectionsPayload{
-				SectionIDs: []string{testSectionID1, testSectionID2},
+			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.ModifiedCodeSectionsPayload, any](file.ModifiedCodeSections, file.ModifiedCodeSectionsPayload{
+				Operations: []file.SectionOp{
+					{Op: "delete", ID: testSectionID1},
+					{Op: "delete", ID: testSectionID2},
+				},
 			}, file.EntityName, testFileWithCode, domain_helpers.TestActor(), nil)),
 		},
 		{
@@ -301,10 +307,10 @@ func TestFileRouter(t *testing.T) {
 				},
 			}, file.EntityName, testFileLong, domain_helpers.TestActor(), nil)),
 			ExpectErr: "",
-			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.AddedCodeSectionsPayload, any](file.AddedCodeSections, file.AddedCodeSectionsPayload{
-				Sections: []file.AddedSection{
-					{ID: "generated-id", CodeID: testCodeID1, Text: "Some text to code", Reason: "First reason", Confidence: file.ConfidenceHigh},
-					{ID: "generated-id", CodeID: testCodeID3, Text: "more words for searching", Reason: "Third reason", Confidence: file.ConfidenceLow},
+			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.ModifiedCodeSectionsPayload, any](file.ModifiedCodeSections, file.ModifiedCodeSectionsPayload{
+				Operations: []file.SectionOp{
+					{Op: "add", ID: "generated-id", CodeID: testCodeID1, Text: "Some text to code", Reason: "First reason", Confidence: &confidenceHigh},
+					{Op: "add", ID: "generated-id", CodeID: testCodeID3, Text: "more words for searching", Reason: "Third reason", Confidence: &confidenceLow},
 				},
 				Failures: map[int]string{1: "text too short (1 words, need 3+) - expand selection: \"xy\""},
 			}, file.EntityName, testFileLong, domain_helpers.TestActor(), nil)),
@@ -317,7 +323,7 @@ func TestFileRouter(t *testing.T) {
 					{CodeID: testCodeID1, Text: "xy", Reason: "Too short", Confidence: file.ConfidenceHigh},
 				},
 			}, file.EntityName, testFileShort, domain_helpers.TestActor(), nil)),
-			ExpectErr: "validation failed: sections[0] text too short (1 words, need 3+) - expand selection: \"xy\"",
+			ExpectErr: "validation failed: operations[0] text too short (1 words, need 3+) - expand selection: \"xy\"",
 		},
 		{
 			Name: "UpdateCodeSections partial success - 2 valid, 1 invalid",
@@ -329,10 +335,10 @@ func TestFileRouter(t *testing.T) {
 				},
 			}, file.EntityName, testFileWithCode, domain_helpers.TestActor(), nil)),
 			ExpectErr: "",
-			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.UpdatedCodeSectionsPayload, any](file.UpdatedCodeSections, file.UpdatedCodeSectionsPayload{
-				Sections: []file.UpdateSectionOp{
-					{ID: testSectionID1, Text: "Some text to code", Reason: "First update"},
-					{ID: testSectionID3, Text: "more words for searching", Reason: "Third update"},
+			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.ModifiedCodeSectionsPayload, any](file.ModifiedCodeSections, file.ModifiedCodeSectionsPayload{
+				Operations: []file.SectionOp{
+					{Op: "update", ID: testSectionID1, Text: "Some text to code", Reason: "First update"},
+					{Op: "update", ID: testSectionID3, Text: "more words for searching", Reason: "Third update"},
 				},
 				Failures: map[int]string{1: "text too short (1 words, need 3+) - expand selection: \"xy\""},
 			}, file.EntityName, testFileWithCode, domain_helpers.TestActor(), nil)),
@@ -355,9 +361,9 @@ func TestFileRouter(t *testing.T) {
 				},
 			}, file.EntityName, testFileWithCode, domain_helpers.TestActor(), nil)),
 			ExpectErr: "",
-			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.UpdatedCodeSectionsPayload, any](file.UpdatedCodeSections, file.UpdatedCodeSectionsPayload{
-				Sections: []file.UpdateSectionOp{
-					{ID: testSectionID1, CodeID: testCodeID3},
+			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.ModifiedCodeSectionsPayload, any](file.ModifiedCodeSections, file.ModifiedCodeSectionsPayload{
+				Operations: []file.SectionOp{
+					{Op: "update", ID: testSectionID1, CodeID: testCodeID3},
 				},
 			}, file.EntityName, testFileWithCode, domain_helpers.TestActor(), nil)),
 		},

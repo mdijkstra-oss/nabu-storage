@@ -13,16 +13,20 @@
   "content": "The quick brown fox jumps over the lazy dog. Works fine here.",
   "codes": [
     {
+      "id": "sec-1",
       "code_slug": "test:three-words",
       "code_id": "code-3",
       "text": "quick brown fox",
-      "reason": "3 words should be found"
+      "reason": "3 words should be found",
+      "confidence": "high"
     },
     {
+      "id": "sec-2",
       "code_slug": "test:four-words",
       "code_id": "code-4",
       "text": "jumps over the lazy",
-      "reason": "4 words should be found"
+      "reason": "4 words should be found",
+      "confidence": "high"
     }
   ]
 }

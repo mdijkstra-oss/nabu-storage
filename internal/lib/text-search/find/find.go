@@ -86,7 +86,7 @@ func FindAll(needle, chunk string) []Match {
 	return FindN(needle, chunk, 0)
 }
 
-func tokenize(s string) []string {
+func Tokenize(s string) []string {
 	s = NormalizeText(s)
 
 	var tokens []string
@@ -110,7 +110,11 @@ func tokenize(s string) []string {
 	return tokens
 }
 
-func tokenOverlap(needle, window []string) float64 {
+func tokenize(s string) []string {
+	return Tokenize(s)
+}
+
+func TokenOverlap(needle, window []string) float64 {
 	if len(needle) == 0 {
 		return 0
 	}
@@ -138,6 +142,10 @@ func tokenOverlap(needle, window []string) float64 {
 	}
 
 	return float64(satisfied) / float64(len(needle))
+}
+
+func tokenOverlap(needle, window []string) float64 {
+	return TokenOverlap(needle, window)
 }
 
 func isSubsequence(needle, window []string) bool {

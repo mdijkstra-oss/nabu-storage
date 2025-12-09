@@ -13,10 +13,12 @@
   "content": "This document has CORRECT TEXT FOUND in it. But it does not have the INCORRECT WORDS NOT FOUND anywhere.",
   "codes": [
     {
+      "id": "sec-1",
       "code_slug": "test:correct",
       "code_id": "code-1",
       "text": "CORRECT TEXT FOUND",
-      "reason": "This should be found"
+      "reason": "This should be found",
+      "confidence": "high"
     }
   ]
 }

@@ -66,3 +66,27 @@ func (p UpdatedCodeSectionsPayload) WithoutFailures() any {
 type RemoveCodeSectionsPayload struct {
 	SectionIDs []string `json:"section_ids" validate:"min=1,dive,required,valid_id"`
 }
+
+type SectionOp struct {
+	Op         string      `json:"op" validate:"required,oneof=add update delete"`
+	ID         string      `json:"id,omitempty" validate:"omitempty,valid_id"`
+	CodeID     string      `json:"code_id,omitempty" validate:"omitempty,valid_id"`
+	Text       string      `json:"text,omitempty" validate:"omitempty,min=1,max=1500"`
+	Reason     string      `json:"reason,omitempty" validate:"max=1500"`
+	Confidence *Confidence `json:"confidence,omitempty" validate:"omitempty,oneof=high medium low"`
+}
+
+type ModifiedCodeSectionsPayload struct {
+	Operations []SectionOp    `json:"operations" validate:"min=1,dive"`
+	Failures   map[int]string `json:"failures,omitempty"`
+}
+
+func (p ModifiedCodeSectionsPayload) GetFailures() map[int]string {
+	return p.Failures
+}
+
+func (p ModifiedCodeSectionsPayload) WithoutFailures() any {
+	return ModifiedCodeSectionsPayload{
+		Operations: p.Operations,
+	}
+}

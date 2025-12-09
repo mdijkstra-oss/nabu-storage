@@ -13,22 +13,28 @@
   "content": "This document contains CORRECT SPACING FOUND in the text. It also has ANOTHER MATCH HERE with proper formatting. Finally, we have THIRD SECTION WORKS perfectly aligned.",
   "codes": [
     {
+      "id": "sec-1",
       "code_slug": "test:spacing",
       "code_id": "code-1",
       "text": "CORRECT   SPACING  FOUND",
-      "reason": "Extra spaces should still match"
+      "reason": "Extra spaces should still match",
+      "confidence": "high"
     },
     {
+      "id": "sec-2",
       "code_slug": "test:tabs",
       "code_id": "code-2",
       "text": "ANOTHER\t\tMATCH\tHERE",
-      "reason": "Tabs instead of spaces should still match"
+      "reason": "Tabs instead of spaces should still match",
+      "confidence": "high"
     },
     {
+      "id": "sec-3",
       "code_slug": "test:mixed",
       "code_id": "code-3",
       "text": "THIRD  SECTION   WORKS",
-      "reason": "Mixed spacing should still match"
+      "reason": "Mixed spacing should still match",
+      "confidence": "high"
     }
   ]
 }

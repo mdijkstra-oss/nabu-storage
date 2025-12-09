@@ -3,17 +3,15 @@ package file
 import "hermes-relay/internal/cqrs/commands"
 
 const (
-	CreatedFile         = "CreatedFile"
-	UpdatedFile         = "UpdatedFile"
-	PinnedFile          = "PinnedFile"
-	UnpinnedFile        = "UnpinnedFile"
-	ReplacedFileContent = "ReplacedFileContent"
-	DeletedFile         = "DeletedFile"
-	AddedCodeSections   = "AddedCodeSections"
-	UpdatedCodeSections = "UpdatedCodeSections"
-	RemovedCodeSections = "RemovedCodeSections"
-	ClearedCoding       = "ClearedCoding"
-	RemovedCodeFromFile = "RemovedCodeFromFile"
+	CreatedFile          = "CreatedFile"
+	UpdatedFile          = "UpdatedFile"
+	PinnedFile           = "PinnedFile"
+	UnpinnedFile         = "UnpinnedFile"
+	ReplacedFileContent  = "ReplacedFileContent"
+	DeletedFile          = "DeletedFile"
+	ClearedCoding        = "ClearedCoding"
+	RemovedCodeFromFile  = "RemovedCodeFromFile"
+	ModifiedCodeSections = "ModifiedCodeSections"
 )
 
 type CreatedFilePayload struct {

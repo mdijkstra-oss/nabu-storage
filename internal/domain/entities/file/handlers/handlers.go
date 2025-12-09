@@ -13,6 +13,8 @@ import (
 	"strings"
 )
 
+const DEDUP_SIMILARITY_THRESHOLD = 0.8
+
 func NewRouter(reg *registry.RegistryState) dispatch.CommandRouter {
 	return dispatch.CombineRouters(
 		dispatch.LimitOnEntity(file.EntityName,
@@ -51,36 +53,38 @@ func NewRouter(reg *registry.RegistryState) dispatch.CommandRouter {
 			),
 
 			dispatch.LimitOnAction(file.AddCodeSections,
-				registry.NormalizeDomain[file.AddCodeSectionsPayload](
+				registry.TransformDomain[file.AddCodeSectionsPayload, file.ModifiedCodeSectionsPayload](
 					reg,
-					normalizeAddSections,
-					dispatch.ToUpdateEntityEvent[file.AddCodeSectionsPayload, file.AddedCodeSectionsPayload](
+					handleAddCodeSections,
+					dispatch.ToUpdateEntityEvent[file.ModifiedCodeSectionsPayload, file.ModifiedCodeSectionsPayload](
 						file.AddCodeSections,
-						file.AddedCodeSections,
-						addSectionIDs,
+						file.ModifiedCodeSections,
+						assignOperationIDs,
 					),
 				),
 			),
 
-			dispatch.LimitOnAction(file.UpdateCodeSections,
-				registry.NormalizeDomain[file.UpdateCodeSectionsPayload](
-					reg,
-					normalizeUpdateSections,
-					dispatch.ToUpdateEntityEvent[file.UpdateCodeSectionsPayload, file.UpdatedCodeSectionsPayload](
-						file.UpdateCodeSections,
-						file.UpdatedCodeSections,
-						toUpdatedSectionsPayload,
-					),
+		dispatch.LimitOnAction(file.UpdateCodeSections,
+			registry.TransformDomain[file.UpdateCodeSectionsPayload, file.ModifiedCodeSectionsPayload](
+				reg,
+				handleUpdateCodeSections,
+				dispatch.ToUpdateEntityEvent[file.ModifiedCodeSectionsPayload, file.ModifiedCodeSectionsPayload](
+					file.UpdateCodeSections,
+					file.ModifiedCodeSections,
 				),
 			),
+		),
 
-			dispatch.LimitOnAction(file.RemoveCodeSections,
-				registry.ValidateDomain(
-					reg,
-					validateCorpusFile[file.RemoveCodeSectionsPayload],
-					dispatch.ToUpdateEntityEvent[file.RemoveCodeSectionsPayload, file.RemoveCodeSectionsPayload](file.RemoveCodeSections, file.RemovedCodeSections),
+		dispatch.LimitOnAction(file.RemoveCodeSections,
+			registry.TransformDomain[file.RemoveCodeSectionsPayload, file.ModifiedCodeSectionsPayload](
+				reg,
+				handleRemoveCodeSections,
+				dispatch.ToUpdateEntityEvent[file.ModifiedCodeSectionsPayload, file.ModifiedCodeSectionsPayload](
+					file.RemoveCodeSections,
+					file.ModifiedCodeSections,
 				),
 			),
+		),
 
 			dispatch.LimitOnAction(file.ClearCoding,
 				registry.ValidateDomain(
@@ -143,106 +147,170 @@ func validateAndNormalizeText(text, fileContent string) (string, error) {
 	return normalizedText, nil
 }
 
-func normalizeAddSections(proj project.Project, payload file.AddCodeSectionsPayload, msg *commands.AnyMessage) (file.AddCodeSectionsPayload, error) {
-	if err := errIfNotCorpus(proj, msg); err != nil {
-		return file.AddCodeSectionsPayload{}, err
+func textSimilarity(text1, text2 string) float64 {
+	tokens1 := find.Tokenize(text1)
+	tokens2 := find.Tokenize(text2)
+	if len(tokens1) == 0 {
+		return 0
 	}
-
-	f := proj.Files[msg.AggregateID]
-
-	normalizedSections := []file.AddSectionOp{}
-	failures := make(map[int]string)
-
-	for i, op := range payload.Sections {
-		normalizedText, err := validateAndNormalizeText(op.Text, f.Content)
-		if err != nil {
-			failures[i] = err.Error()
-			continue
-		}
-
-		normalizedSections = append(normalizedSections, file.AddSectionOp{
-			CodeID:     op.CodeID,
-			Text:       normalizedText,
-			Reason:     op.Reason,
-			Confidence: op.Confidence,
-		})
-	}
-
-	if len(failures) == len(payload.Sections) {
-		return file.AddCodeSectionsPayload{}, utils.ArrayItemErrors("sections", failures)
-	}
-
-	var resultFailures map[int]string
-	if len(failures) > 0 {
-		resultFailures = failures
-	}
-
-	return file.AddCodeSectionsPayload{
-		Sections: normalizedSections,
-		Failures: resultFailures,
-	}, nil
+	return find.TokenOverlap(tokens1, tokens2)
 }
 
-func addSectionIDs(payload *file.AddCodeSectionsPayload) file.AddedCodeSectionsPayload {
-	return file.AddedCodeSectionsPayload{
-		Sections: utils.Map(payload.Sections, func(op file.AddSectionOp) file.AddedSection {
-			return file.AddedSection{
-				ID:         utils.NewID(),
+func isSimilarSection(codeID, text string, existing file.CodedSection) bool {
+	if codeID != existing.CodeID {
+		return false
+	}
+	return textSimilarity(text, existing.Text) >= DEDUP_SIMILARITY_THRESHOLD
+}
+
+func findSimilarSection(codeID, text string, sections []file.CodedSection) *file.CodedSection {
+	for i := range sections {
+		if isSimilarSection(codeID, text, sections[i]) {
+			return &sections[i]
+		}
+	}
+	return nil
+}
+
+func mapAddToModified(payload file.AddCodeSectionsPayload) file.ModifiedCodeSectionsPayload {
+	return file.ModifiedCodeSectionsPayload{
+		Operations: utils.Map(payload.Sections, func(op file.AddSectionOp) file.SectionOp {
+			return file.SectionOp{
+				Op:         "add",
+				CodeID:     op.CodeID,
+				Text:       op.Text,
+				Reason:     op.Reason,
+				Confidence: &op.Confidence,
+			}
+		}),
+	}
+}
+
+func mapUpdateToModified(payload file.UpdateCodeSectionsPayload) file.ModifiedCodeSectionsPayload {
+	return file.ModifiedCodeSectionsPayload{
+		Operations: utils.Map(payload.Sections, func(op file.UpdateSectionOp) file.SectionOp {
+			return file.SectionOp{
+				Op:         "update",
+				ID:         op.ID,
 				CodeID:     op.CodeID,
 				Text:       op.Text,
 				Reason:     op.Reason,
 				Confidence: op.Confidence,
 			}
 		}),
-		Failures: payload.Failures,
 	}
 }
 
-func normalizeUpdateSections(proj project.Project, payload file.UpdateCodeSectionsPayload, msg *commands.AnyMessage) (file.UpdateCodeSectionsPayload, error) {
+func mapRemoveToModified(payload file.RemoveCodeSectionsPayload) file.ModifiedCodeSectionsPayload {
+	return file.ModifiedCodeSectionsPayload{
+		Operations: utils.Map(payload.SectionIDs, func(id string) file.SectionOp {
+			return file.SectionOp{
+				Op: "delete",
+				ID: id,
+			}
+		}),
+	}
+}
+
+func handleAddCodeSections(proj project.Project, payload file.AddCodeSectionsPayload, msg *commands.AnyMessage) (file.ModifiedCodeSectionsPayload, error) {
+	return normalizeModifiedSections(proj, mapAddToModified(payload), msg)
+}
+
+func handleUpdateCodeSections(proj project.Project, payload file.UpdateCodeSectionsPayload, msg *commands.AnyMessage) (file.ModifiedCodeSectionsPayload, error) {
+	return normalizeModifiedSections(proj, mapUpdateToModified(payload), msg)
+}
+
+func handleRemoveCodeSections(proj project.Project, payload file.RemoveCodeSectionsPayload, msg *commands.AnyMessage) (file.ModifiedCodeSectionsPayload, error) {
+	return normalizeModifiedSections(proj, mapRemoveToModified(payload), msg)
+}
+
+func normalizeModifiedSections(proj project.Project, payload file.ModifiedCodeSectionsPayload, msg *commands.AnyMessage) (file.ModifiedCodeSectionsPayload, error) {
 	if err := errIfNotCorpus(proj, msg); err != nil {
-		return file.UpdateCodeSectionsPayload{}, err
+		return file.ModifiedCodeSectionsPayload{}, err
 	}
 
 	f := proj.Files[msg.AggregateID]
 
-	normalizedSections := []file.UpdateSectionOp{}
+	operations := []file.SectionOp{}
 	failures := make(map[int]string)
 
-	for i, op := range payload.Sections {
-		section := fileview.FindSection(f, op.ID)
-		if section == nil {
-			failures[i] = fmt.Sprintf("section not found: %s", op.ID)
-			continue
-		}
-
-		normalizedOp := file.UpdateSectionOp{
-			ID:         op.ID,
-			Reason:     op.Reason,
-			Confidence: op.Confidence,
-		}
-
-		if op.Text != "" {
+	for i, op := range payload.Operations {
+		switch op.Op {
+		case "add":
 			normalizedText, err := validateAndNormalizeText(op.Text, f.Content)
 			if err != nil {
 				failures[i] = err.Error()
 				continue
 			}
-			normalizedOp.Text = normalizedText
-		}
 
-		if op.CodeID != "" {
-			if _, exists := proj.Codes[op.CodeID]; !exists {
-				failures[i] = fmt.Sprintf("code not found: %s", op.CodeID)
+			similarSection := findSimilarSection(op.CodeID, normalizedText, f.Codes)
+			if similarSection != nil {
+				operations = append(operations, file.SectionOp{
+					Op:         "update",
+					ID:         similarSection.ID,
+					CodeID:     op.CodeID,
+					Text:       normalizedText,
+					Reason:     op.Reason,
+					Confidence: op.Confidence,
+				})
+			} else {
+				operations = append(operations, file.SectionOp{
+					Op:         "add",
+					CodeID:     op.CodeID,
+					Text:       normalizedText,
+					Reason:     op.Reason,
+					Confidence: op.Confidence,
+				})
+			}
+
+		case "update":
+			var sectionExists bool
+			for _, section := range f.Codes {
+				if section.ID == op.ID {
+					sectionExists = true
+					break
+				}
+			}
+			if !sectionExists {
+				failures[i] = "section not found"
 				continue
 			}
-			normalizedOp.CodeID = op.CodeID
-		}
 
-		normalizedSections = append(normalizedSections, normalizedOp)
+			if op.CodeID != "" {
+				if _, exists := proj.Codes[op.CodeID]; !exists {
+					failures[i] = "code not found"
+					continue
+				}
+			}
+
+			if op.Text != "" {
+				normalizedText, err := validateAndNormalizeText(op.Text, f.Content)
+				if err != nil {
+					failures[i] = err.Error()
+					continue
+				}
+				operations = append(operations, file.SectionOp{
+					Op:         "update",
+					ID:         op.ID,
+					CodeID:     op.CodeID,
+					Text:       normalizedText,
+					Reason:     op.Reason,
+					Confidence: op.Confidence,
+				})
+			} else {
+				operations = append(operations, op)
+			}
+
+		case "delete":
+			operations = append(operations, op)
+
+		default:
+			panic("unknown operation type: " + op.Op)
+		}
 	}
 
-	if len(failures) == len(payload.Sections) {
-		return file.UpdateCodeSectionsPayload{}, utils.ArrayItemErrors("sections", failures)
+	if len(failures) == len(payload.Operations) {
+		return file.ModifiedCodeSectionsPayload{}, utils.ArrayItemErrors("operations", failures)
 	}
 
 	var resultFailures map[int]string
@@ -250,18 +318,24 @@ func normalizeUpdateSections(proj project.Project, payload file.UpdateCodeSectio
 		resultFailures = failures
 	}
 
-	return file.UpdateCodeSectionsPayload{
-		Sections: normalizedSections,
-		Failures: resultFailures,
+	return file.ModifiedCodeSectionsPayload{
+		Operations: operations,
+		Failures:   resultFailures,
 	}, nil
 }
 
-func toUpdatedSectionsPayload(payload *file.UpdateCodeSectionsPayload) file.UpdatedCodeSectionsPayload {
-	return file.UpdatedCodeSectionsPayload{
-		Sections: payload.Sections,
+func assignOperationIDs(payload *file.ModifiedCodeSectionsPayload) file.ModifiedCodeSectionsPayload {
+	return file.ModifiedCodeSectionsPayload{
+		Operations: utils.Map(payload.Operations, func(op file.SectionOp) file.SectionOp {
+			if op.Op == "add" && op.ID == "" {
+				op.ID = utils.NewID()
+			}
+			return op
+		}),
 		Failures: payload.Failures,
 	}
 }
+
 
 func validateNoDuplicateSingleton(proj project.Project, payload file.CreateFilePayload, msg *commands.AnyMessage) error {
 	if !payload.Type.IsSingleton() {
