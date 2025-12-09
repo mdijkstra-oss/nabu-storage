@@ -262,6 +262,15 @@ func TestFileRouter(t *testing.T) {
 			ExpectErr: "validation failed: CodeID failed validation (valid_id)",
 		},
 		{
+			Name: "AddCodeSections fails with nonexistent code id",
+			Input: commands.ToAny(commands.NewCommand[file.AddCodeSectionsPayload, any](file.AddCodeSections, file.AddCodeSectionsPayload{
+				Sections: []file.AddSectionOp{
+					{CodeID: utils.NewID(), Text: "Some text to code", Confidence: file.ConfidenceHigh},
+				},
+			}, file.EntityName, testFileShort, domain_helpers.TestActor(), nil)),
+			ExpectErr: "validation failed: operations[0] code not found",
+		},
+		{
 			Name: "UpdateCodeSections with missing section ID",
 			Input: commands.ToAny(commands.NewCommand[file.UpdateCodeSectionsPayload, any](file.UpdateCodeSections, file.UpdateCodeSectionsPayload{
 				Sections: []file.UpdateSectionOp{
@@ -374,7 +383,7 @@ func TestFileRouter(t *testing.T) {
 					{ID: testSectionID1, CodeID: utils.NewID()},
 				},
 			}, file.EntityName, testFileWithCode, domain_helpers.TestActor(), nil)),
-			ExpectErr: "validation failed",
+			ExpectErr: "validation failed: operations[0] code not found",
 		},
 		{
 			Name: "UpdateCodeSections fails with nonexistent section id",
@@ -383,7 +392,7 @@ func TestFileRouter(t *testing.T) {
 					{ID: utils.NewID(), Reason: "Updated"},
 				},
 			}, file.EntityName, testFileWithCode, domain_helpers.TestActor(), nil)),
-			ExpectErr: "validation failed",
+			ExpectErr: "validation failed: operations[0] section not found",
 		},
 		{
 			Name: "AddCodeSections fails on non-corpus file",

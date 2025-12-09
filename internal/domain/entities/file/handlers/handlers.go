@@ -253,7 +253,18 @@ func codeExists(codeID string, codes map[string]code.Code) bool {
 	return exists
 }
 
+func validateCodeExists(codeID string, codes map[string]code.Code) error {
+	if !codeExists(codeID, codes) {
+		return fmt.Errorf("code not found")
+	}
+	return nil
+}
+
 func normalizeAddOp(op file.SectionOp, ctx operationContext) (file.SectionOp, error) {
+	if err := validateCodeExists(op.CodeID, ctx.projectCodes); err != nil {
+		return file.SectionOp{}, err
+	}
+
 	normalizedText, err := validateAndNormalizeText(op.Text, ctx.fileContent)
 	if err != nil {
 		return file.SectionOp{}, err
@@ -261,14 +272,15 @@ func normalizeAddOp(op file.SectionOp, ctx operationContext) (file.SectionOp, er
 
 	similarSection := findSimilarSection(op.CodeID, normalizedText, ctx.fileCodes)
 	if similarSection != nil {
-		return file.SectionOp{
+		updateOp := file.SectionOp{
 			Op:         "update",
 			ID:         similarSection.ID,
 			CodeID:     op.CodeID,
 			Text:       normalizedText,
 			Reason:     op.Reason,
 			Confidence: op.Confidence,
-		}, nil
+		}
+		return normalizeUpdateOp(updateOp, ctx)
 	}
 
 	return file.SectionOp{
@@ -285,8 +297,10 @@ func normalizeUpdateOp(op file.SectionOp, ctx operationContext) (file.SectionOp,
 		return file.SectionOp{}, fmt.Errorf("section not found")
 	}
 
-	if op.CodeID != "" && !codeExists(op.CodeID, ctx.projectCodes) {
-		return file.SectionOp{}, fmt.Errorf("code not found")
+	if op.CodeID != "" {
+		if err := validateCodeExists(op.CodeID, ctx.projectCodes); err != nil {
+			return file.SectionOp{}, err
+		}
 	}
 
 	if op.Text != "" {
