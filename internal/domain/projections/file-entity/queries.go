@@ -15,12 +15,13 @@ func QueryFiles(query projection.PaginationQuery, proj project.Project) []FileSu
 	return utils.Map(files, ToSummary)
 }
 
-func QueryFile(query projection.IDQuery, proj project.Project) *File {
+func QueryFile(query projection.IDQuery, proj project.Project) *FileSummary {
 	f := projection.GetFromMap(proj.Files, query.ID)
 	if f == nil {
 		return nil
 	}
-	return f
+	summary := ToSummary(*f)
+	return &summary
 }
 
 type CodebookContent struct {
