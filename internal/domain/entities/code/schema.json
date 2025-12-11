@@ -13,6 +13,7 @@
       "type": "string",
       "minLength": 3,
       "maxLength": 100,
+      "pattern": "^[a-z]+(-[a-z]+)*:[a-z]+(-[a-z]+)*$",
       "description": "e.g. emotion:anxiety, theme:power-dynamics"
     },
     "color": {

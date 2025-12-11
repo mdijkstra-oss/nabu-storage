@@ -1,553 +1,174 @@
 openapi: 3.0.3
 info:
-  title: hermes-relay-api
-  version: 1.14.0
+  title: Hermes Relay API
   description: |
-    CQRS-based qualitative data analysis API for coding and analyzing research data.
+    Event-sourced qualitative data analysis platform using CQRS architecture.
 
-    This API uses a Command Query Responsibility Segregation (CQRS) pattern where:
-    - Commands modify state via POST /commands
-    - Queries read state via GET /queries/*
-    - Events are broadcast via WebSocket (GET /ws/)
+    ## Architecture
+    - Commands modify state and generate domain events
+    - Events are stored and can be replayed to rebuild state
+    - Queries read from materialized projections
+    - WebSocket provides real-time event streaming
+
+    ## Entities
+    - **Project**: Research workspace with phases (explore, code, validate, analyze)
+    - **Code**: Qualitative coding scheme with examples and criteria
+    - **File**: Documents (corpus), codebooks, memos with coded sections
+    - **Chart**: Data visualizations with flexible specifications
+  version: 1.0.0
+  contact:
+    name: Hermes Relay Support
 
 servers:
   - url: http://localhost:8080
+    description: Local development
+
+tags:
+  - name: Commands
+    description: State modification operations
+  - name: Schemas
+    description: Entity JSON schemas
+  - name: Projects
+    description: Project queries
+  - name: Files
+    description: File queries and search
+  - name: Codes
+    description: Code queries and sections
+  - name: Charts
+    description: Chart queries
+  - name: WebSocket
+    description: Real-time event streaming
 
 paths:
   /commands:
     post:
-      summary: Execute single or batch commands
+      tags: [Commands]
+      summary: Execute command(s)
       description: |
-        Send one or more commands to modify system state. Commands are processed
-        through the CQRS pipeline and return domain events on success.
-
-        **Single Command**: Send one AnyMessage object with type "Command"
-        **Batch Commands**: Send an array of AnyMessage objects
-
-        **Batch Processing**:
-        - All commands are processed independently (best-effort)
-        - No cross-command transactions
-        - Status codes:
-          - 200: All succeeded
-          - 202: All accepted (async processing)
-          - 207: Partial success (some failed) - for batches OR single commands with array payloads
-          - 400: All failed
-
-        **Partial Success for Array Payloads**:
-        Commands with array payloads (AddCodeSections, UpdateCodeSections) support partial success.
-        If some items in the array fail validation but others succeed:
-        - Returns 207 with PartialSuccessResponse
-        - Successful items are processed and returned in the event
-        - Failed items are listed in the failures map with original array index
-        If ALL items fail, returns 400 with validation error.
+        Execute single command or batch of commands.
+        - Single: Send command object
+        - Batch: Send array of commands
+        - Returns 207 for partial batch failures
+      operationId: executeCommands
       requestBody:
         required: true
         content:
           application/json:
             schema:
               oneOf:
-                - $ref: '#/components/schemas/AnyMessage'
+                - $ref: '#/components/schemas/Message'
                 - type: array
                   items:
-                    $ref: '#/components/schemas/AnyMessage'
+                    $ref: '#/components/schemas/Message'
             examples:
-              createProject:
-                summary: Create a new research project
+              singleCommand:
+                summary: Single command
                 value:
-                  type: Command
                   action: CreateProject
+                  type: Command
                   aggregate_type: Project
-                  aggregate_id: ""
+                  aggregate_id: proj_01jdqx8h9m0n2p3q4r5s6t7u8v
                   payload:
-                    name: Healthcare Patient Experience Study
-                    description: Qualitative analysis of patient interviews regarding hospital experiences
-              createProjectWithPhase:
-                summary: Create project with specific phase
-                value:
-                  type: Command
-                  action: CreateProject
-                  aggregate_type: Project
-                  aggregate_id: ""
-                  payload:
-                    name: UX Research Q1 2025
-                    description: User experience research for new features
-                    phase: code
-              updateProject:
-                summary: Update project details with optimistic concurrency
-                value:
-                  type: Command
-                  action: UpdateProject
-                  aggregate_type: Project
-                  aggregate_id: "550e8400-e29b-41d4-a716-446655440000"
-                  expected_version: 3
-                  payload:
-                    name: Healthcare Patient Experience Study - Updated
-                    description: Updated qualitative analysis of patient interviews
-                    phase: validate
-              changePhase:
-                summary: Change project phase only
-                value:
-                  type: Command
-                  action: ChangePhase
-                  aggregate_type: Project
-                  aggregate_id: "550e8400-e29b-41d4-a716-446655440000"
-                  payload:
-                    phase: code
-              createCode:
-                summary: Create a new analytical code
-                value:
-                  type: Command
-                  action: CreateCode
-                  aggregate_type: Code
-                  aggregate_id: ""
-                  payload:
-                    project_id: "550e8400-e29b-41d4-a716-446655440000"
-                    slug: "emotion:anxiety"
-                    color: "red"
-                    definition: "Patient expressions of worry, nervousness, or fear about medical procedures, outcomes, or waiting times"
-                    inclusion_criteria: "Look for explicit anxiety words (worried, nervous, scared, anxious) or implicit indicators like excessive questioning about risks, repeated concerns about outcomes, or physical manifestations mentioned"
-                    exclusion_criteria: "Do not code general discomfort or mild concern. Exclude post-procedure relief statements that mention past anxiety"
-                    examples:
-                      - "I was really worried about the surgery and couldn't sleep the night before"
-                      - "What if something goes wrong during the procedure?"
-                      - "I felt so anxious waiting for the test results"
-                    counter_examples:
-                      - "I was a bit uncomfortable during the examination"
-                      - "I'm glad that anxious period is over now"
-              updateCode:
-                summary: Update code definition with optimistic concurrency
-                value:
-                  type: Command
-                  action: UpdateCode
-                  aggregate_type: Code
-                  aggregate_id: "660e8400-e29b-41d4-a716-446655440001"
-                  expected_version: 2
-                  payload:
-                    color: "orange"
-                    definition: "Updated to focus specifically on pre-procedure anxiety, excluding post-treatment concerns"
-              createFile:
-                summary: Create a corpus file
-                value:
-                  type: Command
-                  action: CreateFile
-                  aggregate_type: File
-                  aggregate_id: ""
-                  payload:
-                    project_id: "550e8400-e29b-41d4-a716-446655440000"
-                    name: "Interview with Patient P07"
-                    description: "Pre-operative patient interview discussing anxiety and information needs"
-                    content: "I was really worried about the surgery. The doctor explained everything but I still felt nervous waiting for the results."
-              createMemoFile:
-                summary: Create a memo file (editable)
-                value:
-                  type: Command
-                  action: CreateFile
-                  aggregate_type: File
-                  aggregate_id: ""
-                  payload:
-                    project_id: "550e8400-e29b-41d4-a716-446655440000"
-                    name: "Analysis Notes - Week 1"
-                    description: "Initial observations and emerging themes"
-                    content: "Initial analysis reveals strong anxiety patterns among older patients."
-                    type: memo
-              createCodebook:
-                summary: Create a codebook file
-                value:
-                  type: Command
-                  action: CreateFile
-                  aggregate_type: File
-                  aggregate_id: ""
-                  payload:
-                    project_id: "550e8400-e29b-41d4-a716-446655440000"
-                    name: "Project Codebook"
-                    description: "Coding guidelines and definitions"
-                    content: "# Coding Guidelines\n\n## Emotions\n- anxiety: expressions of worry..."
-                    type: codebook
-              replaceFileContent:
-                summary: Replace file content (unlocked files only)
-                value:
-                  type: Command
-                  action: ReplaceFileContent
-                  aggregate_type: File
-                  aggregate_id: "770e8400-e29b-41d4-a716-446655440002"
-                  payload:
-                    content: "Updated memo content with new observations and findings."
-              editFileContent:
-                summary: Search and replace text in file
-                value:
-                  type: Command
-                  action: EditFileContent
-                  aggregate_type: File
-                  aggregate_id: "770e8400-e29b-41d4-a716-446655440002"
-                  payload:
-                    old_text: "Initial analysis reveals"
-                    new_text: "Comprehensive analysis confirms"
-              addCodeSections:
-                summary: Add code sections to a file
-                value:
-                  type: Command
-                  action: AddCodeSections
-                  aggregate_type: File
-                  aggregate_id: "770e8400-e29b-41d4-a716-446655440002"
-                  payload:
-                    sections:
-                      - code_id: "660e8400-e29b-41d4-a716-446655440001"
-                        text: "I was really worried about the surgery"
-                        reason: "Explicit expression of pre-procedure worry"
-                        confidence: "high"
-              updateCodeSections:
-                summary: Update existing code sections
-                value:
-                  type: Command
-                  action: UpdateCodeSections
-                  aggregate_type: File
-                  aggregate_id: "770e8400-e29b-41d4-a716-446655440002"
-                  payload:
-                    sections:
-                      - id: "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
-                        reason: "Updated reasoning for this code application"
-                        confidence: "medium"
-              removeCodeSections:
-                summary: Remove code sections from a file
-                value:
-                  type: Command
-                  action: RemoveCodeSections
-                  aggregate_type: File
-                  aggregate_id: "770e8400-e29b-41d4-a716-446655440002"
-                  payload:
-                    section_ids:
-                      - "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
-                      - "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e"
+                    name: Interview Study 2024
+                    description: Analysis of participant interviews
+                    phase: explore
+                  actor:
+                    user_id: patient-zero
+                    actor_type: human
               batchCommands:
-                summary: Create multiple codes in one request
+                summary: Batch commands
                 value:
-                  - type: Command
-                    action: CreateCode
+                  - action: CreateCode
+                    type: Command
                     aggregate_type: Code
-                    aggregate_id: ""
+                    aggregate_id: code_01jdqx8h9m0n2p3q4r5s6t7u8v
                     payload:
-                      project_id: "550e8400-e29b-41d4-a716-446655440000"
-                      slug: "usability:friction-point"
-                      color: "amber"
-                      definition: "Points where users struggle with the interface, experience confusion, or express frustration with system interactions"
-                      inclusion_criteria: "Include moments where users pause, express confusion verbally, ask for help, or make errors repeatedly. Look for phrases like 'I don't understand', 'where do I...', or observable struggle"
-                      examples:
-                        - "I don't know where to click to submit this form"
-                        - "This button doesn't do what I expected it to do"
-                  - type: Command
-                    action: CreateCode
+                      project_id: proj_01jdqx8h9m0n2p3q4r5s6t7u8v
+                      slug: emotion:anxiety
+                      color: red
+                      definition: Expressions of worry or fear
+                    actor:
+                      user_id: patient-zero
+                      actor_type: human
+                  - action: CreateCode
+                    type: Command
                     aggregate_type: Code
-                    aggregate_id: ""
+                    aggregate_id: code_01jdqx8h9m0n2p3q4r5s6t7u8w
                     payload:
-                      project_id: "550e8400-e29b-41d4-a716-446655440000"
-                      slug: "theme:accessibility"
-                      color: "blue"
-                      definition: "Comments and observations about ease of access for users with disabilities or special needs"
+                      project_id: proj_01jdqx8h9m0n2p3q4r5s6t7u8v
+                      slug: theme:power-dynamics
+                      color: purple
+                      definition: Discussions of authority and control
+                    actor:
+                      user_id: patient-zero
+                      actor_type: human
       responses:
         '200':
-          description: Command(s) executed successfully
+          description: Command executed successfully
           content:
             application/json:
               schema:
-                oneOf:
-                  - $ref: '#/components/schemas/DomainEvent'
-                  - $ref: '#/components/schemas/BatchResponse'
-              examples:
-                singleSuccess:
-                  summary: Single command success
-                  value:
-                    id: "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
-                    type: DomainEvent
-                    action: CreatedProject
-                    aggregate_type: Project
-                    aggregate_id: "550e8400-e29b-41d4-a716-446655440000"
-                    actor:
-                      user_id: "user-123"
-                      actor_type: human
-                    causation_id: "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e"
-                    timestamp: "2025-01-15T10:30:00Z"
-                    version: 1
-                    payload:
-                      name: Healthcare Patient Experience Study
-                      description: Study analyzing patient experiences in hospital settings
-                      phase: explore
-                batchSuccess:
-                  summary: Batch command success
-                  value:
-                    total: 2
-                    success_count: 2
-                    failure_count: 0
-                    results:
-                      - index: 0
-                        success: true
-                        result:
-                          id: "c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f"
-                          type: DomainEvent
-                          action: CreatedCode
-                          aggregate_type: Code
-                          aggregate_id: "660e8400-e29b-41d4-a716-446655440001"
-                          actor:
-                            user_id: "user-123"
-                            actor_type: human
-                          causation_id: "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a"
-                          timestamp: "2025-01-15T10:30:00Z"
-                          version: 1
-                          payload:
-                            project_id: "550e8400-e29b-41d4-a716-446655440000"
-                            slug: "usability:friction-point"
-                            color: "amber"
-                            definition: "Points where users struggle with the interface"
-                      - index: 1
-                        success: true
-                        result:
-                          id: "e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b"
-                          type: DomainEvent
-                          action: CreatedCode
-                          aggregate_type: Code
-                          aggregate_id: "770e8400-e29b-41d4-a716-446655440002"
-                          actor:
-                            user_id: "user-123"
-                            actor_type: human
-                          causation_id: "f6a7b8c9-d0e1-4f2a-3b4c-5d6e7f8a9b0c"
-                          timestamp: "2025-01-15T10:30:00Z"
-                          version: 1
-                          payload:
-                            project_id: "550e8400-e29b-41d4-a716-446655440000"
-                            slug: "theme:accessibility"
-                            color: "blue"
-                            definition: "Comments about ease of access for users with disabilities"
-        '201':
-          description: Entity created successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/DomainEvent'
-        '202':
-          description: Command(s) accepted for async processing
+                $ref: '#/components/schemas/Message'
+              example:
+                id: evt_01jdqx8h9m0n2p3q4r5s6t7u8x
+                action: CreatedProject
+                type: DomainEvent
+                aggregate_id: proj_01jdqx8h9m0n2p3q4r5s6t7u8v
+                aggregate_type: Project
+                payload:
+                  name: Interview Study 2024
+                  description: Analysis of participant interviews
+                  phase: explore
+                  pinned: false
+                actor:
+                  user_id: patient-zero
+                  actor_type: human
+                causation_id: cmd_01jdqx8h9m0n2p3q4r5s6t7u8w
+                timestamp: '2024-01-15T10:30:00Z'
+                version: 1
         '207':
-          description: Partial success (batch or single command with array payload)
+          description: Batch with partial failures
           content:
             application/json:
               schema:
-                oneOf:
-                  - $ref: '#/components/schemas/BatchResponse'
-                  - $ref: '#/components/schemas/PartialSuccessResponse'
-              examples:
-                batchPartialSuccess:
-                  summary: Batch command partial success
-                  value:
-                    total: 3
-                    success_count: 2
-                    failure_count: 1
-                    results:
-                      - index: 0
-                        success: true
-                        result:
-                          id: "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
-                          type: DomainEvent
-                          action: CreatedCode
-                          aggregate_type: Code
-                          aggregate_id: "660e8400-e29b-41d4-a716-446655440001"
-                          actor:
-                            user_id: "user-123"
-                            actor_type: human
-                          timestamp: "2025-01-15T10:30:00Z"
-                          version: 1
-                      - index: 1
-                        success: false
-                        error: "validation failed: Slug already in use"
-                      - index: 2
-                        success: true
-                        result:
-                          id: "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e"
-                          type: DomainEvent
-                          action: CreatedCode
-                          aggregate_type: Code
-                          aggregate_id: "770e8400-e29b-41d4-a716-446655440002"
-                          actor:
-                            user_id: "user-123"
-                            actor_type: human
-                          timestamp: "2025-01-15T10:30:00Z"
-                          version: 1
-                singleCommandPartialSuccess:
-                  summary: Single command with array payload partial success
-                  value:
-                    success:
-                      id: "c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f"
-                      type: DomainEvent
-                      action: AddedCodeSections
-                      aggregate_type: File
-                      aggregate_id: "770e8400-e29b-41d4-a716-446655440002"
-                      actor:
-                        user_id: "user-123"
-                        actor_type: human
-                      timestamp: "2025-01-15T10:30:00Z"
-                      version: 1
-                      payload:
-                        sections:
-                          - id: "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a"
-                            code_id: "660e8400-e29b-41d4-a716-446655440001"
-                            text: "I was really worried about the surgery"
-                            reason: "Explicit expression of pre-procedure worry"
-                            confidence: "high"
-                          - id: "e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b"
-                            code_id: "770e8400-e29b-41d4-a716-446655440002"
-                            text: "The doctor explained everything clearly"
-                            reason: "Positive patient-provider communication"
-                            confidence: "medium"
-                    failures:
-                      "1": "minimum 3 words required: \"short\""
+                $ref: '#/components/schemas/BatchResponse'
         '400':
-          description: Validation error or all batch commands failed
-          content:
-            application/json:
-              schema:
-                oneOf:
-                  - $ref: '#/components/schemas/ErrorResponse'
-                  - $ref: '#/components/schemas/BatchResponse'
-              examples:
-                validationSingle:
-                  summary: Single field validation error
-                  value:
-                    message: "validation failed: Name is required"
-                    fields:
-                      Name: "required"
-                validationMultiple:
-                  summary: Multiple field validation errors
-                  value:
-                    message: "validation failed: Color is required, Definition is required"
-                    fields:
-                      Color: "required"
-                      Definition: "required"
-                validationPattern:
-                  summary: Pattern validation error
-                  value:
-                    message: "validation failed: Slug must match code slug format (lowercase with colon and optional dashes)"
-                    fields:
-                      Slug: "code_slug"
-                duplicateSlug:
-                  summary: Duplicate slug error
-                  value:
-                    message: "validation failed"
-                    fields:
-                      slug: "already in use"
-                duplicateCodebook:
-                  summary: Duplicate codebook error
-                  value:
-                    message: "validation failed"
-                    fields:
-                      type: "project already has a codebook"
-                fileLocked:
-                  summary: File is locked error
-                  value:
-                    message: "validation failed"
-                    fields:
-                      file: "file is locked"
-                textNotFound:
-                  summary: Text not found in file
-                  value:
-                    message: "validation failed"
-                    fields:
-                      old_text: "not found in file"
-                arrayValidationSingle:
-                  summary: Array item validation error (single failure)
-                  value:
-                    message: "validation failed: sections[0] minimum 3 words required: \"short\""
-                    fields:
-                      sections[0]: "minimum 3 words required: \"short\""
-                arrayValidationMultiple:
-                  summary: Array item validation errors (multiple failures)
-                  value:
-                    message: "validation failed: sections[0] text not found in file: \"missing text\", sections[2] minimum 3 words required: \"no\""
-                    fields:
-                      sections[0]: "text not found in file: \"missing text\""
-                      sections[2]: "minimum 3 words required: \"no\""
+          $ref: '#/components/responses/ValidationError'
         '404':
-          description: Referenced entity not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                message: "validation failed"
-                fields:
-                  project_id: "not found"
+          $ref: '#/components/responses/NotFound'
         '409':
-          description: |
-            Conflict error. Most commonly returned when:
-            - expected_version does not match the current entity version (optimistic concurrency control)
-
-            Example: Client reads entity at version 5, another client updates it to version 6,
-            first client sends update with expected_version=5 → 409 Conflict
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                message: "version conflict: expected 5, actual 6"
+          $ref: '#/components/responses/Conflict'
         '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/InternalError'
 
   /ws/{projectId}:
     get:
-      summary: WebSocket connection for real-time project updates
+      tags: [WebSocket]
+      summary: WebSocket event stream
       description: |
-        Establish a WebSocket connection for a specific project to receive real-time updates.
-
-        **Connection**: GET /ws/{projectId}
-
-        **Message Types**:
-        - **snapshot**: Full project state sent on initial connection
-        - **patch**: JSON Patch (RFC 6902) operations for incremental updates
-
-        **Snapshot Message Format**:
-        ```json
-        {
-          "type": "snapshot",
-          "project_id": "550e8400-e29b-41d4-a716-446655440000",
-          "data": { ...full project object... }
-        }
-        ```
-
-        **Patch Message Format**:
-        ```json
-        {
-          "type": "patch",
-          "project_id": "550e8400-e29b-41d4-a716-446655440000",
-          "data": [
-            {"op": "add", "path": "/codes/660e8400-...", "value": {...}},
-            {"op": "replace", "path": "/files/770e8400-.../name", "value": "Updated Name"}
-          ]
-        }
-        ```
-
-        Patches follow JSON Patch specification (RFC 6902) with operations: add, remove, replace, move, copy, test
+        Real-time event streaming for project changes.
+        Upgrade to WebSocket to receive events as they occur.
+      operationId: websocketStream
       parameters:
         - name: projectId
           in: path
           required: true
           schema:
             type: string
-            format: uuid
+            pattern: '^[a-z0-9_]{26,27}$'
+          example: proj_01jdqx8h9m0n2p3q4r5s6t7u8v
       responses:
         '101':
-          description: WebSocket upgrade successful
-        '400':
-          description: Project ID required or invalid
-        '500':
-          description: Server error
+          description: Switching Protocols - WebSocket connection established
 
   /schemas/project:
     get:
-      summary: Get project JSON schema
-      description: Returns the JSON schema for the Project entity with all $refs expanded
+      tags: [Schemas]
+      summary: Get Project schema
+      operationId: getProjectSchema
       responses:
         '200':
-          description: JSON schema for Project
+          description: JSON Schema for Project entity
           content:
             application/json:
               schema:
@@ -555,11 +176,12 @@ paths:
 
   /schemas/file:
     get:
-      summary: Get file JSON schema
-      description: Returns the JSON schema for the File entity
+      tags: [Schemas]
+      summary: Get File schema
+      operationId: getFileSchema
       responses:
         '200':
-          description: JSON schema for File
+          description: JSON Schema for File entity
           content:
             application/json:
               schema:
@@ -567,11 +189,12 @@ paths:
 
   /schemas/code:
     get:
-      summary: Get code JSON schema
-      description: Returns the JSON schema for the Code entity
+      tags: [Schemas]
+      summary: Get Code schema
+      operationId: getCodeSchema
       responses:
         '200':
-          description: JSON schema for Code
+          description: JSON Schema for Code entity
           content:
             application/json:
               schema:
@@ -579,11 +202,12 @@ paths:
 
   /schemas/chart:
     get:
-      summary: Get chart JSON schema
-      description: Returns the JSON schema for the Chart entity
+      tags: [Schemas]
+      summary: Get Chart schema
+      operationId: getChartSchema
       responses:
         '200':
-          description: JSON schema for Chart
+          description: JSON Schema for Chart entity
           content:
             application/json:
               schema:
@@ -591,204 +215,64 @@ paths:
 
   /queries/projects:
     get:
-      summary: List all projects with pagination
+      tags: [Projects]
+      summary: List all projects
+      operationId: listProjects
       parameters:
-        - name: page
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-            default: 1
-        - name: page_size
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 20
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
       responses:
         '200':
           description: Paginated list of projects
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ProjectPaginationResult'
-              example:
+                type: array
                 items:
-                  - id: "550e8400-e29b-41d4-a716-446655440000"
-                    name: "Healthcare Patient Experience Study"
-                    description: "Qualitative analysis of patient interviews"
-                    phase: explore
-                    codes:
-                      "660e8400-e29b-41d4-a716-446655440001":
-                        id: "660e8400-e29b-41d4-a716-446655440001"
-                        project_id: "550e8400-e29b-41d4-a716-446655440000"
-                        slug: "emotion:anxiety"
-                        color: "red"
-                        definition: "Patient expressions of worry about medical procedures"
-                        healthy: true
-                    files:
-                      "880e8400-e29b-41d4-a716-446655440003":
-                        id: "880e8400-e29b-41d4-a716-446655440003"
-                        project_id: "550e8400-e29b-41d4-a716-446655440000"
-                        name: "Interview Transcript - Patient P07"
-                        title: "Patient P07 Pre-operative Interview"
-                        type: corpus
-                        locked: true
-                        healthy: true
-                    healthy: true
-                  - id: "550e8400-e29b-41d4-a716-446655440010"
-                    name: "UX Research Q1 2025"
-                    description: "User experience research for new features"
-                    phase: code
-                    codes: {}
-                    files: {}
-                    healthy: true
-                total: 15
-                page: 1
-                page_size: 20
+                  $ref: '#/components/schemas/PaginationResult_ProjectView'
 
   /queries/projects/{projectId}:
     get:
-      summary: Get project by ID
+      tags: [Projects]
+      summary: Get project details
+      operationId: getProject
       parameters:
-        - name: projectId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+        - $ref: '#/components/parameters/ProjectId'
       responses:
         '200':
           description: Project details
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Project'
-              example:
-                id: "550e8400-e29b-41d4-a716-446655440000"
-                name: "Policy Impact Assessment"
-                description: "Analysis of energy transition policy documents"
-                phase: analyze
-                codes:
-                  "660e8400-e29b-41d4-a716-446655440001":
-                    id: "660e8400-e29b-41d4-a716-446655440001"
-                    project_id: "550e8400-e29b-41d4-a716-446655440000"
-                    slug: "topic:energy-transition"
-                    color: "green"
-                    definition: "References to renewable energy and sustainability"
-                    healthy: true
-                files:
-                  "770e8400-e29b-41d4-a716-446655440002":
-                    id: "770e8400-e29b-41d4-a716-446655440002"
-                    project_id: "550e8400-e29b-41d4-a716-446655440000"
-                    name: "Policy Document - Climate Action Plan 2025"
-                    title: "National Climate Action Plan"
-                    type: corpus
-                    locked: true
-                    healthy: true
-                healthy: true
+                $ref: '#/components/schemas/ProjectView'
         '404':
-          description: Project not found
+          $ref: '#/components/responses/NotFound'
 
   /queries/projects/{projectId}/events:
     get:
-      summary: Get project event history with cursor pagination
-      description: |
-        Retrieve chronological project events with cursor-based pagination.
-        Supports filtering by actor type (human, llm, system).
+      tags: [Projects]
+      summary: Get project events
+      operationId: getProjectEvents
       parameters:
-        - name: projectId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: since_id
-          in: query
-          description: Return events after this event ID (cursor)
-          schema:
-            type: string
-            format: uuid
-        - name: limit
-          in: query
-          description: Maximum events to return
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 20
-        - name: actor_type
-          in: query
-          description: Filter by actor type
-          schema:
-            type: string
-            enum: [human, llm, system]
+        - $ref: '#/components/parameters/ProjectId'
+        - $ref: '#/components/parameters/SinceId'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/ActorType'
       responses:
         '200':
-          description: Paginated list of events
+          description: Event stream with cursor
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EventCursorResult'
-              examples:
-                withEvents:
-                  summary: Events with more available
-                  value:
-                    items:
-                      - id: "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
-                        type: DomainEvent
-                        action: CreatedProject
-                        aggregate_type: Project
-                        aggregate_id: "550e8400-e29b-41d4-a716-446655440000"
-                        actor:
-                          user_id: "user-123"
-                          actor_type: human
-                        timestamp: "2025-01-15T10:30:00Z"
-                        version: 1
-                        payload:
-                          name: Healthcare Study
-                          description: Patient experience research
-                          phase: explore
-                      - id: "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e"
-                        type: DomainEvent
-                        action: CreatedCode
-                        aggregate_type: Code
-                        aggregate_id: "660e8400-e29b-41d4-a716-446655440001"
-                        actor:
-                          user_id: "user-123"
-                          actor_type: human
-                        timestamp: "2025-01-15T10:31:00Z"
-                        version: 1
-                        payload:
-                          project_id: "550e8400-e29b-41d4-a716-446655440000"
-                          slug: "emotion:anxiety"
-                          color: "red"
-                          definition: "Patient anxiety expressions"
-                    next_cursor: "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e"
-                    has_more: true
-                empty:
-                  summary: No more events
-                  value:
-                    items: []
-                    next_cursor: "last-known-id"
-                    has_more: false
-        '404':
-          description: Project not found
+                $ref: '#/components/schemas/CursorResult_Message'
 
   /queries/projects/{projectId}/search:
     get:
-      summary: Search across project files
-      description: |
-        Fuzzy search across all files in a project with context extraction.
-        Returns matching text with surrounding context sentences.
+      tags: [Files]
+      summary: Search project files
+      operationId: searchProject
       parameters:
-        - name: projectId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+        - $ref: '#/components/parameters/ProjectId'
         - name: q
           in: query
           required: true
@@ -796,166 +280,78 @@ paths:
           schema:
             type: string
             minLength: 3
+          example: anxiety
         - name: context
           in: query
-          description: Number of context sentences before and after match
+          description: Number of context sentences around match
           schema:
             type: integer
             minimum: 0
             maximum: 5
             default: 1
-        - name: since_id
-          in: query
-          description: Cursor for pagination (return results after this ID)
-          schema:
-            type: string
-        - name: limit
-          in: query
-          description: Maximum results to return
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 20
+        - $ref: '#/components/parameters/SinceId'
+        - $ref: '#/components/parameters/Limit'
       responses:
         '200':
-          description: Search results with context
+          description: Search results with cursor
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SearchCursorResult'
-              examples:
-                withResults:
-                  summary: Search results with matches
-                  value:
-                    items:
-                      - id: "file-1:1:0"
-                        file_id: "770e8400-e29b-41d4-a716-446655440002"
-                        file_name: "Interview Transcript P07"
-                        context: "First sentence. The patient mentioned anxiety about the surgery. Last sentence."
-                        match: "anxiety"
-                    next_cursor: "file-1:1:0"
-                    has_more: true
-                empty:
-                  summary: No matches found
-                  value:
-                    items: []
-                    next_cursor: ""
-                    has_more: false
-        '404':
-          description: Project not found
+                $ref: '#/components/schemas/CursorResult_SearchResult'
 
   /queries/projects/{projectId}/files:
     get:
-      summary: List all files in a project
-      description: Returns file metadata without content or codes for efficient listing
+      tags: [Files]
+      summary: List project files
+      operationId: listFiles
       parameters:
-        - name: projectId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+        - $ref: '#/components/parameters/ProjectId'
       responses:
         '200':
-          description: List of files (without content or codes)
+          description: List of files
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: '#/components/schemas/FileSummary'
-              example:
-                - id: "770e8400-e29b-41d4-a716-446655440002"
-                  project_id: "550e8400-e29b-41d4-a716-446655440000"
-                  name: "Interview Transcript - Participant E12"
-                  description: "Employee perspectives on remote work transition"
-                  title: "Employee Interview - Remote Work Experience"
-                  summary: "Discussion about challenges and benefits of remote work during organizational transition"
-                  time: "2025-01-10T14:30:00Z"
-                  type: corpus
-                  locked: true
-                  healthy: true
-                - id: "880e8400-e29b-41d4-a716-446655440003"
-                  project_id: "550e8400-e29b-41d4-a716-446655440000"
-                  name: "Analysis Notes"
-                  description: "Ongoing analysis observations"
-                  type: memo
-                  locked: false
-                  healthy: true
 
   /queries/projects/{projectId}/files/{id}:
     get:
-      summary: Get file by ID
-      description: Returns file with full content and codes
+      tags: [Files]
+      summary: Get file details
+      operationId: getFile
       parameters:
-        - name: projectId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+        - $ref: '#/components/parameters/ProjectId'
+        - $ref: '#/components/parameters/Id'
       responses:
         '200':
-          description: File with content and codes
+          description: File details
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/File'
-              example:
-                id: "770e8400-e29b-41d4-a716-446655440002"
-                project_id: "550e8400-e29b-41d4-a716-446655440000"
-                name: "Interview Transcript - Participant E12"
-                description: "Employee perspectives on remote work transition"
-                title: "Employee Interview - Remote Work Experience"
-                summary: "Discussion about challenges and benefits of remote work"
-                time: "2025-01-10T14:30:00Z"
-                type: corpus
-                locked: true
-                healthy: true
-                content: "The transition to remote work was challenging at first..."
-                codes:
-                  - id: "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
-                    code_id: "660e8400-e29b-41d4-a716-446655440001"
-                    text: "challenging at first"
-                    reason: "Expression of difficulty during transition"
-                    confidence: "high"
+                $ref: '#/components/schemas/FileSummary'
         '404':
-          description: File not found
+          $ref: '#/components/responses/NotFound'
 
   /queries/projects/{projectId}/files/{id}/parts:
     get:
-      summary: Get file content in paginated parts
+      tags: [Files]
+      summary: Get file content in parts
       description: |
-        Returns file content split into parts (~12KB each) with associated codes for each part.
-        Large files are automatically split at newline boundaries. Use for progressive loading or LLM processing.
+        Retrieve file content in paginated chunks for large files.
+        Each part contains a portion of content and associated coded sections.
+      operationId: getFileParts
       parameters:
-        - name: projectId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+        - $ref: '#/components/parameters/ProjectId'
+        - $ref: '#/components/parameters/Id'
         - name: page
           in: query
-          required: false
+          description: Page number (1-indexed)
           schema:
             type: integer
             minimum: 1
             default: 1
-          description: Page number (1-indexed)
       responses:
         '200':
           description: File part with content and codes
@@ -963,110 +359,56 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/FilePartResult'
-              example:
-                content: "The transition to remote work was challenging at first. Many employees struggled with the lack of face-to-face interaction..."
-                codes:
-                  - id: "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
-                    code_id: "660e8400-e29b-41d4-a716-446655440001"
-                    text: "challenging at first"
-                    reason: "Expression of difficulty during transition"
-                    confidence: "high"
-                total: 3
-                next: 2
         '404':
-          description: File not found or page out of bounds
+          $ref: '#/components/responses/NotFound'
 
   /queries/projects/{projectId}/codebook:
     get:
-      summary: Get project codebook content
-      description: |
-        Returns the content of the project's codebook file.
-        Each project can have at most one codebook file.
+      tags: [Files]
+      summary: Get project codebook
+      operationId: getCodebook
       parameters:
-        - name: projectId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+        - $ref: '#/components/parameters/ProjectId'
       responses:
         '200':
           description: Codebook content
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CodebookContent'
-              example:
-                content: "# Coding Guidelines\n\n## Emotions\n- anxiety: expressions of worry...\n\n## Themes\n- communication: patient-provider interactions..."
+                type: object
+                properties:
+                  content:
+                    type: string
         '404':
-          description: No codebook found for this project
+          $ref: '#/components/responses/NotFound'
 
   /queries/projects/{projectId}/codes:
     get:
-      summary: List all codes in a project with pagination
+      tags: [Codes]
+      summary: List project codes
+      operationId: listCodes
       parameters:
-        - name: projectId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: page
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-            default: 1
-        - name: page_size
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 20
+        - $ref: '#/components/parameters/ProjectId'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
       responses:
         '200':
           description: Paginated list of codes
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CodePaginationResult'
-              example:
+                type: array
                 items:
-                  - id: "660e8400-e29b-41d4-a716-446655440001"
-                    project_id: "550e8400-e29b-41d4-a716-446655440000"
-                    slug: "emotion:anxiety"
-                    color: "red"
-                    definition: "Patient expressions of worry, nervousness, or fear about medical procedures"
-                    inclusion_criteria: "Look for explicit anxiety words or implicit indicators"
-                    examples: ["I was really worried about the surgery"]
-                    healthy: true
-                  - id: "770e8400-e29b-41d4-a716-446655440002"
-                    project_id: "550e8400-e29b-41d4-a716-446655440000"
-                    slug: "theme:communication"
-                    color: "blue"
-                    definition: "Interactions between patients and healthcare providers"
-                    healthy: true
-                total: 8
-                page: 1
-                page_size: 20
+                  $ref: '#/components/schemas/PaginationResult_Code'
 
   /queries/projects/{projectId}/codes/{id}:
     get:
-      summary: Get code by ID
+      tags: [Codes]
+      summary: Get code details
+      operationId: getCode
       parameters:
-        - name: projectId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+        - $ref: '#/components/parameters/ProjectId'
+        - $ref: '#/components/parameters/Id'
       responses:
         '200':
           description: Code details
@@ -1074,168 +416,63 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Code'
-              example:
-                id: "660e8400-e29b-41d4-a716-446655440001"
-                project_id: "550e8400-e29b-41d4-a716-446655440000"
-                slug: "topic:energy-transition"
-                color: "green"
-                definition: "References to renewable energy, fossil fuel phase-out, or sustainability initiatives in policy documents"
-                inclusion_criteria: "Include mentions of solar, wind, carbon reduction targets, climate goals"
-                exclusion_criteria: "Exclude general environmental topics not related to energy policy"
-                examples:
-                  - "The government aims to reduce carbon emissions by 50% by 2030"
-                  - "Investment in offshore wind farms will create 10,000 jobs"
-                counter_examples:
-                  - "We need to protect our forests and wildlife"
-                healthy: true
         '404':
-          description: Code not found
+          $ref: '#/components/responses/NotFound'
 
   /queries/projects/{projectId}/codes/{id}/sections:
     get:
-      summary: Get coded sections for a code
-      description: |
-        Returns all coded sections across all files that use this code.
-        Useful for reviewing all usages of a code, splitting codes, or reassigning sections.
+      tags: [Codes]
+      summary: Get coded sections for code
+      operationId: getCodeSections
       parameters:
-        - name: projectId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-          description: Code ID
-        - name: page
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-            default: 1
-        - name: page_size
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 20
+        - $ref: '#/components/parameters/ProjectId'
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
         - name: confidence
           in: query
           description: Filter by confidence level
           schema:
             type: string
             enum: [high, medium, low]
-        - name: actor_type
-          in: query
-          description: Filter by actor type who created the section
-          schema:
-            type: string
-            enum: [human, llm, system]
+        - $ref: '#/components/parameters/ActorType'
       responses:
         '200':
-          description: Paginated list of coded sections
+          description: Paginated coded sections
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CodedSectionsResult'
-              example:
-                items:
-                  - id: "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
-                    file_id: "770e8400-e29b-41d4-a716-446655440002"
-                    file_name: "Interview Transcript P07"
-                    code_id: "660e8400-e29b-41d4-a716-446655440001"
-                    text: "I was really worried about the surgery"
-                    reason: "Explicit pre-procedure anxiety"
-                    confidence: "high"
-                    last_actor:
-                      user_id: "user-123"
-                      actor_type: "human"
-                  - id: "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e"
-                    file_id: "880e8400-e29b-41d4-a716-446655440003"
-                    file_name: "Interview Transcript P12"
-                    code_id: "660e8400-e29b-41d4-a716-446655440001"
-                    text: "The waiting was nerve-wracking"
-                    reason: "Anxiety during wait period"
-                    confidence: "medium"
-                    last_actor:
-                      user_id: "llm-coder"
-                      actor_type: "llm"
-                total: 47
-                page: 1
-                page_size: 20
+                $ref: '#/components/schemas/PaginationResult_CodedSectionView'
         '404':
-          description: Code not found
+          $ref: '#/components/responses/NotFound'
 
   /queries/projects/{projectId}/charts:
     get:
-      summary: List all charts in a project with pagination
+      tags: [Charts]
+      summary: List project charts
+      operationId: listCharts
       parameters:
-        - name: projectId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: page
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-            default: 1
-        - name: page_size
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 20
+        - $ref: '#/components/parameters/ProjectId'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
       responses:
         '200':
           description: Paginated list of charts
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ChartPaginationResult'
-              example:
+                type: array
                 items:
-                  - id: "990e8400-e29b-41d4-a716-446655440004"
-                    project_id: "550e8400-e29b-41d4-a716-446655440000"
-                    name: "Code Distribution"
-                    description: "Distribution of codes across documents"
-                    query: "SELECT code_slug, COUNT(*) FROM coded_sections GROUP BY code_slug"
-                    spec:
-                      type: bar
-                      x: code_slug
-                      y: count
-                      orientation: horizontal
-                    pinned: true
-                    healthy: true
-                    version: 1
-                total: 3
-                page: 1
-                page_size: 20
+                  $ref: '#/components/schemas/PaginationResult_Chart'
 
   /queries/projects/{projectId}/charts/{id}:
     get:
-      summary: Get chart by ID
+      tags: [Charts]
+      summary: Get chart details
+      operationId: getChart
       parameters:
-        - name: projectId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+        - $ref: '#/components/parameters/ProjectId'
+        - $ref: '#/components/parameters/Id'
       responses:
         '200':
           description: Chart details
@@ -1243,147 +480,126 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Chart'
-              example:
-                id: "990e8400-e29b-41d4-a716-446655440004"
-                project_id: "550e8400-e29b-41d4-a716-446655440000"
-                name: "Emotion Timeline"
-                description: "Frequency of emotion codes over time"
-                query: "SELECT date, emotion_code, COUNT(*) FROM coded_sections GROUP BY date, emotion_code"
-                spec:
-                  type: line
-                  x: date
-                  y: count
-                  series: emotion_code
-                  show_legend: true
-                pinned: false
-                healthy: true
-                version: 2
         '404':
-          description: Chart not found
+          $ref: '#/components/responses/NotFound'
 
 components:
+  parameters:
+    ProjectId:
+      name: projectId
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[a-z0-9_]{26,27}$'
+      example: proj_01jdqx8h9m0n2p3q4r5s6t7u8v
+
+    Id:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[a-z0-9_]{26,27}$'
+      example: file_01jdqx8h9m0n2p3q4r5s6t7u8v
+
+    Page:
+      name: page
+      in: query
+      description: Page number (1-indexed)
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+
+    PageSize:
+      name: page_size
+      in: query
+      description: Items per page
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+    SinceId:
+      name: since_id
+      in: query
+      description: Cursor for pagination (ID to start after)
+      schema:
+        type: string
+
+    Limit:
+      name: limit
+      in: query
+      description: Maximum items to return
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+    ActorType:
+      name: actor_type
+      in: query
+      description: Filter by actor type
+      schema:
+        type: string
+        enum: [human, llm, system]
+
+  responses:
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationError'
+          example:
+            message: 'validation failed: Slug must match code slug format (lowercase with colon and optional dashes)'
+            fields:
+              Slug: 'Slug must match code slug format (lowercase with colon and optional dashes)'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            message: entity not found
+
+    Conflict:
+      description: Version conflict (optimistic locking)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            message: 'version conflict: expected 5, actual 7'
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            message: internal server error
+
   schemas:
     Actor:
       type: object
+      required:
+        - user_id
+        - actor_type
       properties:
         user_id:
           type: string
-          description: User identifier (set by server based on authentication)
+          example: patient-zero
         actor_type:
-          $ref: '#/components/schemas/ActorType'
-      description: |
-        Actor information for audit trail. Server sets userId from authentication.
-        actorType defaults to "human" if not provided.
-
-    ActorType:
-      type: string
-      enum: [human, llm, system]
-      description: |
-        Type of actor performing the action:
-        - human: Human user interaction
-        - llm: AI/LLM-initiated action
-        - system: System/automated action
-
-    AnyMessage:
-      type: object
-      required:
-        - type
-        - action
-      properties:
-        id:
           type: string
-          format: uuid
-          description: Message ID (auto-generated if not provided)
-        type:
-          type: string
-          enum: [Command, DomainEvent, SystemEvent]
-          description: Message type
-        action:
-          type: string
-          description: Action name (e.g., CreateProject, UpdateCode)
-        aggregate_type:
-          type: string
-          description: Entity type (Project, Code, File) - capitalized
-        aggregate_id:
-          type: string
-          description: |
-            Entity ID - use empty string "" for CREATE operations,
-            use entity UUID for UPDATE/DELETE operations
-        payload:
-          type: object
-          description: Command-specific payload (see command reference)
-        actor:
-          $ref: '#/components/schemas/Actor'
-        causation_id:
-          type: string
-          format: uuid
-          description: ID of the message that caused this message
-        timestamp:
-          type: string
-          format: date-time
-          description: Message timestamp (auto-set by server)
-        version:
-          type: integer
-          description: Event schema version (always 1 currently)
-        expected_version:
-          type: integer
-          description: |
-            Optimistic concurrency control. Required for UPDATE/DELETE commands on existing entities.
-            Client must provide the current entity version to prevent concurrent modification conflicts.
-            Server rejects with HTTP 409 Conflict if expected_version != entity.version.
-            Not required for CREATE commands.
-
-    DomainEvent:
-      allOf:
-        - $ref: '#/components/schemas/AnyMessage'
-        - type: object
-          properties:
-            type:
-              type: string
-              enum: [DomainEvent]
-
-    ErrorResponse:
-      type: object
-      required:
-        - message
-      properties:
-        message:
-          type: string
-          description: Human-readable error message
-        fields:
-          type: object
-          additionalProperties:
-            type: string
-          description: |
-            Field-level validation errors (field name → validation tag).
-            For array items, field names use bracket notation: field[index]
-      examples:
-        singleField:
-          summary: Single field error
-          value:
-            message: "validation failed: Name is required"
-            fields:
-              Name: "required"
-        multipleFields:
-          summary: Multiple field errors
-          value:
-            message: "validation failed: Color is required, Definition is required"
-            fields:
-              Color: "required"
-              Definition: "required"
-        arrayItemSingle:
-          summary: Array validation error (single item)
-          value:
-            message: "validation failed: sections[0] minimum 3 words required: \"short\""
-            fields:
-              sections[0]: "minimum 3 words required: \"short\""
-        arrayItemMultiple:
-          summary: Array validation errors (multiple items)
-          value:
-            message: "validation failed: sections[0] text not found in file: \"missing text\", sections[2] minimum 3 words required: \"no\""
-            fields:
-              sections[0]: "text not found in file: \"missing text\""
-              sections[2]: "minimum 3 words required: \"no\""
+          enum: [human, llm, system]
+          default: human
 
     BatchResponse:
       type: object
@@ -1396,447 +612,79 @@ components:
         results:
           type: array
           items:
-            type: object
-            required:
-              - index
-              - success
-            properties:
-              index:
-                type: integer
-                description: Position in the batch (0-based)
-              success:
-                type: boolean
-                description: Whether this command succeeded
-              result:
-                $ref: '#/components/schemas/DomainEvent'
-                description: Resulting domain event (only present on success)
-              error:
-                type: string
-                description: Error message (only present on failure)
+            $ref: '#/components/schemas/BatchResult'
         total:
           type: integer
-          description: Total number of commands in batch
+          example: 10
         success_count:
           type: integer
-          description: Number of successful commands
+          example: 8
         failure_count:
           type: integer
-          description: Number of failed commands
+          example: 2
 
-    PartialSuccessResponse:
+    BatchResult:
       type: object
       required:
+        - index
         - success
-        - failures
       properties:
-        success:
-          $ref: '#/components/schemas/DomainEvent'
-          description: |
-            The successful domain event containing only the items that passed validation.
-            The failures field is stripped from the payload in this response.
-        failures:
-          type: object
-          additionalProperties:
-            type: string
-          description: |
-            Map of original array index (as string) to error message.
-            Keys are the 0-based indices of items that failed validation.
-          example:
-            "1": "minimum 3 words required: \"xy\""
-            "3": "text not found in file: \"missing text\""
-
-    EventCursorResult:
-      type: object
-      required:
-        - items
-        - next_cursor
-        - has_more
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/DomainEvent'
-          description: List of events in chronological order
-        next_cursor:
-          type: string
-          description: Cursor for fetching next page (use as since_id parameter)
-        has_more:
-          type: boolean
-          description: Whether more events exist after this page
-
-    CodebookContent:
-      type: object
-      required:
-        - content
-      properties:
-        content:
-          type: string
-          description: Full codebook content as text
-
-    Project:
-      type: object
-      required:
-        - id
-        - version
-        - name
-        - charts
-        - codes
-        - files
-        - healthy
-      properties:
-        id:
-          type: string
-          format: uuid
-        version:
+        index:
           type: integer
-          description: Entity version for optimistic concurrency control. Increments on each modification.
-        name:
+          description: Index in batch array
+        success:
+          type: boolean
+        result:
+          $ref: '#/components/schemas/Message'
+        error:
           type: string
-          minLength: 1
-          maxLength: 200
-        description:
-          type: string
-          maxLength: 2000
+          description: Error message if success is false
+
+    ChangePhasePayload:
+      type: object
+      required:
+        - phase
+      properties:
         phase:
           type: string
           enum: [explore, code, validate, analyze]
-          description: |
-            Project analysis phase:
-            - explore: Initial data exploration
-            - code: Active coding phase
-            - validate: Code validation and refinement
-            - analyze: Final analysis and interpretation
-        charts:
-          type: object
-          additionalProperties:
-            $ref: '#/components/schemas/Chart'
-          description: Map of chart IDs to Chart objects
-        codes:
-          type: object
-          additionalProperties:
-            $ref: '#/components/schemas/Code'
-          description: Map of code IDs to full Code objects
-        files:
-          type: object
-          additionalProperties:
-            $ref: '#/components/schemas/FileSummary'
-          description: Map of file IDs to FileSummary objects (without content or codes)
-        healthy:
-          type: boolean
-          description: Whether the project is in a healthy state
-
-    ProjectPaginationResult:
-      type: object
-      required:
-        - items
-        - total
-        - page
-        - page_size
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/Project'
-        total:
-          type: integer
-        page:
-          type: integer
-        page_size:
-          type: integer
-
-    SearchResult:
-      type: object
-      required:
-        - id
-        - file_id
-        - file_name
-        - context
-        - match
-      properties:
-        id:
-          type: string
-          description: Compound ID (file_id:match_index)
-        file_id:
-          type: string
-          format: uuid
-          description: ID of the file containing the match
-        file_name:
-          type: string
-          description: Name of the file containing the match
-        context:
-          type: string
-          description: Match with surrounding context sentences
-        match:
-          type: string
-          description: The matched text
-
-    SearchCursorResult:
-      type: object
-      required:
-        - items
-        - next_cursor
-        - has_more
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/SearchResult'
-          description: List of search results
-        next_cursor:
-          type: string
-          description: Cursor for fetching next page (use as since_id parameter)
-        has_more:
-          type: boolean
-          description: Whether more results exist after this page
-
-    FilePartQuery:
-      type: object
-      description: Query parameters for retrieving file parts
-      properties:
-        part_type:
-          type: string
-          description: Type of file part to retrieve
-
-    Code:
-      type: object
-      required:
-        - id
-        - version
-        - project_id
-        - slug
-        - color
-        - definition
-        - healthy
-      properties:
-        id:
-          type: string
-          format: uuid
-        version:
-          type: integer
-          description: Entity version for optimistic concurrency control. Increments on each modification.
-        project_id:
-          type: string
-          format: uuid
-        slug:
-          type: string
-          minLength: 3
-          maxLength: 100
-          pattern: '^[a-z]+(-[a-z]+)*:[a-z]+(-[a-z]+)*$'
-          description: |
-            Unique code identifier in format category:name (e.g., emotion:anxiety,
-            topic:patient-experience, usability:friction-point).
-            Must be lowercase with optional dashes, separated by colon.
-          example: "emotion:anxiety"
-        color:
-          type: string
-          enum: [gray, mauve, slate, sage, olive, sand, tomato, red, ruby, crimson, pink, plum, purple, violet, iris, indigo, blue, cyan, teal, jade, green, grass, bronze, gold, brown, orange, amber, yellow, lime, mint, sky]
-          description: |
-            Radix base color name. One of: gray, mauve, slate, sage, olive, sand, tomato, red,
-            ruby, crimson, pink, plum, purple, violet, iris, indigo, blue, cyan, teal, jade,
-            green, grass, bronze, gold, brown, orange, amber, yellow, lime, mint, sky.
-          example: "red"
-        definition:
-          type: string
-          description: |
-            Core definition of the code. What does this code mean?
-            What concept, theme, or pattern does it capture?
-            Be specific and explicit. 1-2 paragraphs max.
-          example: "Patient expressions of worry, nervousness, or fear about medical procedures, outcomes, or waiting times"
-        inclusion_criteria:
-          type: string
-          description: |
-            When to apply this code. Clear criteria including decision rules,
-            context clues, and boundary conditions. 1-2 paragraphs max.
-          example: "Look for explicit anxiety words (worried, nervous, scared) or implicit indicators like excessive questioning about risks"
-        exclusion_criteria:
-          type: string
-          description: |
-            When NOT to apply this code. What might look similar but shouldn't
-            be coded this way? Helps distinguish from related codes. 1 paragraph max.
-          example: "Do not code general discomfort or mild concern. Exclude post-procedure relief statements"
-        examples:
-          type: array
-          items:
-            type: string
-          description: |
-            3-5 representative text snippets that exemplify this code.
-            Include both typical and boundary cases.
-          example:
-            - "I was really worried about the surgery"
-            - "What if something goes wrong?"
-        counter_examples:
-          type: array
-          items:
-            type: string
-          description: |
-            2-3 snippets that might seem like they fit but don't.
-            Helps clarify boundaries.
-          example:
-            - "I was a bit uncomfortable during the exam"
-        healthy:
-          type: boolean
-          description: Whether the code is in a healthy state
-        pinned:
-          type: boolean
-          description: Whether the code is pinned to the top
-
-    CodePaginationResult:
-      type: object
-      required:
-        - items
-        - total
-        - page
-        - page_size
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/Code'
-        total:
-          type: integer
-        page:
-          type: integer
-        page_size:
-          type: integer
-
-    FileSummary:
-      type: object
-      required:
-        - id
-        - version
-        - project_id
-        - name
-        - healthy
-      properties:
-        id:
-          type: string
-          format: uuid
-        version:
-          type: integer
-          description: Entity version for optimistic concurrency control. Increments on each modification.
-        project_id:
-          type: string
-          format: uuid
-        name:
-          type: string
-          maxLength: 200
-          description: File name
-        description:
-          type: string
-          maxLength: 2000
-        healthy:
-          type: boolean
-          description: Whether the file is in a healthy state
-        title:
-          type: string
-          minLength: 1
-          maxLength: 200
-          description: Document title
-        summary:
-          type: string
-          maxLength: 1500
-          description: Document summary (max half page)
-        time:
-          type: string
-          format: date-time
-          description: Document timestamp (must not be in future)
-        type:
-          type: string
-          enum: [corpus, codebook, memo, llm-memo]
-          description: |
-            File type:
-            - corpus: Documents being coded (immutable, locked)
-            - codebook: Coding guidelines (editable, one per project)
-            - memo: Analytical notes (editable)
-            - llm-memo: LLM analytical notes (editable)
-        original:
-          type: string
-          description: Reference to original file (e.g., PDF path)
-        locked:
-          type: boolean
-          description: Whether file is read-only (corpus files are locked)
-        pinned:
-          type: boolean
-          description: Whether the file is pinned to the top
-
-    File:
-      allOf:
-        - $ref: '#/components/schemas/FileSummary'
-        - type: object
-          required:
-            - content
-            - codes
-          properties:
-            content:
-              type: string
-              description: File content as text
-            codes:
-              type: array
-              items:
-                $ref: '#/components/schemas/CodedSection'
-              description: Code applications within this file
-
-    FilePartResult:
-      type: object
-      required:
-        - content
-        - codes
-        - total
-      properties:
-        content:
-          type: string
-          description: Part content as text
-        codes:
-          type: array
-          items:
-            $ref: '#/components/schemas/CodedSection'
-          description: Code applications within this part
-        total:
-          type: integer
-          description: Total number of parts in the file
-        next:
-          type: integer
-          description: Next page number (omitted if this is the last part)
 
     Chart:
       type: object
       required:
         - id
+        - healthy
         - version
         - project_id
         - name
+        - description
         - query
         - spec
-        - healthy
+        - pinned
       properties:
         id:
           type: string
-          format: uuid
+          pattern: '^[a-z0-9_]{26,27}$'
+        healthy:
+          type: boolean
         version:
           type: integer
-          description: Entity version for optimistic concurrency control
         project_id:
           type: string
-          format: uuid
+          pattern: '^[a-z0-9_]{26,27}$'
         name:
           type: string
           maxLength: 200
-          description: Chart name
         description:
           type: string
           maxLength: 2000
-          description: Chart description
         query:
           type: string
-          description: Query string for chart data
+          description: Query specification for chart data
         spec:
           $ref: '#/components/schemas/ChartSpec'
         pinned:
           type: boolean
-          description: Whether the chart is pinned to the top
-        healthy:
-          type: boolean
-          description: Whether the chart is in a healthy state
 
     ChartSpec:
       type: object
@@ -1848,31 +696,533 @@ components:
         type:
           type: string
           enum: [bar, line, area, pie, heatmap, table]
-          description: Chart visualization type
         x:
           type: string
-          description: X-axis field
+          description: X-axis field or dimension
         y:
           type: string
-          description: Y-axis field
+          description: Y-axis field or measure
         color:
           type: string
-          description: Color field for data series
+          description: Color field for grouping
         series:
           type: string
-          description: Series field for multi-series charts
+          description: Series field for multiple data sets
         orientation:
           type: string
           enum: [vertical, horizontal]
-          description: Chart orientation (for bar charts)
         stacked:
           type: boolean
-          description: Whether to stack data series
+          default: false
         show_legend:
           type: boolean
-          description: Whether to show chart legend
+          default: false
 
-    ChartPaginationResult:
+    Code:
+      type: object
+      required:
+        - id
+        - healthy
+        - version
+        - project_id
+        - slug
+        - color
+        - definition
+        - pinned
+      properties:
+        id:
+          type: string
+          pattern: '^[a-z0-9_]{26,27}$'
+        healthy:
+          type: boolean
+        version:
+          type: integer
+        project_id:
+          type: string
+          pattern: '^[a-z0-9_]{26,27}$'
+        slug:
+          type: string
+          pattern: '^[a-z]+(-[a-z]+)*:[a-z]+(-[a-z]+)*$'
+          minLength: 3
+          maxLength: 100
+          example: emotion:anxiety
+          description: 'CRITICAL: Only lowercase letters (a-z) and hyphens allowed. NO numbers. Format: category:subcategory'
+        color:
+          type: string
+          enum:
+            - gray
+            - mauve
+            - slate
+            - sage
+            - olive
+            - sand
+            - tomato
+            - red
+            - ruby
+            - crimson
+            - pink
+            - plum
+            - purple
+            - violet
+            - iris
+            - indigo
+            - blue
+            - cyan
+            - teal
+            - jade
+            - green
+            - grass
+            - bronze
+            - gold
+            - brown
+            - orange
+            - amber
+            - yellow
+            - lime
+            - mint
+            - sky
+          description: Radix UI color scheme
+        definition:
+          type: string
+          description: Core definition (1-2 paragraphs max)
+        inclusion_criteria:
+          type: string
+          description: When to apply this code (1-2 paragraphs max)
+        exclusion_criteria:
+          type: string
+          description: When NOT to apply (1 paragraph max)
+        examples:
+          type: array
+          items:
+            type: string
+          description: 3-5 representative text snippets
+        counter_examples:
+          type: array
+          items:
+            type: string
+          description: 2-3 snippets that don't fit
+        pinned:
+          type: boolean
+
+    CodedSection:
+      type: object
+      required:
+        - code_id
+        - text
+        - confidence
+        - last_actor
+      properties:
+        id:
+          type: string
+          pattern: '^[a-z0-9_]{26,27}$'
+        code_id:
+          type: string
+          pattern: '^[a-z0-9_]{26,27}$'
+        text:
+          type: string
+          minLength: 1
+          maxLength: 1500
+        reason:
+          type: string
+          maxLength: 1500
+        confidence:
+          type: string
+          enum: [high, medium, low]
+        last_actor:
+          $ref: '#/components/schemas/Actor'
+
+    CodedSectionView:
+      type: object
+      required:
+        - id
+        - file_id
+        - file_name
+        - code_id
+        - text
+        - reason
+        - confidence
+        - last_actor
+      properties:
+        id:
+          type: string
+          pattern: '^[a-z0-9_]{26,27}$'
+        file_id:
+          type: string
+          pattern: '^[a-z0-9_]{26,27}$'
+        file_name:
+          type: string
+        code_id:
+          type: string
+          pattern: '^[a-z0-9_]{26,27}$'
+        text:
+          type: string
+          minLength: 1
+          maxLength: 1500
+        reason:
+          type: string
+          maxLength: 1500
+        confidence:
+          type: string
+          enum: [high, medium, low]
+        last_actor:
+          $ref: '#/components/schemas/Actor'
+
+    CreateChartPayload:
+      type: object
+      required:
+        - project_id
+        - name
+        - description
+        - query
+        - spec
+      properties:
+        project_id:
+          type: string
+          pattern: '^[a-z0-9_]{26,27}$'
+        name:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 2000
+        query:
+          type: string
+        spec:
+          $ref: '#/components/schemas/ChartSpec'
+
+    CreateCodePayload:
+      type: object
+      required:
+        - project_id
+        - slug
+        - color
+        - definition
+      properties:
+        project_id:
+          type: string
+          pattern: '^[a-z0-9_]{26,27}$'
+        slug:
+          type: string
+          pattern: '^[a-z]+(-[a-z]+)*:[a-z]+(-[a-z]+)*$'
+          minLength: 3
+          maxLength: 100
+          example: emotion:anxiety
+          description: 'CRITICAL: Only lowercase letters (a-z) and hyphens allowed. NO numbers.'
+        color:
+          type: string
+          enum:
+            - gray
+            - mauve
+            - slate
+            - sage
+            - olive
+            - sand
+            - tomato
+            - red
+            - ruby
+            - crimson
+            - pink
+            - plum
+            - purple
+            - violet
+            - iris
+            - indigo
+            - blue
+            - cyan
+            - teal
+            - jade
+            - green
+            - grass
+            - bronze
+            - gold
+            - brown
+            - orange
+            - amber
+            - yellow
+            - lime
+            - mint
+            - sky
+        definition:
+          type: string
+        inclusion_criteria:
+          type: string
+        exclusion_criteria:
+          type: string
+        examples:
+          type: array
+          items:
+            type: string
+        counter_examples:
+          type: array
+          items:
+            type: string
+
+    CreateFilePayload:
+      type: object
+      required:
+        - project_id
+        - name
+        - description
+        - content
+      properties:
+        project_id:
+          type: string
+          pattern: '^[a-z0-9_]{26,27}$'
+        name:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 2000
+        content:
+          type: string
+        type:
+          type: string
+          enum: [corpus, codebook, memo, llm-memo]
+          default: corpus
+
+    CreateProjectPayload:
+      type: object
+      required:
+        - name
+        - description
+      properties:
+        name:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 2000
+        phase:
+          type: string
+          enum: [explore, code, validate, analyze]
+          default: explore
+
+    CursorResult_Message:
+      type: object
+      required:
+        - items
+        - next_cursor
+        - has_more
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+        next_cursor:
+          type: string
+        has_more:
+          type: boolean
+
+    CursorResult_SearchResult:
+      type: object
+      required:
+        - items
+        - next_cursor
+        - has_more
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchResult'
+        next_cursor:
+          type: string
+        has_more:
+          type: boolean
+
+    EditFileContentPayload:
+      type: object
+      required:
+        - old_text
+        - new_text
+      properties:
+        old_text:
+          type: string
+        new_text:
+          type: string
+
+    ErrorResponse:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+
+    File:
+      type: object
+      required:
+        - id
+        - healthy
+        - version
+        - project_id
+        - name
+        - description
+        - type
+        - locked
+        - pinned
+        - content
+        - codes
+      properties:
+        id:
+          type: string
+          pattern: '^[a-z0-9_]{26,27}$'
+        healthy:
+          type: boolean
+        version:
+          type: integer
+        project_id:
+          type: string
+          pattern: '^[a-z0-9_]{26,27}$'
+        name:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 2000
+        title:
+          type: string
+          maxLength: 200
+        summary:
+          type: string
+          maxLength: 1500
+        time:
+          type: string
+          format: date-time
+        type:
+          type: string
+          enum: [corpus, codebook, memo, llm-memo]
+        original:
+          type: string
+          description: Original file reference (e.g., PDF converted to text)
+        locked:
+          type: boolean
+          description: Whether file is read-only
+        pinned:
+          type: boolean
+        content:
+          type: string
+        codes:
+          type: array
+          items:
+            $ref: '#/components/schemas/CodedSection'
+
+    FilePartResult:
+      type: object
+      required:
+        - content
+        - codes
+        - total
+      properties:
+        content:
+          type: string
+          description: Content for this part/page
+        codes:
+          type: array
+          items:
+            $ref: '#/components/schemas/CodedSection'
+        total:
+          type: integer
+          description: Total number of parts
+        next:
+          type: integer
+          description: Next page number if available
+
+    FileSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          pattern: '^[a-z0-9_]{26,27}$'
+        project_id:
+          type: string
+          pattern: '^[a-z0-9_]{26,27}$'
+        name:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+          enum: [corpus, codebook, memo, llm-memo]
+        locked:
+          type: boolean
+        pinned:
+          type: boolean
+
+    MergeCodesPayload:
+      type: object
+      required:
+        - source_id
+        - target_id
+      properties:
+        source_id:
+          type: string
+          pattern: '^[a-z0-9_]{26,27}$'
+        target_id:
+          type: string
+          pattern: '^[a-z0-9_]{26,27}$'
+
+    Message:
+      type: object
+      required:
+        - action
+        - type
+        - actor
+      properties:
+        id:
+          type: string
+          pattern: '^[a-z0-9_]{26,27}$'
+          description: Generated by server
+        action:
+          type: string
+          description: Command or event name
+          example: CreateProject
+        type:
+          type: string
+          enum: [Command, DomainEvent, SystemEvent]
+        aggregate_id:
+          type: string
+          pattern: '^[a-z0-9_]{26,27}$'
+        aggregate_type:
+          type: string
+          enum: [Project, Code, File, Chart]
+        payload:
+          type: object
+          description: Command/event-specific data
+        actor:
+          $ref: '#/components/schemas/Actor'
+        causation_id:
+          type: string
+          pattern: '^[a-z0-9_]{26,27}$'
+          description: ID of message that caused this message
+        timestamp:
+          type: string
+          format: date-time
+          description: Generated by server
+        version:
+          type: integer
+          default: 1
+        expected_version:
+          type: integer
+          description: For optimistic locking on updates/deletes
+
+    ModifiedCodeSectionsPayload:
+      type: object
+      required:
+        - operations
+      properties:
+        operations:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/SectionOp'
+        failures:
+          type: object
+          additionalProperties:
+            type: string
+          description: Map of failed operation indices to error messages
+
+    PaginationResult_Chart:
       type: object
       required:
         - items
@@ -1891,86 +1241,26 @@ components:
         page_size:
           type: integer
 
-    CodedSection:
+    PaginationResult_Code:
       type: object
       required:
-        - id
-        - code_id
-        - text
-        - confidence
+        - items
+        - total
+        - page
+        - page_size
       properties:
-        id:
-          type: string
-          format: uuid
-          description: Unique identifier for this coded section
-        code_id:
-          type: string
-          format: uuid
-          description: ID of the code applied to this section
-        text:
-          type: string
-          minLength: 1
-          maxLength: 1500
-          description: The coded text excerpt
-        reason:
-          type: string
-          maxLength: 1500
-          description: Reasoning for this code application
-        confidence:
-          type: string
-          enum: [high, medium, low]
-          description: |
-            Confidence level for this code application:
-            - high: Strong confidence in code application
-            - medium: Moderate confidence, may need review
-            - low: Low confidence, requires validation
-        last_actor:
-          $ref: '#/components/schemas/Actor'
-          description: Actor who last modified this coded section
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Code'
+        total:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
 
-    CodedSectionView:
-      type: object
-      required:
-        - id
-        - file_id
-        - file_name
-        - code_id
-        - text
-        - confidence
-      properties:
-        id:
-          type: string
-          format: uuid
-          description: Unique identifier for this coded section
-        file_id:
-          type: string
-          format: uuid
-          description: ID of the file containing this section
-        file_name:
-          type: string
-          description: Name of the file containing this section
-        code_id:
-          type: string
-          format: uuid
-          description: ID of the code applied to this section
-        text:
-          type: string
-          minLength: 1
-          maxLength: 1500
-          description: The coded text excerpt
-        reason:
-          type: string
-          maxLength: 1500
-          description: Reasoning for this code application
-        confidence:
-          type: string
-          enum: [high, medium, low]
-          description: Confidence level for this code application
-        last_actor:
-          $ref: '#/components/schemas/Actor'
-          description: Actor who last modified this coded section
-
-    CodedSectionsResult:
+    PaginationResult_CodedSectionView:
       type: object
       required:
         - items
@@ -1984,367 +1274,96 @@ components:
             $ref: '#/components/schemas/CodedSectionView'
         total:
           type: integer
-          description: Total number of sections matching the query
         page:
           type: integer
-          description: Current page number
         page_size:
           type: integer
-          description: Number of items per page
 
-    ModifiedCodeSectionsPayload:
+    PaginationResult_ProjectView:
       type: object
       required:
-        - sections
+        - items
+        - total
+        - page
+        - page_size
       properties:
-        sections:
+        items:
           type: array
           items:
-            $ref: '#/components/schemas/CodedSection'
-          description: Code sections that were modified
+            $ref: '#/components/schemas/ProjectView'
+        total:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
 
-    CreateProjectPayload:
-      type: object
-      required:
-        - name
-      properties:
-        name:
-          type: string
-          minLength: 1
-          maxLength: 200
-          description: Project name (whitespace trimmed)
-        description:
-          type: string
-          maxLength: 2000
-          description: Project description (whitespace trimmed)
-        phase:
-          type: string
-          enum: [explore, code, validate, analyze]
-          description: Initial project phase (defaults to explore if not specified)
-
-    UpdateProjectPayload:
-      type: object
-      required:
-        - name
-      properties:
-        name:
-          type: string
-          minLength: 1
-          maxLength: 200
-          description: Project name (whitespace trimmed)
-        description:
-          type: string
-          maxLength: 2000
-          description: Project description (whitespace trimmed)
-        phase:
-          type: string
-          enum: [explore, code, validate, analyze]
-          description: Project analysis phase
-
-    ChangePhasePayload:
-      type: object
-      required:
-        - phase
-      properties:
-        phase:
-          type: string
-          enum: [explore, code, validate, analyze]
-          description: |
-            Project analysis phase:
-            - explore: Initial data exploration
-            - code: Active coding phase
-            - validate: Code validation and refinement
-            - analyze: Final analysis and interpretation
-
-    CreateChartPayload:
-      type: object
-      required:
-        - project_id
-        - name
-        - query
-        - spec
-      properties:
-        project_id:
-          type: string
-          format: uuid
-        name:
-          type: string
-          maxLength: 200
-          description: Chart name
-        description:
-          type: string
-          maxLength: 2000
-          description: Chart description (optional)
-        query:
-          type: string
-          description: Query string for chart data
-        spec:
-          $ref: '#/components/schemas/ChartSpec'
-
-    UpdateChartPayload:
-      type: object
-      description: All fields optional - only include fields to update
-      properties:
-        name:
-          type: string
-          maxLength: 200
-          description: Chart name
-        description:
-          type: string
-          maxLength: 2000
-          description: Chart description
-        query:
-          type: string
-          description: Query string for chart data
-        spec:
-          $ref: '#/components/schemas/ChartSpec'
-
-    EmptyPayload:
-      type: object
-      description: Empty payload object (no fields)
-
-    CodeData:
-      type: object
-      required:
-        - project_id
-        - slug
-        - color
-        - definition
-      properties:
-        project_id:
-          type: string
-          format: uuid
-        slug:
-          type: string
-          pattern: '^[a-z]+(-[a-z]+)*:[a-z]+(-[a-z]+)*$'
-          minLength: 3
-          maxLength: 100
-          description: Automatically lowercased and trimmed
-        color:
-          type: string
-          enum: [gray, mauve, slate, sage, olive, sand, tomato, red, ruby, crimson, pink, plum, purple, violet, iris, indigo, blue, cyan, teal, jade, green, grass, bronze, gold, brown, orange, amber, yellow, lime, mint, sky]
-          description: Radix base color name (automatically lowercased and trimmed)
-        definition:
-          type: string
-          minLength: 1
-          description: Core definition of what this code means
-        inclusion_criteria:
-          type: string
-          description: When to apply this code (optional)
-        exclusion_criteria:
-          type: string
-          description: When NOT to apply this code (optional)
-        examples:
-          type: array
-          items:
-            type: string
-          description: Representative text snippets (optional)
-        counter_examples:
-          type: array
-          items:
-            type: string
-          description: Counter-example snippets (optional)
-
-    UpdateCodePayload:
-      type: object
-      description: All fields optional - only include fields to update
-      properties:
-        slug:
-          type: string
-          pattern: '^[a-z]+(-[a-z]+)*:[a-z]+(-[a-z]+)*$'
-          minLength: 3
-          maxLength: 100
-        color:
-          type: string
-          enum: [gray, mauve, slate, sage, olive, sand, tomato, red, ruby, crimson, pink, plum, purple, violet, iris, indigo, blue, cyan, teal, jade, green, grass, bronze, gold, brown, orange, amber, yellow, lime, mint, sky]
-        definition:
-          type: string
-        inclusion_criteria:
-          type: string
-        exclusion_criteria:
-          type: string
-        examples:
-          type: array
-          items:
-            type: string
-        counter_examples:
-          type: array
-          items:
-            type: string
-
-    MergeCodesPayload:
-      type: object
-      required:
-        - source_id
-        - target_id
-      properties:
-        source_id:
-          type: string
-          format: uuid
-          description: Code to merge from (will be deleted)
-        target_id:
-          type: string
-          format: uuid
-          description: Code to merge into (will retain all codings)
-
-    CreateFilePayload:
-      type: object
-      required:
-        - project_id
-        - name
-      properties:
-        project_id:
-          type: string
-          format: uuid
-        name:
-          type: string
-          maxLength: 200
-          description: File name (whitespace trimmed)
-        description:
-          type: string
-          maxLength: 2000
-          description: File description (whitespace trimmed)
-        content:
-          type: string
-          description: File content (optional, can be empty)
-        type:
-          type: string
-          enum: [corpus, codebook, memo, llm-memo]
-          description: |
-            File type (defaults to corpus if not specified):
-            - corpus: Documents being coded (locked)
-            - codebook: Coding guidelines (one per project)
-            - memo: Analytical notes
-            - llm-memo: LLM analytical notes
-
-    UpdateFilePayload:
-      type: object
-      required:
-        - name
-      properties:
-        name:
-          type: string
-          minLength: 1
-          maxLength: 200
-          description: File name (whitespace trimmed)
-        description:
-          type: string
-          maxLength: 2000
-          description: File description (whitespace trimmed)
-
-    ReplaceFileContentPayload:
-      type: object
-      required:
-        - content
-      properties:
-        content:
-          type: string
-          description: New file content (replaces entire file content)
-
-    EditFileContentPayload:
-      type: object
-      required:
-        - old_text
-        - new_text
-      properties:
-        old_text:
-          type: string
-          description: Text to find in file (fuzzy matched)
-        new_text:
-          type: string
-          description: Replacement text
-
-    AddCodeSectionsPayload:
-      type: object
-      required:
-        - sections
-      properties:
-        sections:
-          type: array
-          minItems: 1
-          items:
-            $ref: '#/components/schemas/AddSectionOp'
-
-    AddSectionOp:
-      type: object
-      required:
-        - code_id
-        - text
-        - confidence
-      properties:
-        code_id:
-          type: string
-          format: uuid
-          description: ID of the code to apply
-        text:
-          type: string
-          minLength: 1
-          maxLength: 1500
-        reason:
-          type: string
-          maxLength: 1500
-        confidence:
-          type: string
-          enum: [high, medium, low]
-          description: |
-            Confidence level for this code application:
-            - high: Strong confidence in code application
-            - medium: Moderate confidence, may need review
-            - low: Low confidence, requires validation
-
-    UpdateCodeSectionsPayload:
-      type: object
-      required:
-        - sections
-      properties:
-        sections:
-          type: array
-          minItems: 1
-          items:
-            $ref: '#/components/schemas/UpdateSectionOp'
-          description: |
-            Sections to update, identified by their unique section ID.
-            The system searches across the file to find each section.
-
-    UpdateSectionOp:
+    Project:
       type: object
       required:
         - id
+        - healthy
+        - version
+        - name
+        - description
+        - phase
+        - pinned
+        - charts
+        - codes
+        - files
       properties:
         id:
           type: string
-          format: uuid
-          description: ID of the section to update
-        code_id:
+          pattern: '^[a-z0-9_]{26,27}$'
+        healthy:
+          type: boolean
+        version:
+          type: integer
+        name:
           type: string
-          format: uuid
-          description: New code ID to reassign section to (optional)
-        text:
+          maxLength: 200
+        description:
           type: string
-          minLength: 1
-          maxLength: 1500
-        reason:
+          maxLength: 2000
+        phase:
           type: string
-          maxLength: 1500
-        confidence:
-          type: string
-          enum: [high, medium, low]
-          description: Optional confidence level update
+          enum: [explore, code, validate, analyze]
+        pinned:
+          type: boolean
+        charts:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/Chart'
+        codes:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/Code'
+        files:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/File'
 
-    RemoveCodeSectionsPayload:
+    ProjectView:
       type: object
       required:
-        - section_ids
+        - id
+        - name
+        - description
+        - phase
+        - pinned
       properties:
-        section_ids:
-          type: array
-          minItems: 1
-          items:
-            type: string
-            format: uuid
-          description: |
-            IDs of sections to remove.
-            The system searches across the file to find each section.
+        id:
+          type: string
+          pattern: '^[a-z0-9_]{26,27}$'
+        name:
+          type: string
+        description:
+          type: string
+        phase:
+          type: string
+          enum: [explore, code, validate, analyze]
+        pinned:
+          type: boolean
 
     RecodeAllPayload:
       type: object
@@ -2353,8 +1372,7 @@ components:
       properties:
         target_code_id:
           type: string
-          format: uuid
-          description: ID of the code to recode sections to
+          pattern: '^[a-z0-9_]{26,27}$'
 
     RemoveCodeFromFilePayload:
       type: object
@@ -2363,645 +1381,714 @@ components:
       properties:
         code_id:
           type: string
-          format: uuid
-          description: ID of the code to remove from this file
+          pattern: '^[a-z0-9_]{26,27}$'
+
+    ReplaceFileContentPayload:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+
+    SearchResult:
+      type: object
+      required:
+        - id
+        - file_id
+        - file_name
+        - context
+        - match
+      properties:
+        id:
+          type: string
+          description: Unique result ID (file_id:match_index)
+        file_id:
+          type: string
+          pattern: '^[a-z0-9_]{26,27}$'
+        file_name:
+          type: string
+        context:
+          type: string
+          description: Text around match with context sentences
+        match:
+          type: string
+          description: Matched text
+
+    SectionOp:
+      type: object
+      required:
+        - op
+      properties:
+        op:
+          type: string
+          enum: [add, update, delete]
+        id:
+          type: string
+          pattern: '^[a-z0-9_]{26,27}$'
+          description: Required for update/delete
+        code_id:
+          type: string
+          pattern: '^[a-z0-9_]{26,27}$'
+        text:
+          type: string
+          minLength: 1
+          maxLength: 1500
+        reason:
+          type: string
+          maxLength: 1500
+        confidence:
+          type: string
+          enum: [high, medium, low]
+
+    UpdateChartPayload:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 2000
+        query:
+          type: string
+        spec:
+          $ref: '#/components/schemas/ChartSpec'
+
+    UpdateCodePayload:
+      type: object
+      properties:
+        slug:
+          type: string
+          pattern: '^[a-z]+(-[a-z]+)*:[a-z]+(-[a-z]+)*$'
+          minLength: 3
+          maxLength: 100
+          description: 'CRITICAL: Only lowercase letters (a-z) and hyphens allowed. NO numbers.'
+        color:
+          type: string
+          enum:
+            - gray
+            - mauve
+            - slate
+            - sage
+            - olive
+            - sand
+            - tomato
+            - red
+            - ruby
+            - crimson
+            - pink
+            - plum
+            - purple
+            - violet
+            - iris
+            - indigo
+            - blue
+            - cyan
+            - teal
+            - jade
+            - green
+            - grass
+            - bronze
+            - gold
+            - brown
+            - orange
+            - amber
+            - yellow
+            - lime
+            - mint
+            - sky
+        definition:
+          type: string
+        inclusion_criteria:
+          type: string
+        exclusion_criteria:
+          type: string
+        examples:
+          type: array
+          items:
+            type: string
+        counter_examples:
+          type: array
+          items:
+            type: string
+
+    UpdateFilePayload:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 2000
+
+    UpdateProjectPayload:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 2000
+        phase:
+          type: string
+          enum: [explore, code, validate, analyze]
+
+    ValidationError:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+        fields:
+          type: object
+          additionalProperties:
+            type: string
 
 x-command-reference:
-  description: |
-    Complete reference of all supported commands by aggregate type.
-
-    For aggregateId field:
-    - CREATE operations: Use empty string ""
-    - UPDATE/DELETE operations: Use entity UUID
-
   Project:
     CreateProject:
       description: Create a new research project
       payload: CreateProjectPayload
-      aggregate_id: empty string for create
+      aggregateId: Generate new ID with prefix 'proj_'
       event: CreatedProject
-      note: Phase defaults to "explore" if not specified
-      example: |
-        {
-          "type": "Command",
-          "action": "CreateProject",
-          "aggregate_type": "Project",
-          "aggregate_id": "",
-          "payload": {
-            "name": "Market Research Q1 2025",
-            "description": "Quarterly market analysis and consumer sentiment tracking",
-            "phase": "explore"
-          }
-        }
+      example:
+        action: CreateProject
+        type: Command
+        aggregate_type: Project
+        aggregate_id: proj_01jdqx8h9m0n2p3q4r5s6t7u8v
+        payload:
+          name: Interview Study 2024
+          description: Analysis of participant interviews
+          phase: explore
+        actor:
+          user_id: patient-zero
+          actor_type: human
 
     UpdateProject:
-      description: Update project name, description, and/or phase
+      description: Update project name, description, or phase
       payload: UpdateProjectPayload
-      aggregate_id: project UUID
+      aggregateId: Existing project ID
       event: UpdatedProject
-      example: |
-        {
-          "type": "Command",
-          "action": "UpdateProject",
-          "aggregate_type": "Project",
-          "aggregate_id": "550e8400-e29b-41d4-a716-446655440000",
-          "payload": {
-            "name": "Market Research Q1 2025 - Updated",
-            "description": "Updated quarterly market analysis",
-            "phase": "code"
-          }
-        }
-
-    DeleteProject:
-      description: Delete a project
-      payload: EmptyPayload
-      aggregate_id: project UUID
-      event: DeletedProject
-      note: No payload fields required
-      example: |
-        {
-          "type": "Command",
-          "action": "DeleteProject",
-          "aggregate_type": "Project",
-          "aggregate_id": "550e8400-e29b-41d4-a716-446655440000",
-          "payload": {}
-        }
+      example:
+        action: UpdateProject
+        type: Command
+        aggregate_type: Project
+        aggregate_id: proj_01jdqx8h9m0n2p3q4r5s6t7u8v
+        payload:
+          name: Interview Study 2024 - Revised
+          description: Updated analysis scope
+          phase: code
+        expected_version: 3
+        actor:
+          user_id: patient-zero
+          actor_type: human
 
     PinProject:
-      description: Pin a project to the top
-      payload: EmptyPayload
-      aggregate_id: project UUID
+      description: Pin project to top of list
+      payload: EmptyPayload (no fields required)
+      aggregateId: Existing project ID
       event: PinnedProject
-      note: No payload fields required
-      example: |
-        {
-          "type": "Command",
-          "action": "PinProject",
-          "aggregate_type": "Project",
-          "aggregate_id": "550e8400-e29b-41d4-a716-446655440000",
-          "payload": {}
-        }
+      example:
+        action: PinProject
+        type: Command
+        aggregate_type: Project
+        aggregate_id: proj_01jdqx8h9m0n2p3q4r5s6t7u8v
+        actor:
+          user_id: patient-zero
+          actor_type: human
 
     UnpinProject:
-      description: Unpin a project
-      payload: EmptyPayload
-      aggregate_id: project UUID
+      description: Unpin project from top of list
+      payload: EmptyPayload (no fields required)
+      aggregateId: Existing project ID
       event: UnpinnedProject
-      note: No payload fields required
-      example: |
-        {
-          "type": "Command",
-          "action": "UnpinProject",
-          "aggregate_type": "Project",
-          "aggregate_id": "550e8400-e29b-41d4-a716-446655440000",
-          "payload": {}
-        }
+      example:
+        action: UnpinProject
+        type: Command
+        aggregate_type: Project
+        aggregate_id: proj_01jdqx8h9m0n2p3q4r5s6t7u8v
+        actor:
+          user_id: patient-zero
+          actor_type: human
+
+    DeleteProject:
+      description: Delete project and all associated entities
+      payload: EmptyPayload (no fields required)
+      aggregateId: Existing project ID
+      event: DeletedProject
+      example:
+        action: DeleteProject
+        type: Command
+        aggregate_type: Project
+        aggregate_id: proj_01jdqx8h9m0n2p3q4r5s6t7u8v
+        expected_version: 5
+        actor:
+          user_id: patient-zero
+          actor_type: human
 
     ChangePhase:
-      description: Change project phase without modifying other fields
+      description: Change project research phase
       payload: ChangePhasePayload
-      aggregate_id: project UUID
+      aggregateId: Existing project ID
       event: ChangedPhase
-      validation:
-        - Phase is required
-        - Phase must be one of: explore, code, validate, analyze
-      example: |
-        {
-          "type": "Command",
-          "action": "ChangePhase",
-          "aggregate_type": "Project",
-          "aggregate_id": "550e8400-e29b-41d4-a716-446655440000",
-          "payload": {
-            "phase": "code"
-          }
-        }
-
-  Chart:
-    CreateChart:
-      description: Create a new chart
-      payload: CreateChartPayload
-      aggregate_id: empty string for create
-      event: CreatedChart
-      validation:
-        - Project must exist
-        - Name is required
-        - Query is required
-        - Spec is required with type, x, and y fields
-      example: |
-        {
-          "type": "Command",
-          "action": "CreateChart",
-          "aggregate_type": "Chart",
-          "aggregate_id": "",
-          "payload": {
-            "project_id": "550e8400-e29b-41d4-a716-446655440000",
-            "name": "Code Distribution",
-            "description": "Distribution of codes across documents",
-            "query": "SELECT code_slug, COUNT(*) FROM coded_sections GROUP BY code_slug",
-            "spec": {
-              "type": "bar",
-              "x": "code_slug",
-              "y": "count",
-              "orientation": "horizontal"
-            }
-          }
-        }
-
-    UpdateChart:
-      description: Update chart properties (any combination of fields)
-      payload: UpdateChartPayload
-      aggregate_id: chart UUID
-      event: UpdatedChart
-      note: All payload fields are optional - only include fields to update
-      example: |
-        {
-          "type": "Command",
-          "action": "UpdateChart",
-          "aggregate_type": "Chart",
-          "aggregate_id": "990e8400-e29b-41d4-a716-446655440004",
-          "payload": {
-            "name": "Updated Chart Name",
-            "spec": {
-              "type": "line",
-              "x": "date",
-              "y": "count",
-              "series": "code_slug"
-            }
-          }
-        }
-
-    PinChart:
-      description: Pin a chart to the top
-      payload: EmptyPayload
-      aggregate_id: chart UUID
-      event: PinnedChart
-      note: No payload fields required
-      example: |
-        {
-          "type": "Command",
-          "action": "PinChart",
-          "aggregate_type": "Chart",
-          "aggregate_id": "990e8400-e29b-41d4-a716-446655440004",
-          "payload": {}
-        }
-
-    UnpinChart:
-      description: Unpin a chart
-      payload: EmptyPayload
-      aggregate_id: chart UUID
-      event: UnpinnedChart
-      note: No payload fields required
-      example: |
-        {
-          "type": "Command",
-          "action": "UnpinChart",
-          "aggregate_type": "Chart",
-          "aggregate_id": "990e8400-e29b-41d4-a716-446655440004",
-          "payload": {}
-        }
-
-    DeleteChart:
-      description: Delete a chart
-      payload: EmptyPayload
-      aggregate_id: chart UUID
-      event: DeletedChart
-      note: No payload fields required
-      example: |
-        {
-          "type": "Command",
-          "action": "DeleteChart",
-          "aggregate_type": "Chart",
-          "aggregate_id": "990e8400-e29b-41d4-a716-446655440004",
-          "payload": {}
-        }
+      example:
+        action: ChangePhase
+        type: Command
+        aggregate_type: Project
+        aggregate_id: proj_01jdqx8h9m0n2p3q4r5s6t7u8v
+        payload:
+          phase: validate
+        expected_version: 8
+        actor:
+          user_id: patient-zero
+          actor_type: human
 
   Code:
     CreateCode:
-      description: Create a new analytical code with structured definition
-      payload: CodeData
-      aggregate_id: empty string for create
+      description: Create a qualitative code with slug, color, and definition
+      payload: CreateCodePayload
+      aggregateId: Generate new ID with prefix 'code_'
       event: CreatedCode
       validation:
-        - Slug must be unique within project
-        - Project must exist
-        - Definition is required
-      example: |
-        {
-          "type": "Command",
-          "action": "CreateCode",
-          "aggregate_type": "Code",
-          "aggregate_id": "",
-          "payload": {
-            "project_id": "550e8400-e29b-41d4-a716-446655440000",
-            "slug": "speaker:mark-rutte",
-            "color": "purple",
-            "definition": "Quotes and statements by Mark Rutte in parliamentary debates, including both direct quotes and paraphrased positions attributed to him",
-            "inclusion_criteria": "Include statements where Rutte is explicitly named as speaker or where the context clearly identifies him. Include both verbatim quotes and reported speech",
-            "exclusion_criteria": "Do not code statements about Rutte made by others, or general references without specific statements",
-            "examples": [
-              "Minister Rutte stated: 'We must prioritize economic recovery'",
-              "According to Rutte, the policy will be implemented next quarter"
-            ],
-            "counter_examples": [
-              "The opposition criticized Rutte's economic policy",
-              "Rutte was mentioned in the debate"
-            ]
-          }
-        }
+        - slug must be lowercase letters and hyphens only, with exactly one colon
+        - color must be a valid Radix UI color name
+      example:
+        action: CreateCode
+        type: Command
+        aggregate_type: Code
+        aggregate_id: code_01jdqx8h9m0n2p3q4r5s6t7u8v
+        payload:
+          project_id: proj_01jdqx8h9m0n2p3q4r5s6t7u8v
+          slug: emotion:anxiety
+          color: red
+          definition: Expressions of worry, fear, or nervousness about uncertain outcomes
+          inclusion_criteria: Apply when participant explicitly mentions worry or uses anxiety-related language
+          examples:
+            - I was so worried about the results
+            - The uncertainty made me anxious
+        actor:
+          user_id: patient-zero
+          actor_type: human
 
     UpdateCode:
-      description: Update code properties (any combination of fields)
+      description: Update code properties (slug, color, definition, criteria, examples)
       payload: UpdateCodePayload
-      aggregate_id: code UUID
+      aggregateId: Existing code ID
       event: UpdatedCode
       validation:
-        - If updating slug, new slug must be unique
-      note: All payload fields are optional - only include fields to update
-      example: |
-        {
-          "type": "Command",
-          "action": "UpdateCode",
-          "aggregate_type": "Code",
-          "aggregate_id": "660e8400-e29b-41d4-a716-446655440001",
-          "payload": {
-            "definition": "Updated to focus on economic policy statements only",
-            "examples": [
-              "New example reflecting narrower focus"
-            ]
-          }
-        }
-
-    DeleteCode:
-      description: Delete a code
-      payload: EmptyPayload
-      aggregate_id: code UUID
-      event: DeletedCode
-      note: No payload fields required
-      example: |
-        {
-          "type": "Command",
-          "action": "DeleteCode",
-          "aggregate_type": "Code",
-          "aggregate_id": "660e8400-e29b-41d4-a716-446655440001",
-          "payload": {}
-        }
+        - if slug provided, must be lowercase letters and hyphens only with exactly one colon
+        - if color provided, must be valid Radix UI color
+      example:
+        action: UpdateCode
+        type: Command
+        aggregate_type: Code
+        aggregate_id: code_01jdqx8h9m0n2p3q4r5s6t7u8v
+        payload:
+          definition: Updated definition with more clarity
+          examples:
+            - New example text
+        expected_version: 2
+        actor:
+          user_id: patient-zero
+          actor_type: human
 
     PinCode:
-      description: Pin a code to the top
-      payload: EmptyPayload
-      aggregate_id: code UUID
+      description: Pin code to top of codebook
+      payload: EmptyPayload (no fields required)
+      aggregateId: Existing code ID
       event: PinnedCode
-      note: No payload fields required
-      example: |
-        {
-          "type": "Command",
-          "action": "PinCode",
-          "aggregate_type": "Code",
-          "aggregate_id": "660e8400-e29b-41d4-a716-446655440001",
-          "payload": {}
-        }
+      example:
+        action: PinCode
+        type: Command
+        aggregate_type: Code
+        aggregate_id: code_01jdqx8h9m0n2p3q4r5s6t7u8v
+        actor:
+          user_id: patient-zero
+          actor_type: human
 
     UnpinCode:
-      description: Unpin a code
-      payload: EmptyPayload
-      aggregate_id: code UUID
+      description: Unpin code from top of codebook
+      payload: EmptyPayload (no fields required)
+      aggregateId: Existing code ID
       event: UnpinnedCode
-      note: No payload fields required
-      example: |
-        {
-          "type": "Command",
-          "action": "UnpinCode",
-          "aggregate_type": "Code",
-          "aggregate_id": "660e8400-e29b-41d4-a716-446655440001",
-          "payload": {}
-        }
+      example:
+        action: UnpinCode
+        type: Command
+        aggregate_type: Code
+        aggregate_id: code_01jdqx8h9m0n2p3q4r5s6t7u8v
+        actor:
+          user_id: patient-zero
+          actor_type: human
+
+    DeleteCode:
+      description: Delete code and remove all applications from files
+      payload: EmptyPayload (no fields required)
+      aggregateId: Existing code ID
+      event: DeletedCode
+      example:
+        action: DeleteCode
+        type: Command
+        aggregate_type: Code
+        aggregate_id: code_01jdqx8h9m0n2p3q4r5s6t7u8v
+        expected_version: 5
+        actor:
+          user_id: patient-zero
+          actor_type: human
 
     MergeCodes:
-      description: Merge two codes (source code deleted, all its codings moved to target)
+      description: Merge source code into target code, moving all sections
       payload: MergeCodesPayload
-      aggregate_id: source code UUID
+      aggregateId: Target code ID (code being merged into)
       event: MergedCodes
-      validation:
-        - Both source and target codes must exist
-        - Cannot merge a code with itself
-      example: |
-        {
-          "type": "Command",
-          "action": "MergeCodes",
-          "aggregate_type": "Code",
-          "aggregate_id": "660e8400-e29b-41d4-a716-446655440001",
-          "payload": {
-            "source_id": "660e8400-e29b-41d4-a716-446655440001",
-            "target_id": "770e8400-e29b-41d4-a716-446655440002"
-          }
-        }
+      example:
+        action: MergeCodes
+        type: Command
+        aggregate_type: Code
+        aggregate_id: code_01jdqx8h9m0n2p3q4r5s6t7u8w
+        payload:
+          source_id: code_01jdqx8h9m0n2p3q4r5s6t7u8v
+          target_id: code_01jdqx8h9m0n2p3q4r5s6t7u8w
+        actor:
+          user_id: patient-zero
+          actor_type: human
 
     ClearCodeApplications:
-      description: Remove all applications of this code from all files in the project
-      payload: EmptyPayload
-      aggregate_id: code UUID
+      description: Remove all coded sections using this code
+      payload: EmptyPayload (no fields required)
+      aggregateId: Existing code ID
       event: ClearedCodeApplications
-      note: No payload fields required. This deletes all coded sections that use this code across all files.
-      example: |
-        {
-          "type": "Command",
-          "action": "ClearCodeApplications",
-          "aggregate_type": "Code",
-          "aggregate_id": "660e8400-e29b-41d4-a716-446655440001",
-          "payload": {}
-        }
+      example:
+        action: ClearCodeApplications
+        type: Command
+        aggregate_type: Code
+        aggregate_id: code_01jdqx8h9m0n2p3q4r5s6t7u8v
+        actor:
+          user_id: patient-zero
+          actor_type: human
 
     RecodeAll:
-      description: Recode all sections using this code to use a different target code
+      description: Replace all sections of this code with a different code
       payload: RecodeAllPayload
-      aggregate_id: code UUID
+      aggregateId: Current code ID (code being replaced)
       event: RecodedAll
-      validation:
-        - Target code must exist
-        - Cannot recode to self
-      example: |
-        {
-          "type": "Command",
-          "action": "RecodeAll",
-          "aggregate_type": "Code",
-          "aggregate_id": "660e8400-e29b-41d4-a716-446655440001",
-          "payload": {
-            "target_code_id": "770e8400-e29b-41d4-a716-446655440002"
-          }
-        }
+      example:
+        action: RecodeAll
+        type: Command
+        aggregate_type: Code
+        aggregate_id: code_01jdqx8h9m0n2p3q4r5s6t7u8v
+        payload:
+          target_code_id: code_01jdqx8h9m0n2p3q4r5s6t7u8w
+        actor:
+          user_id: patient-zero
+          actor_type: human
 
   File:
     CreateFile:
-      description: Create a new file with optional type specification
+      description: Create a file (corpus document, codebook, or memo)
       payload: CreateFilePayload
-      aggregate_id: empty string for create
+      aggregateId: Generate new ID with prefix 'file_'
       event: CreatedFile
-      note: |
-        - Type defaults to "corpus" if not specified
-        - Corpus files are automatically locked
-        - Codebook, memo, and llm-memo files are editable
-        - Only one codebook file allowed per project
-      example: |
-        {
-          "type": "Command",
-          "action": "CreateFile",
-          "aggregate_type": "File",
-          "aggregate_id": "",
-          "payload": {
-            "project_id": "550e8400-e29b-41d4-a716-446655440000",
-            "name": "Focus Group Session 3",
-            "description": "Consumer feedback on new product features",
-            "content": "Participants discussed their experiences with the new product...",
-            "type": "corpus"
-          }
-        }
+      example:
+        action: CreateFile
+        type: Command
+        aggregate_type: File
+        aggregate_id: file_01jdqx8h9m0n2p3q4r5s6t7u8v
+        payload:
+          project_id: proj_01jdqx8h9m0n2p3q4r5s6t7u8v
+          name: interview-01.txt
+          description: First participant interview
+          content: This is the interview transcript...
+          type: corpus
+        actor:
+          user_id: patient-zero
+          actor_type: human
 
     UpdateFile:
-      description: Update file name and/or description
+      description: Update file name or description
       payload: UpdateFilePayload
-      aggregate_id: file UUID
+      aggregateId: Existing file ID
       event: UpdatedFile
-      example: |
-        {
-          "type": "Command",
-          "action": "UpdateFile",
-          "aggregate_type": "File",
-          "aggregate_id": "770e8400-e29b-41d4-a716-446655440002",
-          "payload": {
-            "name": "Updated File Name",
-            "description": "Updated file description"
-          }
-        }
-
-    ReplaceFileContent:
-      description: Replace entire file content (unlocked files only)
-      payload: ReplaceFileContentPayload
-      aggregate_id: file UUID
-      event: ReplacedFileContent
-      validation:
-        - File must not be locked (corpus files are locked)
-      note: Only works on memo, codebook, and llm-memo files. Corpus files cannot be modified after creation.
-      example: |
-        {
-          "type": "Command",
-          "action": "ReplaceFileContent",
-          "aggregate_type": "File",
-          "aggregate_id": "770e8400-e29b-41d4-a716-446655440002",
-          "payload": {
-            "content": "New complete file content here..."
-          }
-        }
-
-    EditFileContent:
-      description: Search and replace text in file (fuzzy matching)
-      payload: EditFileContentPayload
-      aggregate_id: file UUID
-      event: ReplacedFileContent
-      validation:
-        - File must not be locked
-        - File must have content
-        - old_text must be found in file (fuzzy matched)
-      note: Uses fuzzy matching to find text, then replaces with exact new_text
-      example: |
-        {
-          "type": "Command",
-          "action": "EditFileContent",
-          "aggregate_type": "File",
-          "aggregate_id": "770e8400-e29b-41d4-a716-446655440002",
-          "payload": {
-            "old_text": "initial observations",
-            "new_text": "comprehensive findings"
-          }
-        }
-
-    DeleteFile:
-      description: Delete a file
-      payload: EmptyPayload
-      aggregate_id: file UUID
-      event: DeletedFile
-      note: No payload fields required
-      example: |
-        {
-          "type": "Command",
-          "action": "DeleteFile",
-          "aggregate_type": "File",
-          "aggregate_id": "770e8400-e29b-41d4-a716-446655440002",
-          "payload": {}
-        }
+      example:
+        action: UpdateFile
+        type: Command
+        aggregate_type: File
+        aggregate_id: file_01jdqx8h9m0n2p3q4r5s6t7u8v
+        payload:
+          name: interview-01-revised.txt
+          description: Updated description
+        expected_version: 3
+        actor:
+          user_id: patient-zero
+          actor_type: human
 
     PinFile:
-      description: Pin a file to the top
-      payload: EmptyPayload
-      aggregate_id: file UUID
+      description: Pin file to top of file list
+      payload: EmptyPayload (no fields required)
+      aggregateId: Existing file ID
       event: PinnedFile
-      note: No payload fields required
-      example: |
-        {
-          "type": "Command",
-          "action": "PinFile",
-          "aggregate_type": "File",
-          "aggregate_id": "770e8400-e29b-41d4-a716-446655440002",
-          "payload": {}
-        }
+      example:
+        action: PinFile
+        type: Command
+        aggregate_type: File
+        aggregate_id: file_01jdqx8h9m0n2p3q4r5s6t7u8v
+        actor:
+          user_id: patient-zero
+          actor_type: human
 
     UnpinFile:
-      description: Unpin a file
-      payload: EmptyPayload
-      aggregate_id: file UUID
+      description: Unpin file from top of file list
+      payload: EmptyPayload (no fields required)
+      aggregateId: Existing file ID
       event: UnpinnedFile
-      note: No payload fields required
-      example: |
-        {
-          "type": "Command",
-          "action": "UnpinFile",
-          "aggregate_type": "File",
-          "aggregate_id": "770e8400-e29b-41d4-a716-446655440002",
-          "payload": {}
-        }
+      example:
+        action: UnpinFile
+        type: Command
+        aggregate_type: File
+        aggregate_id: file_01jdqx8h9m0n2p3q4r5s6t7u8v
+        actor:
+          user_id: patient-zero
+          actor_type: human
+
+    ReplaceFileContent:
+      description: Replace entire file content
+      payload: ReplaceFileContentPayload
+      aggregateId: Existing file ID
+      event: ReplacedFileContent
+      note: Typically used for editable files (memo, codebook). Corpus files are usually locked.
+      example:
+        action: ReplaceFileContent
+        type: Command
+        aggregate_type: File
+        aggregate_id: file_01jdqx8h9m0n2p3q4r5s6t7u8v
+        payload:
+          content: New complete content for the file...
+        expected_version: 2
+        actor:
+          user_id: patient-zero
+          actor_type: human
+
+    EditFileContent:
+      description: Edit file content by replacing old text with new text
+      payload: EditFileContentPayload
+      aggregateId: Existing file ID
+      event: ReplacedFileContent
+      note: Uses string replacement. Old text must exist exactly once in content.
+      example:
+        action: EditFileContent
+        type: Command
+        aggregate_type: File
+        aggregate_id: file_01jdqx8h9m0n2p3q4r5s6t7u8v
+        payload:
+          old_text: original text to replace
+          new_text: new replacement text
+        expected_version: 4
+        actor:
+          user_id: patient-zero
+          actor_type: human
+
+    DeleteFile:
+      description: Delete file from project
+      payload: EmptyPayload (no fields required)
+      aggregateId: Existing file ID
+      event: DeletedFile
+      example:
+        action: DeleteFile
+        type: Command
+        aggregate_type: File
+        aggregate_id: file_01jdqx8h9m0n2p3q4r5s6t7u8v
+        expected_version: 7
+        actor:
+          user_id: patient-zero
+          actor_type: human
 
     AddCodeSections:
-      description: Add new code sections to a file
-      payload: AddCodeSectionsPayload
-      aggregate_id: file UUID
+      description: Add new coded sections to file
+      payload: Array of section operations in 'sections' field
+      aggregateId: Existing file ID
       event: ModifiedCodeSections
-      validation:
-        - Text must exist in the file (fuzzy matched, normalized)
-        - Text must contain at least 3 words
-        - Confidence is required (high, medium, or low)
-        - Array validation errors use format sections[index]
-      partial_success: |
-        Supports partial success. If some sections pass validation and others fail:
-        - Returns HTTP 207 with PartialSuccessResponse
-        - Successful sections are processed and included in the event
-        - Failed sections are listed in the failures map with original array index
-        If ALL sections fail validation, returns HTTP 400 with validation error.
-      example: |
-        {
-          "type": "Command",
-          "action": "AddCodeSections",
-          "aggregate_type": "File",
-          "aggregate_id": "770e8400-e29b-41d4-a716-446655440002",
-          "payload": {
-            "sections": [
-              {
-                "code_id": "660e8400-e29b-41d4-a716-446655440001",
-                "text": "I didn't understand how to submit the form",
-                "reason": "User expresses confusion about a core interface function",
-                "confidence": "high"
-              },
-              {
-                "code_id": "770e8400-e29b-41d4-a716-446655440002",
-                "text": "This is so frustrating",
-                "reason": "Direct emotional expression of frustration",
-                "confidence": "medium"
-              },
-              {
-                "code_id": "880e8400-e29b-41d4-a716-446655440003",
-                "text": "The button was hard to find",
-                "reason": "Possible indication of interface design issue, needs review",
-                "confidence": "low"
-              }
-            ]
-          }
-        }
+      note: Returns 207 with partial failures if some sections fail validation
+      example:
+        action: AddCodeSections
+        type: Command
+        aggregate_type: File
+        aggregate_id: file_01jdqx8h9m0n2p3q4r5s6t7u8v
+        payload:
+          sections:
+            - code_id: code_01jdqx8h9m0n2p3q4r5s6t7u8v
+              text: I was very worried about the outcome
+              reason: Clear expression of anxiety
+              confidence: high
+            - code_id: code_01jdqx8h9m0n2p3q4r5s6t7u8w
+              text: The power imbalance was evident
+              reason: References authority dynamics
+              confidence: medium
+        actor:
+          user_id: patient-zero
+          actor_type: llm
 
     UpdateCodeSections:
-      description: Update existing code sections in a file, including reassigning to different codes
-      payload: UpdateCodeSectionsPayload
-      aggregate_id: file UUID
+      description: Update existing coded sections
+      payload: Array of section update operations in 'sections' field
+      aggregateId: Existing file ID
       event: ModifiedCodeSections
-      validation:
-        - Section ID must exist in the file
-        - If text is provided, it must exist in the file (fuzzy matched, normalized)
-        - If text is provided, it must contain at least 3 words
-        - Confidence is optional (high, medium, or low)
-        - If code_id is provided, it must match a code in the project
-        - Array validation errors use format sections[index]
-      partial_success: |
-        Supports partial success. If some sections pass validation and others fail:
-        - Returns HTTP 207 with PartialSuccessResponse
-        - Successful sections are processed and included in the event
-        - Failed sections are listed in the failures map with original array index
-        If ALL sections fail validation, returns HTTP 400 with validation error.
-      note: |
-        Only include fields to update. Sections are found by their unique ID.
-        To reassign a section to a different code, provide code_id.
-      example: |
-        {
-          "type": "Command",
-          "action": "UpdateCodeSections",
-          "aggregate_type": "File",
-          "aggregate_id": "770e8400-e29b-41d4-a716-446655440002",
-          "payload": {
-            "sections": [
-              {
-                "id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
-                "reason": "Updated reasoning to be more specific about context",
-                "confidence": "high"
-              },
-              {
-                "id": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
-                "code_id": "990e8400-e29b-41d4-a716-446655440005",
-                "reason": "Reassigned to different code"
-              },
-              {
-                "id": "c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f",
-                "confidence": "low"
-              }
-            ]
-          }
-        }
+      note: Returns 207 with partial failures if some updates fail
+      example:
+        action: UpdateCodeSections
+        type: Command
+        aggregate_type: File
+        aggregate_id: file_01jdqx8h9m0n2p3q4r5s6t7u8v
+        payload:
+          sections:
+            - id: sec_01jdqx8h9m0n2p3q4r5s6t7u8x
+              confidence: low
+              reason: Less certain on review
+        actor:
+          user_id: patient-zero
+          actor_type: human
 
     RemoveCodeSections:
-      description: Remove code sections from a file
-      payload: RemoveCodeSectionsPayload
-      aggregate_id: file UUID
+      description: Remove coded sections by ID
+      payload: Array of section IDs in 'section_ids' field
+      aggregateId: Existing file ID
       event: ModifiedCodeSections
-      note: |
-        Sections are found by their unique ID.
-      example: |
-        {
-          "type": "Command",
-          "action": "RemoveCodeSections",
-          "aggregate_type": "File",
-          "aggregate_id": "770e8400-e29b-41d4-a716-446655440002",
-          "payload": {
-            "section_ids": [
-              "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
-              "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e"
-            ]
-          }
-        }
+      example:
+        action: RemoveCodeSections
+        type: Command
+        aggregate_type: File
+        aggregate_id: file_01jdqx8h9m0n2p3q4r5s6t7u8v
+        payload:
+          section_ids:
+            - sec_01jdqx8h9m0n2p3q4r5s6t7u8x
+            - sec_01jdqx8h9m0n2p3q4r5s6t7u8y
+        actor:
+          user_id: patient-zero
+          actor_type: human
 
     ClearCoding:
-      description: Remove all coding from a file
-      payload: EmptyPayload
-      aggregate_id: file UUID
+      description: Remove all coded sections from file
+      payload: EmptyPayload (no fields required)
+      aggregateId: Existing file ID
       event: ClearedCoding
-      note: No payload fields required
-      example: |
-        {
-          "type": "Command",
-          "action": "ClearCoding",
-          "aggregate_type": "File",
-          "aggregate_id": "770e8400-e29b-41d4-a716-446655440002",
-          "payload": {}
-        }
+      example:
+        action: ClearCoding
+        type: Command
+        aggregate_type: File
+        aggregate_id: file_01jdqx8h9m0n2p3q4r5s6t7u8v
+        actor:
+          user_id: patient-zero
+          actor_type: human
 
     RemoveCodeFromFile:
-      description: Remove all sections using a specific code from this file
+      description: Remove all sections of a specific code from file
       payload: RemoveCodeFromFilePayload
-      aggregate_id: file UUID
+      aggregateId: Existing file ID
       event: RemovedCodeFromFile
-      validation:
-        - Code must exist
-      example: |
-        {
-          "type": "Command",
-          "action": "RemoveCodeFromFile",
-          "aggregate_type": "File",
-          "aggregate_id": "770e8400-e29b-41d4-a716-446655440002",
-          "payload": {
-            "code_id": "660e8400-e29b-41d4-a716-446655440001"
-          }
-        }
+      example:
+        action: RemoveCodeFromFile
+        type: Command
+        aggregate_type: File
+        aggregate_id: file_01jdqx8h9m0n2p3q4r5s6t7u8v
+        payload:
+          code_id: code_01jdqx8h9m0n2p3q4r5s6t7u8v
+        actor:
+          user_id: patient-zero
+          actor_type: human
+
+  Chart:
+    CreateChart:
+      description: Create visualization chart with query and spec
+      payload: CreateChartPayload
+      aggregateId: Generate new ID with prefix 'chart_'
+      event: CreatedChart
+      example:
+        action: CreateChart
+        type: Command
+        aggregate_type: Chart
+        aggregate_id: chart_01jdqx8h9m0n2p3q4r5s6t7u8v
+        payload:
+          project_id: proj_01jdqx8h9m0n2p3q4r5s6t7u8v
+          name: Code Frequency
+          description: Bar chart of code usage
+          query: SELECT code, COUNT(*) as count FROM sections GROUP BY code
+          spec:
+            type: bar
+            x: code
+            y: count
+            orientation: vertical
+        actor:
+          user_id: patient-zero
+          actor_type: human
+
+    UpdateChart:
+      description: Update chart name, description, query, or spec
+      payload: UpdateChartPayload
+      aggregateId: Existing chart ID
+      event: UpdatedChart
+      example:
+        action: UpdateChart
+        type: Command
+        aggregate_type: Chart
+        aggregate_id: chart_01jdqx8h9m0n2p3q4r5s6t7u8v
+        payload:
+          name: Code Frequency - Updated
+          spec:
+            type: bar
+            x: code
+            y: count
+            orientation: horizontal
+            stacked: false
+        expected_version: 2
+        actor:
+          user_id: patient-zero
+          actor_type: human
+
+    PinChart:
+      description: Pin chart to top of chart list
+      payload: EmptyPayload (no fields required)
+      aggregateId: Existing chart ID
+      event: PinnedChart
+      example:
+        action: PinChart
+        type: Command
+        aggregate_type: Chart
+        aggregate_id: chart_01jdqx8h9m0n2p3q4r5s6t7u8v
+        actor:
+          user_id: patient-zero
+          actor_type: human
+
+    UnpinChart:
+      description: Unpin chart from top of chart list
+      payload: EmptyPayload (no fields required)
+      aggregateId: Existing chart ID
+      event: UnpinnedChart
+      example:
+        action: UnpinChart
+        type: Command
+        aggregate_type: Chart
+        aggregate_id: chart_01jdqx8h9m0n2p3q4r5s6t7u8v
+        actor:
+          user_id: patient-zero
+          actor_type: human
+
+    DeleteChart:
+      description: Delete chart from project
+      payload: EmptyPayload (no fields required)
+      aggregateId: Existing chart ID
+      event: DeletedChart
+      example:
+        action: DeleteChart
+        type: Command
+        aggregate_type: Chart
+        aggregate_id: chart_01jdqx8h9m0n2p3q4r5s6t7u8v
+        expected_version: 4
+        actor:
+          user_id: patient-zero
+          actor_type: human

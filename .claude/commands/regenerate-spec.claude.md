@@ -685,6 +685,42 @@ x-command-reference:
         }
 ```
 
+### Validation Field Guidelines
+
+**ONLY include `validation:` array if it describes rules NOT already in the schema:**
+- The schema's `required` array already shows required fields
+- The schema's `enum` already shows allowed values
+- The schema's `pattern`, `minLength`, `maxLength` already show constraints
+
+**Skip validation array for:**
+- "Field is required" - schema has `required: [field]`
+- "Field must be one of X, Y, Z" - schema has `enum: [X, Y, Z]`
+- "Field must match pattern" - schema has `pattern: '...'`
+
+**Include validation array for:**
+- Cross-field validation (e.g., "end_index must be greater than start_index")
+- Existence checks (e.g., "Project must exist", "Code must exist in project")
+- Uniqueness constraints (e.g., "Slug must be unique within project")
+- Complex business rules not expressible in JSON Schema
+
+### Note Field Guidelines
+
+**ONLY include `note:` if it provides information NOT already evident from:**
+- The payload schema (EmptyPayload, required fields, field types)
+- The validation tags in the schema
+- Standard CQRS patterns
+
+**Skip `note:` for:**
+- Commands with `EmptyPayload` - "No payload fields required" is redundant
+- Update commands where all fields optional - schema `required` array shows this
+- Default values that should be in field `description` instead
+
+**Include `note:` for:**
+- Business logic not in schema (e.g., "Phase defaults to 'explore' if not specified")
+- Behavioral details (e.g., "Uses fuzzy matching to find text")
+- Important constraints (e.g., "Only one codebook file allowed per project")
+- Side effects (e.g., "Corpus files are automatically locked")
+
 ### Content Requirements
 
 **For EACH discovered command:**
@@ -696,9 +732,10 @@ x-command-reference:
 6. Provide complete example with realistic data
 
 **Commands without payloads:**
-- Some commands (DeleteCode, ClearCoding) may not need payload
-- Still document them with `payload: none required` or empty payload object
-- Example should show minimal structure
+- Commands with EmptyPayload don't need a note explaining this
+- Just show `payload: EmptyPayload` in the schema
+- Example should show `"payload": {}`
+- **Skip the note field entirely** - EmptyPayload is self-documenting
 
 **Order:**
 - Group commands by entity
