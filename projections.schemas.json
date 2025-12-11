@@ -1,0 +1,250 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["id", "version", "healthy", "name", "description", "phase", "pinned", "charts", "codes", "files"],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "integer"
+    },
+    "healthy": {
+      "type": "boolean"
+    },
+    "name": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 2000
+    },
+    "phase": {
+      "type": "string",
+      "enum": ["explore", "code", "validate", "analyze"]
+    },
+    "pinned": {
+      "type": "boolean"
+    },
+    "charts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "healthy", "version", "project_id", "name", "description", "query", "spec", "pinned"],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "healthy": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "project_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "query": {
+            "type": "string"
+          },
+          "spec": {
+            "type": "object",
+            "required": ["type", "x", "y"],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["bar", "line", "area", "pie", "heatmap", "table"]
+              },
+              "x": {
+                "type": "string"
+              },
+              "y": {
+                "type": "string"
+              },
+              "color": {
+                "type": "string"
+              },
+              "series": {
+                "type": "string"
+              },
+              "orientation": {
+                "type": "string",
+                "enum": ["vertical", "horizontal"]
+              },
+              "stacked": {
+                "type": "boolean"
+              },
+              "show_legend": {
+                "type": "boolean"
+              }
+            }
+          },
+          "pinned": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "codes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "healthy", "version", "project_id", "slug", "pinned", "color", "definition"],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "healthy": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "project_id": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 100
+          },
+          "pinned": {
+            "type": "boolean"
+          },
+          "color": {
+            "type": "string"
+          },
+          "definition": {
+            "type": "string"
+          },
+          "inclusion_criteria": {
+            "type": "string"
+          },
+          "exclusion_criteria": {
+            "type": "string"
+          },
+          "examples": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "counter_examples": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "healthy", "version", "project_id", "name", "description", "title", "summary", "time", "type", "original", "locked", "pinned", "content", "codes"],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "healthy": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "project_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "summary": {
+            "type": "string",
+            "maxLength": 1500
+          },
+          "time": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["corpus", "codebook", "memo", "llm-memo"]
+          },
+          "original": {
+            "type": "string"
+          },
+          "locked": {
+            "type": "boolean"
+          },
+          "pinned": {
+            "type": "boolean"
+          },
+          "content": {
+            "type": "string"
+          },
+          "codes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["code_id", "text", "confidence", "last_actor"],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "code_id": {
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1500
+                },
+                "reason": {
+                  "type": "string",
+                  "maxLength": 1500
+                },
+                "confidence": {
+                  "type": "string",
+                  "enum": ["high", "medium", "low"]
+                },
+                "last_actor": {
+                  "type": "object",
+                  "required": ["user_id", "actor_type"],
+                  "properties": {
+                    "user_id": {
+                      "type": "string"
+                    },
+                    "actor_type": {
+                      "type": "string",
+                      "enum": ["human", "llm", "system"]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
