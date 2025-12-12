@@ -14,14 +14,17 @@ func NewCommandRouter(registryState *registry.RegistryState) dispatch.CommandRou
 	return dispatch.LimitOnType(commands.Command,
 		registry.EnsureProjectHealth(registryState,
 			registry.EnsureEntityHealth(registryState,
-				registry.EnsureExpectedVersion(registryState,
-					dispatch.CombineRouters(
-						charthandlers.NewRouter(registryState),
-						codehandlers.NewRouter(registryState),
-						filehandlers.NewRouter(registryState),
-						projecthandlers.NewRouter(registryState),
-					),
+				//registry.EnsureExpectedVersion(registryState, // temp disable due to token increase
+				// eg if user changes 1 letter, llm does large operation, bam rejected
+				// so prefer last write then
+				// perhaps need to check that user may delete thing before llm sends batch todo: that
+				dispatch.CombineRouters(
+					charthandlers.NewRouter(registryState),
+					codehandlers.NewRouter(registryState),
+					filehandlers.NewRouter(registryState),
+					projecthandlers.NewRouter(registryState),
 				),
+				//),
 			),
 		),
 	)

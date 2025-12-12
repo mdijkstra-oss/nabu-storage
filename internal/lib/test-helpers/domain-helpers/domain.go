@@ -23,7 +23,7 @@ func NewCommand(entityName commands.AggregateType, aggregateID string, action co
 
 func NewCommandWithExpectedVersion(entityName commands.AggregateType, aggregateID string, action commands.Action, payload any, expectedVersion int) *commands.AnyMessage {
 	msg := NewCommand(entityName, aggregateID, action, payload)
-	msg.ExpectedVersion = &expectedVersion
+	msg.ExpectedEntityVersion = &expectedVersion
 	return msg
 }
 

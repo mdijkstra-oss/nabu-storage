@@ -50,7 +50,7 @@ func EnsureEntityHealth(registry *RegistryState, handler dispatch.CommandRouter)
 
 func EnsureExpectedVersion(registry *RegistryState, handler dispatch.CommandRouter) dispatch.CommandRouter {
 	return func(message *commands.AnyMessage, publisher dispatch.PublishFunc) (*commands.AnyMessage, error) {
-		if message.ExpectedVersion == nil {
+		if message.ExpectedEntityVersion == nil {
 			return handler(message, publisher)
 		}
 
@@ -69,7 +69,7 @@ func EnsureExpectedVersion(registry *RegistryState, handler dispatch.CommandRout
 }
 
 func checkExpectedVersion(proj project.Project, message *commands.AnyMessage) error {
-	expected := *message.ExpectedVersion
+	expected := *message.ExpectedEntityVersion
 
 	var entity projection.Versionable
 	var exists bool

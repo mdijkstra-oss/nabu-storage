@@ -61,8 +61,8 @@ type Message[T any] struct {
 
 	// Optimistic concurrency control - required for update/delete commands
 	// Client must provide current entity version to prevent concurrent modification conflicts
-	// Server rejects if ExpectedVersion != entity.Version (HTTP 409 Conflict)
-	ExpectedVersion *int `json:"expected_version,omitempty"`
+	// Server rejects if ExpectedEntityVersion != entity.Version (HTTP 409 Conflict)
+	ExpectedEntityVersion *int `json:"expected_version,omitempty"`
 }
 
 type AnyMessage = Message[any]
@@ -190,17 +190,17 @@ func UnmarshallPayload[T any](m *Message[T], payload any) error {
 
 func ToAny[P any](m *Message[P]) *AnyMessage {
 	return &AnyMessage{
-		ID:              m.ID,
-		Action:          m.Action,
-		Type:            m.Type,
-		AggregateID:     m.AggregateID,
-		AggregateType:   m.AggregateType,
-		Actor:           m.Actor,
-		CausationID:     m.CausationID,
-		Timestamp:       m.Timestamp,
-		Payload:         m.Payload,
-		Version:         m.Version,
-		ExpectedVersion: m.ExpectedVersion,
+		ID:                    m.ID,
+		Action:                m.Action,
+		Type:                  m.Type,
+		AggregateID:           m.AggregateID,
+		AggregateType:         m.AggregateType,
+		Actor:                 m.Actor,
+		CausationID:           m.CausationID,
+		Timestamp:             m.Timestamp,
+		Payload:               m.Payload,
+		Version:               m.Version,
+		ExpectedEntityVersion: m.ExpectedEntityVersion,
 	}
 }
 
