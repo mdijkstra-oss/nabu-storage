@@ -1,9 +1,7 @@
 package http
 
 import (
-	"errors"
 	"github.com/go-chi/chi/v5"
-	"hermes-relay/internal/domain/entities/project"
 	"hermes-relay/internal/domain/projections/registry"
 	"hermes-relay/internal/lib/utils"
 	"log/slog"
@@ -68,39 +66,6 @@ func Query[Q, R any](handler func(Q) R) http.HandlerFunc {
 	}
 }
 
-func ProjectQuery[Q, R any](
-	registryState *registry.RegistryState,
-	handler func(Q, project.Project) R,
-) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		projectID := chi.URLParam(r, "projectId")
-		if projectID == "" {
-			respondWithError(w, &utils.ValidationError{Message: "projectId is required"})
-			return
-		}
-
-		proj := registryState.GetProject(projectID)
-		if proj == nil {
-			respondWithError(w, &utils.NotFoundError{Message: "project not found"})
-			return
-		}
-
-		if !proj.IsHealthy() {
-			respondWithError(w, errors.New("project is in unhealthy state due to corrupted data"))
-			return
-		}
-
-		query, err := ParseQuery[Q](r)
-		if err != nil {
-			respondWithError(w, err)
-			return
-		}
-
-		result := handler(query, *proj)
-		respondWithJSON(w, result)
-	}
-}
-
 func RegistryQuery[Q, R any](
 	registryState *registry.RegistryState,
 	handler func(Q, string, *registry.RegistryState) R,
@@ -143,12 +108,4 @@ func respondWithJSON(w http.ResponseWriter, result any) {
 		return
 	}
 	WriteResponse(w, successQueryOutput(result))
-}
-
-func SchemaHandler(schema []byte) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write(schema)
-	}
 }

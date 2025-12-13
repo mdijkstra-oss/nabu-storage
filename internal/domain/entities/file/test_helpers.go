@@ -2,8 +2,8 @@ package file
 
 import (
 	"hermes-relay/internal/cqrs/commands"
-	"hermes-relay/internal/lib/test-helpers/domain-helpers"
 	th "hermes-relay/internal/lib/test-helpers"
+	"hermes-relay/internal/lib/test-helpers/domain-helpers"
 	"hermes-relay/internal/lib/utils"
 )
 
@@ -37,14 +37,6 @@ func BuildTestCodedSection(id, codeID, text string) CodedSection {
 		Text:       text,
 		Confidence: ConfidenceHigh,
 	}
-}
-
-func CreatedFileEvent(id, projectID, content string) *commands.AnyMessage {
-	return CreatedFileEventWithType(id, projectID, content, FileTypeCorpus)
-}
-
-func CreatedMemoEvent(id, projectID, content string) *commands.AnyMessage {
-	return CreatedFileEventWithType(id, projectID, content, FileTypeMemo)
 }
 
 func CreatedFileEventWithType(id, projectID, content string, fileType FileType) *commands.AnyMessage {

@@ -448,6 +448,45 @@ func TestFileRouter(t *testing.T) {
 			}, file.EntityName, testFileWithCode, domain_helpers.TestActor(), nil)),
 			ExpectErr: "validation failed: CodeID is required",
 		},
+		{
+			Name: "AddCodeSections with LLM actor requires reason",
+			Input: commands.ToAny(commands.NewCommand[file.AddCodeSectionsPayload, any](file.AddCodeSections, file.AddCodeSectionsPayload{
+				Sections: []file.AddSectionOp{
+					{CodeID: testCodeID1, Text: "Some text to code", Confidence: file.ConfidenceHigh},
+				},
+			}, file.EntityName, testFileShort, commands.Actor{UserID: "claude", ActorType: commands.ActorTypeLLM}, nil)),
+			ExpectErr: "validation failed: sections[0] reason is required for LLM actor",
+		},
+		{
+			Name: "AddCodeSections with LLM actor and reason succeeds",
+			Input: commands.ToAny(commands.NewCommand[file.AddCodeSectionsPayload, any](file.AddCodeSections, file.AddCodeSectionsPayload{
+				Sections: []file.AddSectionOp{
+					{CodeID: testCodeID1, Text: "Some text to code", Reason: "LLM reasoning", Confidence: file.ConfidenceHigh},
+				},
+			}, file.EntityName, testFileShort, commands.Actor{UserID: "claude", ActorType: commands.ActorTypeLLM}, nil)),
+			ExpectErr: "",
+			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.ModifiedCodeSectionsPayload, any](file.ModifiedCodeSections, file.ModifiedCodeSectionsPayload{
+				Operations: []file.SectionOp{
+					{Op: "add", ID: "generated-id", CodeID: testCodeID1, Text: "Some text to code", Reason: "LLM reasoning", Confidence: &confidenceHigh},
+				},
+			}, file.EntityName, testFileShort, commands.Actor{UserID: "claude", ActorType: commands.ActorTypeLLM}, nil)),
+			IgnoreFields: ignoreGeneratedIDs,
+		},
+		{
+			Name: "AddCodeSections with human actor without reason succeeds",
+			Input: commands.ToAny(commands.NewCommand[file.AddCodeSectionsPayload, any](file.AddCodeSections, file.AddCodeSectionsPayload{
+				Sections: []file.AddSectionOp{
+					{CodeID: testCodeID1, Text: "Some text to code", Confidence: file.ConfidenceHigh},
+				},
+			}, file.EntityName, testFileShort, commands.Actor{UserID: "user-123", ActorType: commands.ActorTypeHuman}, nil)),
+			ExpectErr: "",
+			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.ModifiedCodeSectionsPayload, any](file.ModifiedCodeSections, file.ModifiedCodeSectionsPayload{
+				Operations: []file.SectionOp{
+					{Op: "add", ID: "generated-id", CodeID: testCodeID1, Text: "Some text to code", Reason: "", Confidence: &confidenceHigh},
+				},
+			}, file.EntityName, testFileShort, commands.Actor{UserID: "user-123", ActorType: commands.ActorTypeHuman}, nil)),
+			IgnoreFields: ignoreGeneratedIDs,
+		},
 	}
 
 	rh.RunRouterTests(t, cmds, tests, NewRouter)

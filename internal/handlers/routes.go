@@ -5,12 +5,6 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"hermes-relay/internal/cqrs/dispatch"
-	"hermes-relay/internal/cqrs/projection"
-	"hermes-relay/internal/domain/entities"
-	chartview "hermes-relay/internal/domain/projections/chart-entity"
-	codeview "hermes-relay/internal/domain/projections/code-entity"
-	fileview "hermes-relay/internal/domain/projections/file-entity"
-	projectview "hermes-relay/internal/domain/projections/project-entity"
 	"hermes-relay/internal/domain/projections/registry"
 	"hermes-relay/internal/handlers/http"
 	"hermes-relay/internal/handlers/http/websocket"
@@ -28,51 +22,10 @@ func SetupHTTPHandlers(r chi.Router, publisher *dispatch.InMemoryPublisher, regi
 	r.Use(http.WithHeaders(http.DefaultHeaders))
 
 	r.Post("/commands", http.CommandHandler(publisher.Publish))
-	//r.Post("/events", http.EventHandler(publisher.Publish))
 	r.Get("/ws/{projectId}", websocket.Handler(hub, registryState, publisher.Subscribe))
 
-	r.Route("/schemas", func(r chi.Router) {
-		r.Get("/project", http.SchemaHandler(entities.ProjectSchema))
-		r.Get("/file", http.SchemaHandler(entities.FileSchema))
-		r.Get("/code", http.SchemaHandler(entities.CodeSchema))
-		r.Get("/chart", http.SchemaHandler(entities.ChartSchema))
-	})
-
-	// ⚠️ No joins / complex queries
-	// That would probably mean that you'd have to reduce into a new entity
-	r.Route("/queries/projects", func(r chi.Router) {
-		// Todo: r.Use(middleware.RequireAuth)
-
-		r.Get("/", http.Query(func(query projection.PaginationQuery) []projection.PaginationResult[projectview.ProjectView] {
-			return registry.QueryAllProjects(registryState, query)
-		}))
-
-		r.Route("/{projectId}", func(r chi.Router) {
-			// Todo: r.Use(middleware.RequireProjectAccess)
-
-			r.Get("/", http.ProjectQuery(registryState, projectview.QueryProject))
-			r.Get("/events", http.RegistryQuery(registryState, registry.QueryProjectEvents))
-			r.Get("/search", http.ProjectQuery(registryState, fileview.SearchProject))
-
-			r.Route("/files", func(r chi.Router) {
-				r.Get("/", http.ProjectQuery(registryState, fileview.QueryFiles))
-				r.Get("/{id}", http.ProjectQuery(registryState, fileview.QueryFile))
-				r.Get("/{id}/parts", http.ProjectQuery(registryState, fileview.QueryFileParts))
-			})
-
-			r.Get("/codebook", http.ProjectQuery(registryState, fileview.QueryCodebook))
-
-			r.Route("/codes", func(r chi.Router) {
-				r.Get("/", http.ProjectQuery(registryState, codeview.QueryCodes))
-				r.Get("/{id}", http.ProjectQuery(registryState, codeview.QueryCode))
-				r.Get("/{id}/sections", http.ProjectQuery(registryState, codeview.QuerySections))
-			})
-
-			r.Route("/charts", func(r chi.Router) {
-				r.Get("/", http.ProjectQuery(registryState, chartview.QueryCharts))
-				r.Get("/{id}", http.ProjectQuery(registryState, chartview.QueryChart))
-			})
-		})
+	r.Route("/queries/projects/{projectId}", func(r chi.Router) {
+		r.Get("/events", http.RegistryQuery(registryState, registry.QueryProjectEvents))
 	})
 
 	utils.MustNotError(chi.Walk(r, func(method, route string, handler net.Handler, middlewares ...func(net.Handler) net.Handler) error {

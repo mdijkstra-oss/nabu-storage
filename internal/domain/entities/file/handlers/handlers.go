@@ -173,6 +173,29 @@ func findSimilarSection(codeID, text string, sections []file.CodedSection) *file
 	return nil
 }
 
+func isLLMActor(actorType commands.ActorType) bool {
+	return actorType == commands.ActorTypeLLM
+}
+
+func validateLLMReasons(sections []file.AddSectionOp, actorType commands.ActorType) error {
+	if !isLLMActor(actorType) {
+		return nil
+	}
+
+	failures := make(map[int]string)
+	for i, section := range sections {
+		if section.Reason == "" {
+			failures[i] = "reason is required for LLM actor"
+		}
+	}
+
+	if len(failures) > 0 {
+		return utils.ArrayItemErrors("sections", failures)
+	}
+
+	return nil
+}
+
 func mapAddToModified(payload file.AddCodeSectionsPayload) file.ModifiedCodeSectionsPayload {
 	return file.ModifiedCodeSectionsPayload{
 		Operations: utils.Map(payload.Sections, func(op file.AddSectionOp) file.SectionOp {
@@ -214,6 +237,9 @@ func mapRemoveToModified(payload file.RemoveCodeSectionsPayload) file.ModifiedCo
 }
 
 func handleAddCodeSections(proj project.Project, payload file.AddCodeSectionsPayload, msg *commands.AnyMessage) (file.ModifiedCodeSectionsPayload, error) {
+	if err := validateLLMReasons(payload.Sections, msg.Actor.ActorType); err != nil {
+		return file.ModifiedCodeSectionsPayload{}, err
+	}
 	return normalizeModifiedSections(proj, mapAddToModified(payload), msg)
 }
 

@@ -1,22 +1,14 @@
 package fileview
 
 import (
-	"hermes-relay/internal/cqrs/projection"
 	"hermes-relay/internal/domain/entities/file"
+	"hermes-relay/internal/domain/entities/project"
 )
 
-func GetByID(files []file.File, id string) *file.File {
-	return projection.GetByID(files, id)
-}
-
-func Exists(files []file.File, id string) bool {
-	return projection.EntityExists(files, id)
-}
-
-func FindSection(f file.File, sectionID string) *file.CodedSection {
-	for i := range f.Codes {
-		if f.Codes[i].ID == sectionID {
-			return &f.Codes[i]
+func FindFileByType(proj project.Project, fileType file.FileType) *file.File {
+	for _, f := range proj.Files {
+		if f.Type == fileType {
+			return &f
 		}
 	}
 	return nil
