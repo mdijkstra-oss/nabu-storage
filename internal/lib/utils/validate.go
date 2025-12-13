@@ -30,14 +30,20 @@ func ValidRadixColor(color string) bool {
 	return radixColors[color]
 }
 
+func ValidCodeSlug(slug string) bool {
+	pattern := `^[a-z]+(-[a-z]+)*:[a-z]+(-[a-z]+)*$`
+	return regexp.MustCompile(pattern).MatchString(slug)
+}
+
 func init() {
-	registerFieldValidation("code_slug", func(value string) bool {
-		pattern := `^[a-z]+(-[a-z]+)*:[a-z]+(-[a-z]+)*$`
-		return regexp.MustCompile(pattern).MatchString(value)
-	})
+	registerFieldValidation("code_slug", ValidCodeSlug)
 
 	registerFieldValidation("valid_id", func(value string) bool {
 		return ValidID(value)
+	})
+
+	registerFieldValidation("valid_id_or_slug", func(value string) bool {
+		return ValidID(value) || ValidCodeSlug(value)
 	})
 
 	registerFieldValidation("radix_color", ValidRadixColor)

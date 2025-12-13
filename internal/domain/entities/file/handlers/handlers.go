@@ -7,6 +7,7 @@ import (
 	"hermes-relay/internal/domain/entities/code"
 	"hermes-relay/internal/domain/entities/file"
 	"hermes-relay/internal/domain/entities/project"
+	codeview "hermes-relay/internal/domain/projections/code-entity"
 	fileview "hermes-relay/internal/domain/projections/file-entity"
 	"hermes-relay/internal/domain/projections/registry"
 	"hermes-relay/internal/lib/text-search/find"
@@ -286,6 +287,59 @@ func validateCodeExists(codeID string, codes map[string]code.Code) error {
 	return nil
 }
 
+func isSlug(value string) bool {
+	return value != "" && !utils.ValidID(value)
+}
+
+func resolveCodeID(codeID string, codes map[string]code.Code) (string, error) {
+	if codeID == "" {
+		return "", nil
+	}
+
+	if !isSlug(codeID) {
+		return codeID, nil
+	}
+
+	codesList := utils.Values(codes)
+	found := codeview.FindCodeBySlug(codesList, codeID)
+	if found == nil {
+		return "", fmt.Errorf("code not found: %s", codeID)
+	}
+	return found.ID, nil
+}
+
+func normalizeOperationCodeID(op file.SectionOp, codes map[string]code.Code) (file.SectionOp, error) {
+	resolvedCodeID, err := resolveCodeID(op.CodeID, codes)
+	if err != nil {
+		return file.SectionOp{}, err
+	}
+
+	return file.SectionOp{
+		Op:         op.Op,
+		ID:         op.ID,
+		CodeID:     resolvedCodeID,
+		Text:       op.Text,
+		Reason:     op.Reason,
+		Confidence: op.Confidence,
+	}, nil
+}
+
+func normalizeOperationCodeIDs(operations []file.SectionOp, codes map[string]code.Code) ([]file.SectionOp, map[int]string) {
+	normalized := []file.SectionOp{}
+	failures := make(map[int]string)
+
+	for i, op := range operations {
+		normalizedOp, err := normalizeOperationCodeID(op, codes)
+		if err != nil {
+			failures[i] = err.Error()
+			continue
+		}
+		normalized = append(normalized, normalizedOp)
+	}
+
+	return normalized, failures
+}
+
 func normalizeAddOp(op file.SectionOp, ctx operationContext) (file.SectionOp, error) {
 	if err := validateCodeExists(op.CodeID, ctx.projectCodes); err != nil {
 		return file.SectionOp{}, err
@@ -356,6 +410,8 @@ func normalizeModifiedSections(proj project.Project, payload file.ModifiedCodeSe
 		return file.ModifiedCodeSectionsPayload{}, err
 	}
 
+	normalizedOps, codeIDFailures := normalizeOperationCodeIDs(payload.Operations, proj.Codes)
+
 	f := proj.Files[msg.AggregateID]
 	ctx := operationContext{
 		fileContent:  f.Content,
@@ -366,7 +422,11 @@ func normalizeModifiedSections(proj project.Project, payload file.ModifiedCodeSe
 	operations := []file.SectionOp{}
 	failures := make(map[int]string)
 
-	for i, op := range payload.Operations {
+	for k, v := range codeIDFailures {
+		failures[k] = v
+	}
+
+	for i, op := range normalizedOps {
 		handler, exists := operationHandlers[op.Op]
 		if !exists {
 			panic("unknown operation type: " + op.Op)

@@ -1,7 +1,7 @@
 package file
 
 type AddSectionOp struct {
-	CodeID     string     `json:"code_id" validate:"required,valid_id"`
+	CodeID     string     `json:"code_id" validate:"required,valid_id_or_slug"`
 	Text       string     `json:"text" validate:"required,min=1,max=1500"`
 	Reason     string     `json:"reason" validate:"max=1500"`
 	Confidence Confidence `json:"confidence" validate:"required,oneof=high medium low"`
@@ -9,7 +9,7 @@ type AddSectionOp struct {
 
 type UpdateSectionOp struct {
 	ID         string      `json:"id" validate:"required,valid_id"`
-	CodeID     string      `json:"code_id,omitempty" validate:"omitempty,valid_id"`
+	CodeID     string      `json:"code_id,omitempty" validate:"omitempty,valid_id_or_slug"`
 	Text       string      `json:"text,omitempty" validate:"omitempty,min=1,max=1500"`
 	Reason     string      `json:"reason,omitempty" validate:"max=1500"`
 	Confidence *Confidence `json:"confidence,omitempty" validate:"omitempty,oneof=high medium low"`
