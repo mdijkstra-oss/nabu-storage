@@ -10,13 +10,14 @@ import (
 	"hermes-relay/internal/lib/utils"
 	"log/slog"
 	"net/http"
+	"time"
 )
 
-// Todo: Add tests for Handler
-// - Websocket upgrade with missing projectID
-// - Initial snapshot sent on connection
-// - Event forwarding filters by projectID
-// - Connection cleanup on close
+const (
+	pongWait   = 30 * time.Second
+	pingPeriod = (pongWait * 9) / 10
+	writeWait  = 10 * time.Second
+)
 
 type Message struct {
 	Type      string `json:"type"`
@@ -49,6 +50,31 @@ func Handler(hub *Hub, registryState *registry.RegistryState, subscribe func(dis
 	}
 }
 
+func setupPongHandler(conn *websocket.Conn) {
+	conn.SetReadDeadline(time.Now().Add(pongWait))
+	conn.SetPongHandler(func(string) error {
+		conn.SetReadDeadline(time.Now().Add(pongWait))
+		return nil
+	})
+}
+
+func startPingSender(conn *websocket.Conn, done chan struct{}) {
+	ticker := time.NewTicker(pingPeriod)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if err := conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				return
+			}
+		case <-done:
+			return
+		}
+	}
+}
+
 func handleConnection(
 	conn *websocket.Conn,
 	projectID string,
@@ -58,6 +84,12 @@ func handleConnection(
 ) {
 	hub.Register(projectID, conn)
 	defer hub.Unregister(projectID, conn)
+
+	setupPongHandler(conn)
+
+	done := make(chan struct{})
+	defer close(done)
+	go startPingSender(conn, done)
 
 	sendInitialSnapshot(conn, projectID, registryState)
 
