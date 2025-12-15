@@ -13,7 +13,6 @@ func NewRouter(_ *registry.RegistryState) dispatch.CommandRouter {
 			dispatch.ToUpdateEntityEvent[project.UpdateProjectPayload, project.UpdatedProjectPayload](project.UpdateProject, project.UpdatedProject),
 			dispatch.ToEmptyDomainEvent(project.PinProject, project.PinnedProject),
 			dispatch.ToEmptyDomainEvent(project.UnpinProject, project.UnpinnedProject),
-			dispatch.ToUpdateEntityEvent[project.ChangePhasePayload, project.ChangedPhasePayload](project.ChangePhase, project.ChangedPhase),
 		),
 		dispatch.ToEmptyDomainEvent(project.DeleteProject, project.DeletedProject),
 	)

@@ -20,7 +20,6 @@ var projectReducer = projection.WithVersionIncrement(
 				projection.For(project.UpdatedProject, projection.UpdatedEntity[Project, project.UpdatedProjectPayload]),
 				projection.For(project.PinnedProject, projection.PinnedEntity[Project]),
 				projection.For(project.UnpinnedProject, projection.UnpinnedEntity[Project]),
-				projection.For(project.ChangedPhase, ChangedPhaseReducer),
 				projection.For(project.DeletedProject, projection.DeletedEntity[Project]),
 			),
 		),
@@ -71,10 +70,4 @@ func CreatedProjectReducer(_ *Project, message *commands.AnyMessage, payload *pr
 		Codes:       make(map[string]code.Code),
 		Files:       make(map[string]file.File),
 	}
-}
-
-func ChangedPhaseReducer(current *Project, _ *commands.AnyMessage, payload *project.ChangedPhasePayload) *Project {
-	updated := *current
-	updated.Phase = payload.Phase
-	return &updated
 }
