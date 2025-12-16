@@ -1,7 +1,6 @@
 package project
 
 import (
-	"hermes-relay/internal/domain/entities/chart"
 	"hermes-relay/internal/domain/entities/code"
 	"hermes-relay/internal/domain/entities/file"
 )
@@ -27,9 +26,8 @@ type Project struct {
 	Healthy bool   `json:"healthy"`
 	Version int    `json:"version"`
 	ProjectData
-	Charts map[string]chart.Chart `json:"charts"`
-	Codes  map[string]code.Code   `json:"codes"`
-	Files  map[string]file.File   `json:"files"`
+	Codes map[string]code.Code `json:"codes"`
+	Files map[string]file.File `json:"files"`
 }
 
 func (p Project) GetID() string {
@@ -61,11 +59,6 @@ func (p Project) WithVersion(v int) any {
 func (p Project) WithPinned(pinned bool) any {
 	p.Pinned = pinned
 	return &p
-}
-
-func (p Project) GetChart(id string) (chart.Chart, bool) {
-	c, exists := p.Charts[id]
-	return c, exists
 }
 
 func (p Project) GetCode(id string) (code.Code, bool) {

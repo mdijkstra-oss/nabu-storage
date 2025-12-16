@@ -51,9 +51,9 @@ func Handler(hub *Hub, registryState *registry.RegistryState, subscribe func(dis
 }
 
 func setupPongHandler(conn *websocket.Conn) {
-	conn.SetReadDeadline(time.Now().Add(pongWait))
+	utils.ShouldWork(conn.SetReadDeadline(time.Now().Add(pongWait)))
 	conn.SetPongHandler(func(string) error {
-		conn.SetReadDeadline(time.Now().Add(pongWait))
+		utils.ShouldWork(conn.SetReadDeadline(time.Now().Add(pongWait)))
 		return nil
 	})
 }
@@ -65,7 +65,7 @@ func startPingSender(conn *websocket.Conn, done chan struct{}) {
 	for {
 		select {
 		case <-ticker.C:
-			conn.SetWriteDeadline(time.Now().Add(writeWait))
+			utils.ShouldWork(conn.SetWriteDeadline(time.Now().Add(writeWait)))
 			if err := conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
 			}
