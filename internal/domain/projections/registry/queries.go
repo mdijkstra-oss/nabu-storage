@@ -5,9 +5,8 @@ import (
 	"hermes-relay/internal/cqrs/projection"
 )
 
-func QueryProjectEvents(query projection.CursorQuery, projectID string, state *RegistryState) projection.CursorResult[commands.AnyMessage] {
+func QueryProjectEvents(query projection.EmptyQuery, projectID string, state *RegistryState) []commands.AnyMessage {
 	events := state.GetProjectEvents(projectID)
-	return projection.CursorFilter(events, query, func(m commands.AnyMessage) string {
-		return m.GetActorType()
-	})
+	// TODO: paginate on this query
+	return events
 }

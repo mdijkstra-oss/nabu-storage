@@ -16,6 +16,10 @@ start:
 start-prod:
 	@set -a && . ./.prod.env && set +a && go run cmd/main.go
 
+.PHONY: sample
+sample:
+	@set -a && . ./.env && export PERSISTENCE_DIR=./sample-data && go run cmd/main.go
+
 .PHONY: dev
 dev:
 	watchexec -e go -r make start
@@ -41,3 +45,9 @@ coverage:
 coverage-all:
 	@go test -coverpkg=./... -coverprofile=coverage-all.out ./...
 	@go tool cover -html=coverage-all.out
+
+.PHONY: submit
+submit:
+	@curl -X POST http://localhost:$(PORT)/commands \
+		-H "Content-Type: application/json" \
+		-d '$(JSON)'
