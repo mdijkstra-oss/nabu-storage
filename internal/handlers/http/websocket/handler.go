@@ -6,6 +6,8 @@ import (
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/cqrs/dispatch"
 	"hermes-relay/internal/cqrs/patches"
+	"hermes-relay/internal/domain/entities/file"
+	"hermes-relay/internal/domain/entities/project"
 	"hermes-relay/internal/domain/projections/registry"
 	"hermes-relay/internal/lib/utils"
 	"log/slog"
@@ -39,6 +41,8 @@ func Handler(hub *Hub, registryState *registry.RegistryState, subscribe func(dis
 			return
 		}
 
+		fileID := r.URL.Query().Get("fileId")
+
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -46,7 +50,7 @@ func Handler(hub *Hub, registryState *registry.RegistryState, subscribe func(dis
 		}
 		defer func() { utils.ShouldWork(conn.Close()) }()
 
-		handleConnection(conn, projectID, hub, registryState, subscribe)
+		handleConnection(conn, projectID, fileID, hub, registryState, subscribe)
 	}
 }
 
@@ -78,6 +82,7 @@ func startPingSender(conn *websocket.Conn, done chan struct{}) {
 func handleConnection(
 	conn *websocket.Conn,
 	projectID string,
+	fileID string,
 	hub *Hub,
 	registryState *registry.RegistryState,
 	subscribe func(dispatch.CommandRouter) func(),
@@ -91,7 +96,7 @@ func handleConnection(
 	defer close(done)
 	go startPingSender(conn, done)
 
-	sendInitialSnapshot(conn, projectID, registryState)
+	sendInitialSnapshot(conn, projectID, fileID, registryState)
 
 	unsubscribe := subscribe(dispatch.LimitOnType(
 		commands.SystemEvent,
@@ -113,7 +118,7 @@ func handleConnection(
 	}
 }
 
-func sendInitialSnapshot(conn *websocket.Conn, projectID string, registryState *registry.RegistryState) {
+func sendInitialSnapshot(conn *websocket.Conn, projectID string, fileID string, registryState *registry.RegistryState) {
 	utils.GuardWith(func() {
 		project := registryState.GetProject(projectID)
 		if project == nil {
@@ -121,14 +126,42 @@ func sendInitialSnapshot(conn *websocket.Conn, projectID string, registryState *
 			return
 		}
 
+		filteredProject := filterProjectForFile(project, fileID)
+
 		msg := Message{
 			Type:      "snapshot",
 			ProjectID: projectID,
-			Data:      project,
+			Data:      filteredProject,
 		}
 
 		utils.ShouldWork(conn.WriteJSON(msg))
 	}, "projectID", projectID, "operation", "sendInitialSnapshot")
+}
+
+func filterProjectForFile(p *project.Project, fileID string) *project.Project {
+	if fileID == "" {
+		return p
+	}
+
+	// TODO: Optimize performance - this is a temporary workaround, implement proper selective loading
+	filteredFiles := make(map[string]file.File)
+	for id, f := range p.Files {
+		if id == fileID {
+			filteredFiles[id] = f
+		} else {
+			filteredFiles[id] = withoutContentAndCodes(f)
+		}
+	}
+
+	filtered := *p
+	filtered.Files = filteredFiles
+	return &filtered
+}
+
+func withoutContentAndCodes(f file.File) file.File {
+	f.Content = ""
+	f.Codes = []file.CodedSection{}
+	return f
 }
 
 func forwardProjectEvent[T patches.ProjectEventPayload](

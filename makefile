@@ -7,6 +7,7 @@ setup:
 	lefthook install
 	go install gotest.tools/gotestsum@latest
 	go install github.com/watchexec/watchexec@latest
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 
 .PHONY: start
 start:
