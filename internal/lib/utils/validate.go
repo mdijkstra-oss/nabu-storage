@@ -47,4 +47,7 @@ func init() {
 	})
 
 	registerFieldValidation("radix_color", ValidRadixColor)
+
+	registerFieldValidation("project_id", ValidProjectID)
+	registerFieldValidation("document_id", ValidDocumentID)
 }

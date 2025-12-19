@@ -19,7 +19,7 @@ const (
 )
 
 type CreateDocumentPayload struct {
-	ProjectID   string `json:"project_id" validate:"required,valid_id"`
+	ProjectID   string `json:"project_id" validate:"required,project_id" normalize:"project_id"`
 	Name        string `json:"name" validate:"required,max=200" normalize:"trim"`
 	Description string `json:"description" validate:"max=2000" normalize:"trim"`
 }

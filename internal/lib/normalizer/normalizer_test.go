@@ -214,3 +214,56 @@ func TestNormalizeValue(t *testing.T) {
 		})
 	}
 }
+
+func TestNormalizeIDFields(t *testing.T) {
+	tests := []struct {
+		name   string
+		input  any
+		expect any
+	}{
+		{
+			name: "project_id normalizes plain uuid",
+			input: &struct {
+				ProjectID string `normalize:"project_id"`
+			}{ProjectID: "550e8400-e29b-41d4-a716-446655440000"},
+			expect: &struct {
+				ProjectID string `normalize:"project_id"`
+			}{ProjectID: "project_550e8400-e29b-41d4-a716-446655440000"},
+		},
+		{
+			name: "project_id keeps already prefixed",
+			input: &struct {
+				ProjectID string `normalize:"project_id"`
+			}{ProjectID: "project_550e8400-e29b-41d4-a716-446655440000"},
+			expect: &struct {
+				ProjectID string `normalize:"project_id"`
+			}{ProjectID: "project_550e8400-e29b-41d4-a716-446655440000"},
+		},
+		{
+			name: "document_id normalizes plain uuid",
+			input: &struct {
+				DocumentID string `normalize:"document_id"`
+			}{DocumentID: "550e8400-e29b-41d4-a716-446655440000"},
+			expect: &struct {
+				DocumentID string `normalize:"document_id"`
+			}{DocumentID: "document_550e8400-e29b-41d4-a716-446655440000"},
+		},
+		{
+			name: "document_id keeps already prefixed",
+			input: &struct {
+				DocumentID string `normalize:"document_id"`
+			}{DocumentID: "document_550e8400-e29b-41d4-a716-446655440000"},
+			expect: &struct {
+				DocumentID string `normalize:"document_id"`
+			}{DocumentID: "document_550e8400-e29b-41d4-a716-446655440000"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := Normalize(tt.input)
+			test_helpers.AssertError(t, err, "", "error")
+			test_helpers.AssertEqual(t, tt.input, tt.expect, "normalized result")
+		})
+	}
+}

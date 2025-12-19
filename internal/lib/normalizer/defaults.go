@@ -1,6 +1,7 @@
 package normalizer
 
 import (
+	"hermes-relay/internal/lib/utils"
 	"regexp"
 	"strings"
 )
@@ -29,10 +30,20 @@ func Uppercase(s string) string {
 	return strings.ToUpper(s)
 }
 
+func ProjectID(s string) string {
+	return utils.NormalizeID("project", s)
+}
+
+func DocumentID(s string) string {
+	return utils.NormalizeID("document", s)
+}
+
 func init() {
 	defaults["trim"] = Trim
 	defaults["collapse"] = Collapse
 	defaults["kebab"] = Kebab
 	defaults["lowercase"] = Lowercase
 	defaults["uppercase"] = Uppercase
+	defaults["project_id"] = ProjectID
+	defaults["document_id"] = DocumentID
 }
