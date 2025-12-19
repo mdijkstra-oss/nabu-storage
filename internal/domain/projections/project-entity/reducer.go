@@ -4,9 +4,11 @@ import (
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/cqrs/projection"
 	"hermes-relay/internal/domain/entities/code"
+	"hermes-relay/internal/domain/entities/document"
 	"hermes-relay/internal/domain/entities/file"
 	"hermes-relay/internal/domain/entities/project"
 	codeview "hermes-relay/internal/domain/projections/code-entity"
+	documentview "hermes-relay/internal/domain/projections/document-entity"
 	fileview "hermes-relay/internal/domain/projections/file-entity"
 )
 
@@ -46,6 +48,15 @@ var Reducer = projection.WithImmutabilityCheck(
 				},
 				fileview.Reducer,
 			),
+			projection.ApplyChildReducerToMap(
+				func(p *Project) map[string]document.Document { return p.Documents },
+				func(p *Project, documents map[string]document.Document) *Project {
+					updated := *p
+					updated.Documents = documents
+					return &updated
+				},
+				documentview.Reducer,
+			),
 		),
 	),
 )
@@ -57,5 +68,6 @@ func CreatedProjectReducer(_ *Project, message *commands.AnyMessage, payload *pr
 		ProjectData: *payload,
 		Codes:       make(map[string]code.Code),
 		Files:       make(map[string]file.File),
+		Documents:   make(map[string]document.Document),
 	}
 }

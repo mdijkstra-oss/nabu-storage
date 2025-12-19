@@ -3,6 +3,7 @@ package registry
 import (
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/domain/entities/code"
+	"hermes-relay/internal/domain/entities/document"
 	"hermes-relay/internal/domain/entities/file"
 	"hermes-relay/internal/domain/entities/project"
 	th "hermes-relay/internal/lib/test-helpers"
@@ -120,6 +121,7 @@ func projectWith(id, name, desc string, codes map[string]code.Code, files map[st
 			ProjectData: project.ProjectData{Name: name, Description: desc},
 			Codes:       codes,
 			Files:       files,
+			Documents:   make(map[string]document.Document),
 		}
 	}
 }
