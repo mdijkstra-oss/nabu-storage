@@ -3,6 +3,7 @@ package registry
 import (
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/domain/entities/project"
+	"hermes-relay/internal/lib/utils"
 	"sync"
 )
 
@@ -34,6 +35,12 @@ func (rs *RegistryState) GetProject(projectID string) *project.Project {
 		return &proj
 	}
 	return nil
+}
+
+func (rs *RegistryState) GetAllProjects() []project.Project {
+	rs.mu.RLock()
+	defer rs.mu.RUnlock()
+	return utils.Values(rs.state.Projects)
 }
 
 func (rs *RegistryState) GetProjectIDForEntity(aggregateType commands.AggregateType, aggregateID string) string {

@@ -80,7 +80,6 @@ func TestCommandRouter(t *testing.T) {
 				project.CreatedProjectPayload{
 					Name:        "New Project",
 					Description: "Test",
-					Phase:       project.PhaseExplore,
 				},
 				project.EntityName,
 				"",

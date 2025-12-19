@@ -20,3 +20,23 @@ type ProjectView struct {
 func (pv ProjectView) GetID() string {
 	return pv.ID
 }
+
+type ProjectSummary struct {
+	ID      string `json:"id"`
+	Version int    `json:"version"`
+	Healthy bool   `json:"healthy"`
+	project.ProjectData
+}
+
+func (ps ProjectSummary) GetID() string {
+	return ps.ID
+}
+
+func ToSummary(p project.Project) ProjectSummary {
+	return ProjectSummary{
+		ID:          p.ID,
+		Version:     p.Version,
+		Healthy:     p.Healthy,
+		ProjectData: p.ProjectData,
+	}
+}

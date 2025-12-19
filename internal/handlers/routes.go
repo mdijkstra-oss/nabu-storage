@@ -5,6 +5,8 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"hermes-relay/internal/cqrs/dispatch"
+	"hermes-relay/internal/cqrs/projection"
+	"hermes-relay/internal/domain/projections/project-entity"
 	"hermes-relay/internal/domain/projections/registry"
 	"hermes-relay/internal/handlers/http"
 	"hermes-relay/internal/handlers/http/websocket"
@@ -24,8 +26,14 @@ func SetupHTTPHandlers(r chi.Router, publisher *dispatch.InMemoryPublisher, regi
 	r.Post("/commands", http.CommandHandler(publisher.Publish))
 	r.Get("/ws/{projectId}", websocket.Handler(hub, registryState, publisher.Subscribe))
 
-	r.Route("/queries/projects/{projectId}", func(r chi.Router) {
-		r.Get("/events", http.RegistryQuery(registryState, registry.QueryProjectEvents))
+	r.Route("/queries/projects", func(r chi.Router) {
+		r.Get("/", http.Query(func(query projection.PaginationQuery) []projection.PaginationResult[projectview.ProjectSummary] {
+			return registry.QueryAllProjects(registryState, query)
+		}))
+
+		r.Route("/{projectId}", func(r chi.Router) {
+			r.Get("/events", http.RegistryQuery(registryState, registry.QueryProjectEvents))
+		})
 	})
 
 	utils.MustNotError(chi.Walk(r, func(method, route string, handler net.Handler, middlewares ...func(net.Handler) net.Handler) error {
