@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/cqrs/dispatch"
-	"hermes-relay/internal/domain/entities/file"
+	"hermes-relay/internal/domain/entities/document"
 	"hermes-relay/internal/domain/entities/project"
 	th "hermes-relay/internal/lib/test-helpers"
 	"hermes-relay/internal/lib/test-helpers/domain-helpers"
@@ -100,12 +100,12 @@ func TestPersistence(t *testing.T) {
 				domain_helpers.NewDomainEvent(project.EntityName, "project-1", project.CreatedProject, project.CreatedProjectPayload{
 					Name: "Test",
 				}),
-				domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.CreatedFile, file.CreatedFilePayload{
-					FileData: file.FileData{ProjectID: "project-1", Name: "test.md", Type: file.FileTypeCorpus, Locked: true},
+				domain_helpers.NewDomainEvent(document.EntityName, "doc-1", document.CreatedDocument, document.CreatedDocumentPayload{
+					ProjectID: "project-1", Name: "test.md",
 				}),
 			},
 			Expected: []FileContent{
-				{Path: "File/file-1.jsonl", Contains: []string{`"action":"CreatedFile"`, `"aggregate_id":"file-1"`, `"aggregate_type":"File"`, `"version":1`}},
+				{Path: "Document/doc-1.jsonl", Contains: []string{`"action":"CreatedDocument"`, `"aggregate_id":"doc-1"`, `"aggregate_type":"Document"`, `"version":1`}},
 				{Path: "Project/project-1.jsonl", Contains: []string{`"aggregate_id":"project-1"`, `"aggregate_type":"Project"`, `"name":"Test"`, `"version":1`}},
 			},
 			ExpectErr: "",
@@ -116,20 +116,20 @@ func TestPersistence(t *testing.T) {
 				domain_helpers.NewDomainEvent(project.EntityName, "project-1", project.CreatedProject, project.CreatedProjectPayload{
 					Name: "Test",
 				}),
-				domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.CreatedFile, file.CreatedFilePayload{
-					FileData: file.FileData{ProjectID: "project-1", Name: "test1.md", Type: file.FileTypeCorpus, Locked: true},
+				domain_helpers.NewDomainEvent(document.EntityName, "doc-1", document.CreatedDocument, document.CreatedDocumentPayload{
+					ProjectID: "project-1", Name: "test1.md",
 				}),
-				domain_helpers.NewDomainEvent(file.EntityName, "file-2", file.CreatedFile, file.CreatedFilePayload{
-					FileData: file.FileData{ProjectID: "project-1", Name: "test2.md", Type: file.FileTypeCorpus, Locked: true},
+				domain_helpers.NewDomainEvent(document.EntityName, "doc-2", document.CreatedDocument, document.CreatedDocumentPayload{
+					ProjectID: "project-1", Name: "test2.md",
 				}),
-				domain_helpers.NewDomainEvent(file.EntityName, "file-1", "UpdatedFile", nil),
+				domain_helpers.NewDomainEvent(document.EntityName, "doc-1", "UpdatedDocument", nil),
 				domain_helpers.NewDomainEvent(project.EntityName, "project-2", project.CreatedProject, project.CreatedProjectPayload{
 					Name: "Test 2",
 				}),
 			},
 			Expected: []FileContent{
-				{Path: "File/file-1.jsonl", Contains: []string{`"action":"CreatedFile"`, `"action":"UpdatedFile"`, `"aggregate_id":"file-1"`, `"version":1`}},
-				{Path: "File/file-2.jsonl", Contains: []string{`"action":"CreatedFile"`, `"aggregate_id":"file-2"`, `"version":1`}},
+				{Path: "Document/doc-1.jsonl", Contains: []string{`"action":"CreatedDocument"`, `"action":"UpdatedDocument"`, `"aggregate_id":"doc-1"`, `"version":1`}},
+				{Path: "Document/doc-2.jsonl", Contains: []string{`"action":"CreatedDocument"`, `"aggregate_id":"doc-2"`, `"version":1`}},
 				{Path: "Project/project-1.jsonl", Contains: []string{`"aggregate_id":"project-1"`, `"name":"Test"`, `"version":1`}},
 				{Path: "Project/project-2.jsonl", Contains: []string{`"aggregate_id":"project-2"`, `"name":"Test 2"`, `"version":1`}},
 			},

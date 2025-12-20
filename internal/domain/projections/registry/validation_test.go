@@ -3,8 +3,7 @@ package registry
 import (
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/cqrs/dispatch"
-	"hermes-relay/internal/domain/entities/code"
-	"hermes-relay/internal/domain/entities/file"
+	"hermes-relay/internal/domain/entities/document"
 	"hermes-relay/internal/domain/entities/project"
 	"hermes-relay/internal/lib/test-helpers/domain-helpers"
 	"testing"
@@ -13,8 +12,7 @@ import (
 func TestEnsureExpectedVersion(t *testing.T) {
 	createProject := domain_helpers.NewDomainEvent(project.EntityName, "proj-1", project.CreatedProject, &project.CreatedProjectPayload{Name: "Test"})
 	updateProject := domain_helpers.NewDomainEvent(project.EntityName, "proj-1", project.UpdatedProject, &project.UpdatedProjectPayload{Name: "Updated"})
-	createCode := domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.CreatedCode, &code.CreatedCodePayload{ProjectID: "proj-1", Slug: "test", Color: "red", Definition: "Test"})
-	createFile := domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.CreatedFile, &file.CreatedFilePayload{FileData: file.FileData{ProjectID: "proj-1", Name: "test.md", Type: file.FileTypeCorpus}, Content: "", Codes: []file.CodedSection{}})
+	createDocument := domain_helpers.NewDomainEvent(document.EntityName, "doc-1", document.CreatedDocument, &document.CreatedDocumentPayload{ProjectID: "proj-1", Name: "test.md"})
 
 	handlerCalled := false
 	passthrough := func(msg *commands.AnyMessage, pub dispatch.PublishFunc) (*commands.AnyMessage, error) {
@@ -31,9 +29,8 @@ func TestEnsureExpectedVersion(t *testing.T) {
 		{"No expected version passes", []*commands.AnyMessage{createProject}, domain_helpers.NewCommand(project.EntityName, "proj-1", project.UpdateProject, nil), ""},
 		{"Project match", []*commands.AnyMessage{createProject}, domain_helpers.NewCommandWithExpectedVersion(project.EntityName, "proj-1", project.UpdateProject, nil, 1), ""},
 		{"Project mismatch", []*commands.AnyMessage{createProject, updateProject}, domain_helpers.NewCommandWithExpectedVersion(project.EntityName, "proj-1", project.UpdateProject, nil, 1), "version conflict: expected 1, actual 2"},
-		{"Code match", []*commands.AnyMessage{createProject, createCode}, domain_helpers.NewCommandWithExpectedVersion(code.EntityName, "code-1", code.UpdateCode, nil, 1), ""},
-		{"File match", []*commands.AnyMessage{createProject, createFile}, domain_helpers.NewCommandWithExpectedVersion(file.EntityName, "file-1", file.UpdateFile, nil, 1), ""},
-		{"Non-existent entity passes", []*commands.AnyMessage{createProject}, domain_helpers.NewCommandWithExpectedVersion(code.EntityName, "nonexistent", code.UpdateCode, nil, 1), ""},
+		{"Document match", []*commands.AnyMessage{createProject, createDocument}, domain_helpers.NewCommandWithExpectedVersion(document.EntityName, "doc-1", document.UpdateDocument, nil, 1), ""},
+		{"Non-existent entity passes", []*commands.AnyMessage{createProject}, domain_helpers.NewCommandWithExpectedVersion(document.EntityName, "nonexistent", document.UpdateDocument, nil, 1), ""},
 	}
 
 	for _, tc := range tests {

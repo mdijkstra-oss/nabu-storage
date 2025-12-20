@@ -2,9 +2,7 @@ package registry
 
 import (
 	"hermes-relay/internal/cqrs/commands"
-	"hermes-relay/internal/domain/entities/code"
 	"hermes-relay/internal/domain/entities/document"
-	"hermes-relay/internal/domain/entities/file"
 	"hermes-relay/internal/domain/entities/project"
 	th "hermes-relay/internal/lib/test-helpers"
 	"hermes-relay/internal/lib/test-helpers/domain-helpers"
@@ -22,34 +20,25 @@ func TestRegistryReducer(t *testing.T) {
 				Description: "A test project",
 			}),
 			Expected: registryWith(
-				projectWith("project-1", "Test Project", "A test project", nil, nil),
+				projectWith("project-1", "Test Project", "A test project", nil),
 			),
 		},
 		{
-			Name:    "CreatedCode adds code to project and updates lookup",
+			Name:    "CreatedDocument adds document to project and updates lookup",
 			Initial: registryWith(emptyProject("project-1", "Test Project")),
-			Event:   domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.CreatedCode, &code.CreatedCodePayload{ProjectID: "project-1", Slug: "test-code", Color: "blue", Definition: "Test code"}),
+			Event:   domain_helpers.NewDomainEvent(document.EntityName, "doc-1", document.CreatedDocument, &document.CreatedDocumentPayload{ProjectID: "project-1", Name: "test.md"}),
 			Expected: registryWith(
-				projectWith("project-1", "Test Project", "", map[string]code.Code{"code-1": testCode("code-1", "project-1", "test-code")}, nil),
-				withLookup("Code:code-1", "project-1"),
+				projectWith("project-1", "Test Project", "", map[string]document.Document{"doc-1": testDocument("doc-1", "project-1", "test.md")}),
+				withLookup("Document:doc-1", "project-1"),
 			),
 		},
 		{
-			Name:    "CreatedFile adds file to project and updates lookup",
-			Initial: registryWith(emptyProject("project-1", "Test Project")),
-			Event:   domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.CreatedFile, &file.CreatedFilePayload{FileData: file.FileData{ProjectID: "project-1", Name: "test.md", Type: file.FileTypeCorpus}, Content: "", Codes: []file.CodedSection{}}),
-			Expected: registryWith(
-				projectWith("project-1", "Test Project", "", nil, map[string]file.File{"file-1": testFile("file-1", "project-1", "test.md")}),
-				withLookup("File:file-1", "project-1"),
-			),
-		},
-		{
-			Name: "DeletedCode removes from lookup table",
+			Name: "DeletedDocument removes from lookup table",
 			Initial: registryWith(
-				projectWith("project-1", "Test Project", "", map[string]code.Code{"code-1": testCode("code-1", "project-1", "test-code")}, nil),
-				withLookup("Code:code-1", "project-1"),
+				projectWith("project-1", "Test Project", "", map[string]document.Document{"doc-1": testDocument("doc-1", "project-1", "test.md")}),
+				withLookup("Document:doc-1", "project-1"),
 			),
-			Event:    domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.DeletedCode, nil),
+			Event:    domain_helpers.NewDomainEvent(document.EntityName, "doc-1", document.DeletedDocument, nil),
 			Expected: registryWith(emptyProject("project-1", "Test Project")),
 		},
 		{
@@ -59,15 +48,15 @@ func TestRegistryReducer(t *testing.T) {
 			Expected: registryWith(),
 		},
 		{
-			Name: "UpdatedCode routes to correct project via lookup",
+			Name: "UpdatedDocument routes to correct project via lookup",
 			Initial: registryWith(
-				projectWith("project-1", "Test Project", "", map[string]code.Code{"code-1": testCode("code-1", "project-1", "old-slug")}, nil),
-				withLookup("Code:code-1", "project-1"),
+				projectWith("project-1", "Test Project", "", map[string]document.Document{"doc-1": testDocument("doc-1", "project-1", "old-name.md")}),
+				withLookup("Document:doc-1", "project-1"),
 			),
-			Event: domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.UpdatedCode, &code.UpdateCodePayload{Slug: "new-slug"}),
+			Event: domain_helpers.NewDomainEvent(document.EntityName, "doc-1", document.UpdatedDocument, &document.UpdatedDocumentPayload{Name: "new-name.md"}),
 			Expected: registryWith(
-				projectWith("project-1", "Test Project", "", map[string]code.Code{"code-1": testCode("code-1", "project-1", "new-slug")}, nil),
-				withLookup("Code:code-1", "project-1"),
+				projectWith("project-1", "Test Project", "", map[string]document.Document{"doc-1": testDocument("doc-1", "project-1", "new-name.md")}),
+				withLookup("Document:doc-1", "project-1"),
 			),
 		},
 		{
@@ -76,11 +65,11 @@ func TestRegistryReducer(t *testing.T) {
 				emptyProject("project-1", "Project 1"),
 				emptyProject("project-2", "Project 2"),
 			),
-			Event: domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.CreatedCode, &code.CreatedCodePayload{ProjectID: "project-1", Slug: "test-code", Color: "blue", Definition: "Test code"}),
+			Event: domain_helpers.NewDomainEvent(document.EntityName, "doc-1", document.CreatedDocument, &document.CreatedDocumentPayload{ProjectID: "project-1", Name: "test.md"}),
 			Expected: registryWith(
-				projectWith("project-1", "Project 1", "", map[string]code.Code{"code-1": testCode("code-1", "project-1", "test-code")}, nil),
+				projectWith("project-1", "Project 1", "", map[string]document.Document{"doc-1": testDocument("doc-1", "project-1", "test.md")}),
 				emptyProject("project-2", "Project 2"),
-				withLookup("Code:code-1", "project-1"),
+				withLookup("Document:doc-1", "project-1"),
 			),
 		},
 	}
@@ -103,25 +92,20 @@ func registryWith(opts ...registryOpt) *Registry {
 }
 
 func emptyProject(id, name string) registryOpt {
-	return projectWith(id, name, "", nil, nil)
+	return projectWith(id, name, "", nil)
 }
 
-func projectWith(id, name, desc string, codes map[string]code.Code, files map[string]file.File) registryOpt {
+func projectWith(id, name, desc string, documents map[string]document.Document) registryOpt {
 	return func(r *Registry) {
-		if codes == nil {
-			codes = make(map[string]code.Code)
-		}
-		if files == nil {
-			files = make(map[string]file.File)
+		if documents == nil {
+			documents = make(map[string]document.Document)
 		}
 		r.Projects[id] = project.Project{
 			ID:          id,
 			Healthy:     true,
 			Version:     1,
 			ProjectData: project.ProjectData{Name: name, Description: desc},
-			Codes:       codes,
-			Files:       files,
-			Documents:   make(map[string]document.Document),
+			Documents:   documents,
 		}
 	}
 }
@@ -132,17 +116,8 @@ func withLookup(key, projectID string) registryOpt {
 	}
 }
 
-func testCode(id, projectID, slug string) code.Code {
-	return code.BuildTestCode(id, code.CodeData{
-		ProjectID:  projectID,
-		Slug:       slug,
-		Color:      "blue",
-		Definition: "Test code",
-	})
-}
-
-func testFile(id, projectID, name string) file.File {
-	return file.BuildTestFile(id, file.FileData{
+func testDocument(id, projectID, name string) document.Document {
+	return document.BuildTestDocument(id, document.DocumentData{
 		ProjectID: projectID,
 		Name:      name,
 	})
@@ -153,9 +128,9 @@ func normalizeRegistry(reg *Registry) *Registry {
 		return nil
 	}
 	for projID, proj := range reg.Projects {
-		for fileID, f := range proj.Files {
-			f.Time = th.DefaultTestTime()
-			proj.Files[fileID] = f
+		for docID, d := range proj.Documents {
+			d.Time = th.DefaultTestTime()
+			proj.Documents[docID] = d
 		}
 		reg.Projects[projID] = proj
 	}
@@ -187,81 +162,44 @@ func TestResolveProjectID(t *testing.T) {
 			Expected: "proj-123",
 		},
 		{
-			Name: "File with ProjectID in payload extracts it",
+			Name: "Document with ProjectID in payload extracts it",
 			Input: resolveProjectIDInput{
 				Setup: func(rs *RegistryState) {},
-				Event: domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.CreatedFile, &file.CreatedFilePayload{
-					FileData: file.FileData{ProjectID: "proj-456", Name: "test.md", Type: file.FileTypeCorpus},
-					Content:  "",
-				Codes:    []file.CodedSection{},
+				Event: domain_helpers.NewDomainEvent(document.EntityName, "doc-1", document.CreatedDocument, &document.CreatedDocumentPayload{
+					ProjectID: "proj-456",
+					Name:      "test.md",
 				}),
 			},
 			Expected: "proj-456",
 		},
 		{
-			Name: "Code with ProjectID in payload extracts it",
-			Input: resolveProjectIDInput{
-				Setup: func(rs *RegistryState) {},
-				Event: domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.CreatedCode, &code.CreatedCodePayload{
-					ProjectID:  "proj-789",
-					Slug:       "test-code",
-					Color:      "blue",
-					Definition: "Test",
-				}),
-			},
-			Expected: "proj-789",
-		},
-		{
-			Name: "File without ProjectID in payload falls back to registry lookup",
+			Name: "Document without ProjectID in payload falls back to registry lookup",
 			Input: resolveProjectIDInput{
 				Setup: func(rs *RegistryState) {
 					rs.ApplyEvent(domain_helpers.NewDomainEvent(project.EntityName, "proj-100", project.CreatedProject, &project.CreatedProjectPayload{
 						Name:        "Test Project",
 						Description: "Test",
 					}))
-					rs.ApplyEvent(domain_helpers.NewDomainEvent(file.EntityName, "file-99", file.CreatedFile, &file.CreatedFilePayload{
-						FileData: file.FileData{ProjectID: "proj-100", Name: "existing.md", Type: file.FileTypeCorpus},
-						Content:  "",
-				Codes:    []file.CodedSection{},
+					rs.ApplyEvent(domain_helpers.NewDomainEvent(document.EntityName, "doc-99", document.CreatedDocument, &document.CreatedDocumentPayload{
+						ProjectID: "proj-100",
+						Name:      "existing.md",
 					}))
 				},
 				Event: &commands.AnyMessage{
-					AggregateType: "File",
-					AggregateID:   "file-99",
+					AggregateType: "Document",
+					AggregateID:   "doc-99",
 					Payload:       []byte("{}"),
 				},
 			},
 			Expected: "proj-100",
 		},
 		{
-			Name: "Code without ProjectID falls back to registry lookup",
-			Input: resolveProjectIDInput{
-				Setup: func(rs *RegistryState) {
-					rs.ApplyEvent(domain_helpers.NewDomainEvent(project.EntityName, "proj-200", project.CreatedProject, &project.CreatedProjectPayload{
-						Name: "Test Project",
-					}))
-					rs.ApplyEvent(domain_helpers.NewDomainEvent(code.EntityName, "code-88", code.CreatedCode, &code.CreatedCodePayload{
-						ProjectID:  "proj-200",
-						Slug:       "test-code",
-						Color:      "red",
-						Definition: "Test",
-					}))
-				},
-				Event: &commands.AnyMessage{
-					AggregateType: "Code",
-					AggregateID:   "code-88",
-					Payload:       []byte("{}"),
-				},
-			},
-			Expected: "proj-200",
-		},
-		{
 			Name: "Unknown entity returns empty string",
 			Input: resolveProjectIDInput{
 				Setup: func(rs *RegistryState) {},
 				Event: &commands.AnyMessage{
-					AggregateType: "File",
-					AggregateID:   "unknown-file",
+					AggregateType: "Document",
+					AggregateID:   "unknown-doc",
 					Payload:       []byte("{}"),
 				},
 			},

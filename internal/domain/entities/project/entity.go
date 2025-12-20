@@ -1,9 +1,7 @@
 package project
 
 import (
-	"hermes-relay/internal/domain/entities/code"
 	"hermes-relay/internal/domain/entities/document"
-	"hermes-relay/internal/domain/entities/file"
 )
 
 type ProjectData struct {
@@ -17,8 +15,6 @@ type Project struct {
 	Healthy bool   `json:"healthy"`
 	Version int    `json:"version"`
 	ProjectData
-	Codes     map[string]code.Code         `json:"codes"`
-	Files     map[string]file.File         `json:"files"`
 	Documents map[string]document.Document `json:"documents"`
 }
 
@@ -51,16 +47,6 @@ func (p Project) WithVersion(v int) any {
 func (p Project) WithPinned(pinned bool) any {
 	p.Pinned = pinned
 	return &p
-}
-
-func (p Project) GetCode(id string) (code.Code, bool) {
-	c, exists := p.Codes[id]
-	return c, exists
-}
-
-func (p Project) GetFile(id string) (file.File, bool) {
-	f, exists := p.Files[id]
-	return f, exists
 }
 
 func (p Project) GetDocument(id string) (document.Document, bool) {

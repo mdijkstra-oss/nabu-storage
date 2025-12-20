@@ -3,13 +3,9 @@ package projectview
 import (
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/cqrs/projection"
-	"hermes-relay/internal/domain/entities/code"
 	"hermes-relay/internal/domain/entities/document"
-	"hermes-relay/internal/domain/entities/file"
 	"hermes-relay/internal/domain/entities/project"
-	codeview "hermes-relay/internal/domain/projections/code-entity"
 	documentview "hermes-relay/internal/domain/projections/document-entity"
-	fileview "hermes-relay/internal/domain/projections/file-entity"
 )
 
 var projectReducer = projection.WithVersionIncrement(
@@ -31,24 +27,6 @@ var Reducer = projection.WithImmutabilityCheck(
 		projectReducer,
 		projection.IfExists(
 			projection.ApplyChildReducerToMap(
-				func(p *Project) map[string]code.Code { return p.Codes },
-				func(p *Project, codes map[string]code.Code) *Project {
-					updated := *p
-					updated.Codes = codes
-					return &updated
-				},
-				codeview.Reducer,
-			),
-			projection.ApplyChildReducerToMap(
-				func(p *Project) map[string]file.File { return p.Files },
-				func(p *Project, files map[string]file.File) *Project {
-					updated := *p
-					updated.Files = files
-					return &updated
-				},
-				fileview.Reducer,
-			),
-			projection.ApplyChildReducerToMap(
 				func(p *Project) map[string]document.Document { return p.Documents },
 				func(p *Project, documents map[string]document.Document) *Project {
 					updated := *p
@@ -66,8 +44,6 @@ func CreatedProjectReducer(_ *Project, message *commands.AnyMessage, payload *pr
 		ID:          message.AggregateID,
 		Healthy:     true,
 		ProjectData: *payload,
-		Codes:       make(map[string]code.Code),
-		Files:       make(map[string]file.File),
 		Documents:   make(map[string]document.Document),
 	}
 }

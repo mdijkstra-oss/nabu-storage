@@ -6,7 +6,7 @@ import (
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/cqrs/dispatch"
 	"hermes-relay/internal/cqrs/patches"
-	"hermes-relay/internal/domain/entities/file"
+	"hermes-relay/internal/domain/entities/document"
 	"hermes-relay/internal/domain/entities/project"
 	"hermes-relay/internal/domain/projections/registry"
 	"hermes-relay/internal/lib/utils"
@@ -41,7 +41,7 @@ func Handler(hub *Hub, registryState *registry.RegistryState, subscribe func(dis
 			return
 		}
 
-		fileID := r.URL.Query().Get("fileId")
+		documentID := r.URL.Query().Get("documentId")
 
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
@@ -50,7 +50,7 @@ func Handler(hub *Hub, registryState *registry.RegistryState, subscribe func(dis
 		}
 		defer func() { utils.ShouldWork(conn.Close()) }()
 
-		handleConnection(conn, projectID, fileID, hub, registryState, subscribe)
+		handleConnection(conn, projectID, documentID, hub, registryState, subscribe)
 	}
 }
 
@@ -82,7 +82,7 @@ func startPingSender(conn *websocket.Conn, done chan struct{}) {
 func handleConnection(
 	conn *websocket.Conn,
 	projectID string,
-	fileID string,
+	documentID string,
 	hub *Hub,
 	registryState *registry.RegistryState,
 	subscribe func(dispatch.CommandRouter) func(),
@@ -96,7 +96,7 @@ func handleConnection(
 	defer close(done)
 	go startPingSender(conn, done)
 
-	sendInitialSnapshot(conn, projectID, fileID, registryState)
+	sendInitialSnapshot(conn, projectID, documentID, registryState)
 
 	unsubscribe := subscribe(dispatch.LimitOnType(
 		commands.SystemEvent,
@@ -118,15 +118,15 @@ func handleConnection(
 	}
 }
 
-func sendInitialSnapshot(conn *websocket.Conn, projectID string, fileID string, registryState *registry.RegistryState) {
+func sendInitialSnapshot(conn *websocket.Conn, projectID string, documentID string, registryState *registry.RegistryState) {
 	utils.GuardWith(func() {
-		project := registryState.GetProject(projectID)
-		if project == nil {
+		proj := registryState.GetProject(projectID)
+		if proj == nil {
 			slog.Warn("project not found for initial snapshot", "projectID", projectID)
 			return
 		}
 
-		filteredProject := filterProjectForFile(project, fileID)
+		filteredProject := filterProjectForDocument(proj, documentID)
 
 		msg := Message{
 			Type:      "snapshot",
@@ -138,30 +138,29 @@ func sendInitialSnapshot(conn *websocket.Conn, projectID string, fileID string, 
 	}, "projectID", projectID, "operation", "sendInitialSnapshot")
 }
 
-func filterProjectForFile(p *project.Project, fileID string) *project.Project {
-	if fileID == "" {
+func filterProjectForDocument(p *project.Project, documentID string) *project.Project {
+	if documentID == "" {
 		return p
 	}
 
-	// TODO: Optimize performance - this is a temporary workaround, implement proper selective loading
-	filteredFiles := make(map[string]file.File)
-	for id, f := range p.Files {
-		if id == fileID {
-			filteredFiles[id] = f
+	filteredDocs := make(map[string]document.Document)
+	for id, d := range p.Documents {
+		if id == documentID {
+			filteredDocs[id] = d
 		} else {
-			filteredFiles[id] = withoutContentAndCodes(f)
+			filteredDocs[id] = withoutContentAndAnnotations(d)
 		}
 	}
 
 	filtered := *p
-	filtered.Files = filteredFiles
+	filtered.Documents = filteredDocs
 	return &filtered
 }
 
-func withoutContentAndCodes(f file.File) file.File {
-	f.Content = ""
-	f.Codes = []file.CodedSection{}
-	return f
+func withoutContentAndAnnotations(d document.Document) document.Document {
+	d.Content = nil
+	d.Annotations = nil
+	return d
 }
 
 func forwardProjectEvent[T patches.ProjectEventPayload](

@@ -50,4 +50,6 @@ func init() {
 
 	registerFieldValidation("project_id", ValidProjectID)
 	registerFieldValidation("document_id", ValidDocumentID)
+	registerFieldValidation("annotation_id", ValidAnnotationID)
+	registerFieldValidation("code_id", ValidCodeID)
 }

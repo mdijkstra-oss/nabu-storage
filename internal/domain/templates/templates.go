@@ -2,7 +2,6 @@ package templates
 
 import (
 	_ "embed"
-	"hermes-relay/internal/domain/entities/file"
 )
 
 //go:embed codebook.md
@@ -11,22 +10,19 @@ var codebookContent string
 //go:embed llm-memo.md
 var memoContent string
 
-type DefaultFile struct {
+type DefaultDocument struct {
 	Name    string
-	Type    file.FileType
 	Content string
 }
 
-func DefaultFiles() []DefaultFile {
-	return []DefaultFile{
+func DefaultDocuments() []DefaultDocument {
+	return []DefaultDocument{
 		{
 			Name:    "Codebook",
-			Type:    file.FileTypeCodebook,
 			Content: codebookContent,
 		},
 		{
 			Name:    "AI Analytical Memo",
-			Type:    file.FileTypeLLMMemo,
 			Content: memoContent,
 		},
 	}

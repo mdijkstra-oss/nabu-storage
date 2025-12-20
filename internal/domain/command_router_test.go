@@ -3,8 +3,7 @@ package domain
 import (
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/cqrs/dispatch"
-	"hermes-relay/internal/domain/entities/code"
-	"hermes-relay/internal/domain/entities/file"
+	"hermes-relay/internal/domain/entities/document"
 	"hermes-relay/internal/domain/entities/project"
 	"hermes-relay/internal/lib/test-helpers/domain-helpers"
 	rh "hermes-relay/internal/lib/test-helpers/router-helpers"
@@ -13,9 +12,8 @@ import (
 )
 
 var (
-	healthyProjectID = utils.NewID()
-	healthyCodeID    = utils.NewID()
-	healthyFileID    = utils.NewID()
+	healthyProjectID  = utils.NewID()
+	healthyDocumentID = utils.NewID()
 )
 
 var setupCommands = []*commands.AnyMessage{
@@ -30,33 +28,14 @@ var setupCommands = []*commands.AnyMessage{
 		domain_helpers.TestActor(),
 		nil,
 	)),
-	commands.ToAny(commands.NewDomainEvent[code.CreatedCodePayload, any](
-		code.CreatedCode,
-		code.CreatedCodePayload{
-			ProjectID:  healthyProjectID,
-			Slug:       "topic:existing-code",
-			Color:      "green",
-			Definition: "Existing code",
+	commands.ToAny(commands.NewDomainEvent[document.CreatedDocumentPayload, any](
+		document.CreatedDocument,
+		document.CreatedDocumentPayload{
+			ProjectID: healthyProjectID,
+			Name:      "Existing Document",
 		},
-		code.EntityName,
-		healthyCodeID,
-		domain_helpers.TestActor(),
-		nil,
-	)),
-	commands.ToAny(commands.NewDomainEvent[file.CreatedFilePayload, any](
-		file.CreatedFile,
-		file.CreatedFilePayload{
-			FileData: file.FileData{
-				ProjectID: healthyProjectID,
-				Name:      "Existing File",
-				Type:      file.FileTypeCorpus,
-				Locked:    true,
-			},
-			Content: "Test content",
-			Codes:   []file.CodedSection{},
-		},
-		file.EntityName,
-		healthyFileID,
+		document.EntityName,
+		healthyDocumentID,
 		domain_helpers.TestActor(),
 		nil,
 	)),
@@ -100,46 +79,40 @@ func TestCommandRouter(t *testing.T) {
 			ExpectErr: "validation failed: Name is required",
 		},
 		{
-			Name: "Code creation succeeds on healthy project",
-			Input: commands.ToAny(commands.NewCommand[code.CreateCodePayload, any](
-				code.CreateCode,
-				code.CreateCodePayload{
-					ProjectID:  healthyProjectID,
-					Slug:       "topic:new-code",
-					Color:      "blue",
-					Definition: "Test code",
+			Name: "Document creation succeeds on healthy project",
+			Input: commands.ToAny(commands.NewCommand[document.CreateDocumentPayload, any](
+				document.CreateDocument,
+				document.CreateDocumentPayload{
+					ProjectID: healthyProjectID,
+					Name:      "New Document",
 				},
-				code.EntityName,
+				document.EntityName,
 				"",
 				domain_helpers.TestActor(),
 				nil,
 			)),
 			ExpectErr: "",
-			ExpectEvent: commands.ToAny(commands.NewDomainEvent[code.CreatedCodePayload, any](
-				code.CreatedCode,
-				code.CreatedCodePayload{
-					ProjectID:  healthyProjectID,
-					Slug:       "topic:new-code",
-					Color:      "blue",
-					Definition: "Test code",
+			ExpectEvent: commands.ToAny(commands.NewDomainEvent[document.CreatedDocumentPayload, any](
+				document.CreatedDocument,
+				document.CreatedDocumentPayload{
+					ProjectID: healthyProjectID,
+					Name:      "New Document",
 				},
-				code.EntityName,
+				document.EntityName,
 				"",
 				domain_helpers.TestActor(),
 				nil,
 			)),
 		},
 		{
-			Name: "Code creation fails on non-existent project",
-			Input: commands.ToAny(commands.NewCommand[code.CreateCodePayload, any](
-				code.CreateCode,
-				code.CreateCodePayload{
-					ProjectID:  utils.NewID(),
-					Slug:       "topic:orphan",
-					Color:      "gray",
-					Definition: "No parent",
+			Name: "Document creation fails on non-existent project",
+			Input: commands.ToAny(commands.NewCommand[document.CreateDocumentPayload, any](
+				document.CreateDocument,
+				document.CreateDocumentPayload{
+					ProjectID: utils.NewID(),
+					Name:      "Orphan Document",
 				},
-				code.EntityName,
+				document.EntityName,
 				"",
 				domain_helpers.TestActor(),
 				nil,
@@ -147,123 +120,30 @@ func TestCommandRouter(t *testing.T) {
 			ExpectErr: "validation failed: ProjectID not found",
 		},
 		{
-			Name: "Code update succeeds on healthy code in healthy project",
-			Input: commands.ToAny(commands.NewCommand[code.UpdateCodePayload, any](
-				code.UpdateCode,
-				code.UpdateCodePayload{
-					Color:      "teal",
-					Definition: "Updated",
-				},
-				code.EntityName,
-				healthyCodeID,
-				domain_helpers.TestActor(),
-				nil,
-			)),
-			ExpectErr: "",
-			ExpectEvent: commands.ToAny(commands.NewDomainEvent[code.UpdatedCodePayload, any](
-				code.UpdatedCode,
-				code.UpdatedCodePayload{
-					Color:      "teal",
-					Definition: "Updated",
-				},
-				code.EntityName,
-				healthyCodeID,
-				domain_helpers.TestActor(),
-				nil,
-			)),
-		},
-		{
-			Name: "File creation succeeds on healthy project",
-			Input: commands.ToAny(commands.NewCommand[file.CreateFilePayload, any](
-				file.CreateFile,
-				file.CreateFilePayload{
-					ProjectID: healthyProjectID,
-					Name:      "New File",
-					Content:   "Content",
-				},
-				file.EntityName,
-				"",
-				domain_helpers.TestActor(),
-				nil,
-			)),
-			ExpectErr: "",
-			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.CreatedFilePayload, any](
-				file.CreatedFile,
-				file.CreatedFilePayload{
-					FileData: file.FileData{
-						ProjectID: healthyProjectID,
-						Name:      "New File",
-						Type:      file.FileTypeCorpus,
-						Locked:    true,
-					},
-					Content: "Content\n",
-					Codes:   []file.CodedSection{},
-				},
-				file.EntityName,
-				"",
-				domain_helpers.TestActor(),
-				nil,
-			)),
-		},
-		{
-			Name: "File update succeeds on healthy file in healthy project",
-			Input: commands.ToAny(commands.NewCommand[file.UpdateFilePayload, any](
-				file.UpdateFile,
-				file.UpdateFilePayload{
-					Name:        "Updated File",
+			Name: "Document update succeeds on healthy document in healthy project",
+			Input: commands.ToAny(commands.NewCommand[document.UpdateDocumentPayload, any](
+				document.UpdateDocument,
+				document.UpdateDocumentPayload{
+					Name:        "Updated Document",
 					Description: "Updated",
 				},
-				file.EntityName,
-				healthyFileID,
+				document.EntityName,
+				healthyDocumentID,
 				domain_helpers.TestActor(),
 				nil,
 			)),
 			ExpectErr: "",
-			ExpectEvent: commands.ToAny(commands.NewDomainEvent[file.UpdatedFilePayload, any](
-				file.UpdatedFile,
-				file.UpdatedFilePayload{
-					Name:        "Updated File",
+			ExpectEvent: commands.ToAny(commands.NewDomainEvent[document.UpdatedDocumentPayload, any](
+				document.UpdatedDocument,
+				document.UpdatedDocumentPayload{
+					Name:        "Updated Document",
 					Description: "Updated",
 				},
-				file.EntityName,
-				healthyFileID,
+				document.EntityName,
+				healthyDocumentID,
 				domain_helpers.TestActor(),
 				nil,
 			)),
-		},
-		{
-			Name: "Code creation fails with invalid slug (no colon)",
-			Input: commands.ToAny(commands.NewCommand[code.CreateCodePayload, any](
-				code.CreateCode,
-				code.CreateCodePayload{
-					ProjectID:  healthyProjectID,
-					Slug:       "invalid-slug",
-					Color:      "blue",
-					Definition: "Bad slug",
-				},
-				code.EntityName,
-				"",
-				domain_helpers.TestActor(),
-				nil,
-			)),
-			ExpectErr: "validation failed: Slug must match code slug format (lowercase with colon and optional dashes)",
-		},
-		{
-			Name: "Code creation fails with duplicate slug",
-			Input: commands.ToAny(commands.NewCommand[code.CreateCodePayload, any](
-				code.CreateCode,
-				code.CreateCodePayload{
-					ProjectID:  healthyProjectID,
-					Slug:       "topic:existing-code",
-					Color:      "blue",
-					Definition: "Duplicate",
-				},
-				code.EntityName,
-				"",
-				domain_helpers.TestActor(),
-				nil,
-			)),
-			ExpectErr: "validation failed: slug already in use",
 		},
 	}
 
@@ -283,7 +163,7 @@ func TestCommandHandlers(t *testing.T) {
 		expected []expectedMessage
 	}{
 		{
-			name: "CreateProject triggers saga to create default files",
+			name: "CreateProject triggers saga to create default documents",
 			input: commands.ToAny(commands.NewCommand[project.CreateProjectPayload, any](
 				project.CreateProject,
 				project.CreateProjectPayload{Name: "New Project"},
@@ -295,25 +175,25 @@ func TestCommandHandlers(t *testing.T) {
 			expected: []expectedMessage{
 				{commands.Command, project.CreateProject, project.EntityName},
 				{commands.DomainEvent, project.CreatedProject, project.EntityName},
-				{commands.Command, file.CreateFile, file.EntityName},
-				{commands.DomainEvent, file.CreatedFile, file.EntityName},
-				{commands.Command, file.CreateFile, file.EntityName},
-				{commands.DomainEvent, file.CreatedFile, file.EntityName},
+				{commands.Command, document.CreateDocument, document.EntityName},
+				{commands.DomainEvent, document.CreatedDocument, document.EntityName},
+				{commands.Command, document.CreateDocument, document.EntityName},
+				{commands.DomainEvent, document.CreatedDocument, document.EntityName},
 			},
 		},
 		{
-			name: "CreateFile does not trigger saga",
-			input: commands.ToAny(commands.NewCommand[file.CreateFilePayload, any](
-				file.CreateFile,
-				file.CreateFilePayload{ProjectID: healthyProjectID, Name: "Test", Content: "content"},
-				file.EntityName,
+			name: "CreateDocument does not trigger saga",
+			input: commands.ToAny(commands.NewCommand[document.CreateDocumentPayload, any](
+				document.CreateDocument,
+				document.CreateDocumentPayload{ProjectID: healthyProjectID, Name: "Test"},
+				document.EntityName,
 				"",
 				domain_helpers.TestActor(),
 				nil,
 			)),
 			expected: []expectedMessage{
-				{commands.Command, file.CreateFile, file.EntityName},
-				{commands.DomainEvent, file.CreatedFile, file.EntityName},
+				{commands.Command, document.CreateDocument, document.EntityName},
+				{commands.DomainEvent, document.CreatedDocument, document.EntityName},
 			},
 		},
 	}

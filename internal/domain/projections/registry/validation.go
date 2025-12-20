@@ -76,10 +76,8 @@ func checkExpectedVersion(proj project.Project, message *commands.AnyMessage) er
 	switch message.AggregateType {
 	case "Project":
 		entity, exists = proj, true
-	case "Code":
-		entity, exists = proj.GetCode(message.AggregateID)
-	case "File":
-		entity, exists = proj.GetFile(message.AggregateID)
+	case "Document":
+		entity, exists = proj.GetDocument(message.AggregateID)
 	default:
 		panic("checkExpectedVersion: unknown aggregate type: " + string(message.AggregateType))
 	}
@@ -103,10 +101,8 @@ func checkEntityHealth(proj project.Project, action commands.Action, aggregateTy
 	switch aggregateType {
 	case "Project":
 		entity, exists = proj, true
-	case "Code":
-		entity, exists = proj.GetCode(aggregateID)
-	case "File":
-		entity, exists = proj.GetFile(aggregateID)
+	case "Document":
+		entity, exists = proj.GetDocument(aggregateID)
 	default:
 		panic("checkEntityHealth: unknown aggregate type: " + aggregateType)
 	}

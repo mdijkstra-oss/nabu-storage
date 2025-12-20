@@ -41,12 +41,36 @@ func (d Document) WithPinned(pinned bool) any {
 }
 
 type DocumentData struct {
-	ProjectID   string    `json:"project_id" validate:"required"`
-	Name        string    `json:"name" validate:"required,max=200" normalize:"trim"`
-	Description string    `json:"description" validate:"max=2000" normalize:"trim"`
-	Title       string    `json:"title" validate:"omitempty,min=1,max=200"`
-	Time        time.Time `json:"time" validate:"omitempty,lte"`
-	Original    string    `json:"original"`
-	Pinned      bool      `json:"pinned"`
-	Content     []Block   `json:"content"`
+	ProjectID   string       `json:"project_id" validate:"required"`
+	Name        string       `json:"name" validate:"required,max=200" normalize:"trim"`
+	Description string       `json:"description" validate:"max=2000" normalize:"trim"`
+	Title       string       `json:"title" validate:"omitempty,min=1,max=200"`
+	Time        time.Time    `json:"time" validate:"omitempty,lte"`
+	Original    string       `json:"original"`
+	Pinned      bool         `json:"pinned"`
+	Content     []Block      `json:"content"`
+	Annotations []Annotation `json:"annotations"`
+}
+
+type Confidence string
+
+const (
+	ConfidenceHigh   Confidence = "high"
+	ConfidenceMedium Confidence = "medium"
+	ConfidenceLow    Confidence = "low"
+)
+
+type Annotation struct {
+	ID      string         `json:"id"`
+	Text    string         `json:"text" validate:"required"`
+	Actor   string         `json:"actor" validate:"required"`
+	Color   string         `json:"color" validate:"required,radix_color"`
+	Reason  string         `json:"reason,omitempty"`
+	Payload *CodingPayload `json:"payload,omitempty"`
+}
+
+type CodingPayload struct {
+	Type       string     `json:"type" validate:"required,eq=coding"`
+	CodeID     string     `json:"code_id" validate:"required,code_id" normalize:"code_id"`
+	Confidence Confidence `json:"confidence" validate:"required,oneof=high medium low"`
 }

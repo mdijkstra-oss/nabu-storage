@@ -1,23 +1,32 @@
 package patches
 
 import (
-	"hermes-relay/internal/domain/entities/file"
+	"hermes-relay/internal/domain/entities/document"
 	"hermes-relay/internal/domain/entities/project"
 	th "hermes-relay/internal/lib/test-helpers"
 	"testing"
 )
 
-func buildProject(files map[string]file.File) *project.Project {
+func buildProject(documents map[string]document.Document) *project.Project {
 	proj := project.BuildTestProject("proj-1", project.ProjectData{})
-	proj.Files = files
+	proj.Documents = documents
 	return &proj
 }
 
-func buildFile(id, name, content string, codes []file.CodedSection) file.File {
-	f := file.BuildTestFile(id, file.FileData{ProjectID: "proj-1", Name: name})
-	f.Content = content
-	f.Codes = codes
-	return f
+func buildDocument(id, name string, content []document.Block, annotations []document.Annotation) document.Document {
+	d := document.BuildTestDocument(id, document.DocumentData{ProjectID: "proj-1", Name: name})
+	d.Content = content
+	d.Annotations = annotations
+	return d
+}
+
+func buildTestAnnotation(id, text string) document.Annotation {
+	return document.Annotation{
+		ID:    id,
+		Text:  text,
+		Actor: "test",
+		Color: "blue",
+	}
 }
 
 type patchTestCase struct {
@@ -32,31 +41,17 @@ type patchTestCase struct {
 func TestDecidePatchWithStateChanges(t *testing.T) {
 	tests := []patchTestCase{
 		{
-			Name: "Removing coded sections generates patch",
-			Before: buildProject(map[string]file.File{
-				"file-1": buildFile("file-1", "test.txt", "content", []file.CodedSection{
-					file.BuildTestCodedSection("s1", "c1", "text1"),
-					file.BuildTestCodedSection("s2", "c2", "text2"),
-					file.BuildTestCodedSection("s3", "c3", "text3"),
+			Name: "Removing annotations generates patch",
+			Before: buildProject(map[string]document.Document{
+				"doc-1": buildDocument("doc-1", "test.txt", nil, []document.Annotation{
+					buildTestAnnotation("a1", "text1"),
+					buildTestAnnotation("a2", "text2"),
+					buildTestAnnotation("a3", "text3"),
 				}),
 			}),
-			After: buildProject(map[string]file.File{
-				"file-1": buildFile("file-1", "test.txt", "content", []file.CodedSection{
-					file.BuildTestCodedSection("s3", "c3", "text3"),
-				}),
-			}),
-			IsActive:        true,
-			ExpectedType:    ActionTypePatch,
-			ExpectNullPatch: false,
-		},
-		{
-			Name: "Adding coded sections generates patch",
-			Before: buildProject(map[string]file.File{
-				"file-1": buildFile("file-1", "test.txt", "content", []file.CodedSection{}),
-			}),
-			After: buildProject(map[string]file.File{
-				"file-1": buildFile("file-1", "test.txt", "content", []file.CodedSection{
-					file.BuildTestCodedSection("s1", "c1", "new"),
+			After: buildProject(map[string]document.Document{
+				"doc-1": buildDocument("doc-1", "test.txt", nil, []document.Annotation{
+					buildTestAnnotation("a3", "text3"),
 				}),
 			}),
 			IsActive:        true,
@@ -64,24 +59,38 @@ func TestDecidePatchWithStateChanges(t *testing.T) {
 			ExpectNullPatch: false,
 		},
 		{
-			Name: "Changing file name generates patch",
-			Before: buildProject(map[string]file.File{
-				"file-1": buildFile("file-1", "old.txt", "", []file.CodedSection{}),
+			Name: "Adding annotations generates patch",
+			Before: buildProject(map[string]document.Document{
+				"doc-1": buildDocument("doc-1", "test.txt", nil, []document.Annotation{}),
 			}),
-			After: buildProject(map[string]file.File{
-				"file-1": buildFile("file-1", "new.txt", "", []file.CodedSection{}),
+			After: buildProject(map[string]document.Document{
+				"doc-1": buildDocument("doc-1", "test.txt", nil, []document.Annotation{
+					buildTestAnnotation("a1", "new"),
+				}),
 			}),
 			IsActive:        true,
 			ExpectedType:    ActionTypePatch,
 			ExpectNullPatch: false,
 		},
 		{
-			Name: "Changing file content generates patch",
-			Before: buildProject(map[string]file.File{
-				"file-1": buildFile("file-1", "test.txt", "old content", []file.CodedSection{}),
+			Name: "Changing document name generates patch",
+			Before: buildProject(map[string]document.Document{
+				"doc-1": buildDocument("doc-1", "old.txt", nil, nil),
 			}),
-			After: buildProject(map[string]file.File{
-				"file-1": buildFile("file-1", "test.txt", "new content", []file.CodedSection{}),
+			After: buildProject(map[string]document.Document{
+				"doc-1": buildDocument("doc-1", "new.txt", nil, nil),
+			}),
+			IsActive:        true,
+			ExpectedType:    ActionTypePatch,
+			ExpectNullPatch: false,
+		},
+		{
+			Name: "Changing document content generates patch",
+			Before: buildProject(map[string]document.Document{
+				"doc-1": buildDocument("doc-1", "test.txt", []document.Block{{ID: "b1", Type: "paragraph"}}, nil),
+			}),
+			After: buildProject(map[string]document.Document{
+				"doc-1": buildDocument("doc-1", "test.txt", []document.Block{{ID: "b2", Type: "heading"}}, nil),
 			}),
 			IsActive:        true,
 			ExpectedType:    ActionTypePatch,
@@ -89,8 +98,8 @@ func TestDecidePatchWithStateChanges(t *testing.T) {
 		},
 		{
 			Name:            "Identical projects return none",
-			Before:          buildProject(map[string]file.File{}),
-			After:           buildProject(map[string]file.File{}),
+			Before:          buildProject(map[string]document.Document{}),
+			After:           buildProject(map[string]document.Document{}),
 			IsActive:        true,
 			ExpectedType:    ActionTypeNone,
 			ExpectNullPatch: true,
@@ -98,14 +107,14 @@ func TestDecidePatchWithStateChanges(t *testing.T) {
 		{
 			Name:            "Nil before returns snapshot",
 			Before:          nil,
-			After:           buildProject(map[string]file.File{}),
+			After:           buildProject(map[string]document.Document{}),
 			IsActive:        true,
 			ExpectedType:    ActionTypeSnapshot,
 			ExpectNullPatch: true,
 		},
 		{
 			Name:            "Nil after returns none",
-			Before:          buildProject(map[string]file.File{}),
+			Before:          buildProject(map[string]document.Document{}),
 			After:           nil,
 			IsActive:        true,
 			ExpectedType:    ActionTypeNone,
@@ -113,8 +122,8 @@ func TestDecidePatchWithStateChanges(t *testing.T) {
 		},
 		{
 			Name:            "Inactive project returns none",
-			Before:          buildProject(map[string]file.File{}),
-			After:           buildProject(map[string]file.File{"file-1": buildFile("file-1", "new.txt", "", []file.CodedSection{})}),
+			Before:          buildProject(map[string]document.Document{}),
+			After:           buildProject(map[string]document.Document{"doc-1": buildDocument("doc-1", "new.txt", nil, nil)}),
 			IsActive:        false,
 			ExpectedType:    ActionTypeNone,
 			ExpectNullPatch: true,

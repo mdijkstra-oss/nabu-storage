@@ -1,17 +1,28 @@
 package utils
 
 import (
+	"fmt"
+
 	"github.com/google/uuid"
 	"strings"
 )
 
 var entityPrefixes = map[string]string{
-	"Project":  "project",
-	"Document": "document",
+	"Project":    "project",
+	"Document":   "document",
+	"Annotation": "annotation",
+	"Code":       "code",
 }
+
+var blockNamespace = uuid.MustParse("6ba7b810-9dad-11d1-80b4-00c04fd430c8")
 
 func NewID() string {
 	return uuid.New().String()
+}
+
+func DeterministicBlockID(documentID string, index int) string {
+	name := fmt.Sprintf("%s:block:%d", documentID, index)
+	return "block_" + uuid.NewSHA1(blockNamespace, []byte(name)).String()
 }
 
 func NewPrefixedID(prefix string) string {
@@ -24,6 +35,14 @@ func NewProjectID() string {
 
 func NewDocumentID() string {
 	return NewPrefixedID("document")
+}
+
+func NewAnnotationID() string {
+	return NewPrefixedID("annotation")
+}
+
+func NewCodeID() string {
+	return NewPrefixedID("code")
 }
 
 func ValidID(id string) bool {
@@ -81,4 +100,12 @@ func ValidProjectID(id string) bool {
 
 func ValidDocumentID(id string) bool {
 	return ValidateID("document", id)
+}
+
+func ValidAnnotationID(id string) bool {
+	return ValidateID("annotation", id)
+}
+
+func ValidCodeID(id string) bool {
+	return ValidateID("code", id)
 }

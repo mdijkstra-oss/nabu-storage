@@ -1,8 +1,7 @@
 package projectview
 
 import (
-	"hermes-relay/internal/domain/entities/code"
-	"hermes-relay/internal/domain/entities/file"
+	"hermes-relay/internal/domain/entities/document"
 	"hermes-relay/internal/domain/entities/project"
 	th "hermes-relay/internal/lib/test-helpers"
 	"hermes-relay/internal/lib/test-helpers/domain-helpers"
@@ -67,50 +66,35 @@ func TestProjectReducer(t *testing.T) {
 		func() *Project { return createTestProject("project-1", "Test Project", "Test description") },
 	)
 
-	codeChildTests := reducer_helpers.AggregateChildMapTests(reducer_helpers.AggregateChildMapTestConfig[Project, code.Code]{
-		CreatedEvent:      domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.CreatedCode, &code.CreatedCodePayload{ProjectID: "project-1", Slug: "test-code", Color: "red", Definition: "A test code"}),
-		UpdatedEvent:      domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.UpdatedCode, &code.UpdateCodePayload{Slug: "new-slug"}),
-		DeletedEvent:      domain_helpers.NewDomainEvent(code.EntityName, "code-1", code.DeletedCode, nil),
-		EntityAfterCreate: code.BuildTestCode("code-1", code.CodeData{Slug: "test-code", Color: "red", Definition: "A test code"}),
-		EntityAfterUpdate: code.BuildTestCode("code-1", code.CodeData{Slug: "new-slug", Color: "red", Definition: "A test code"}),
-		CreateParent:      createEmptyProject,
-		GetMap:            func(p *Project) map[string]code.Code { return p.Codes },
-	})
-
-	fileChildTests := reducer_helpers.AggregateChildMapTests(reducer_helpers.AggregateChildMapTestConfig[Project, file.File]{
-		CreatedEvent: domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.CreatedFile, &file.CreatedFilePayload{
-			FileData: file.FileData{
-				ProjectID:   "project-1",
-				Name:        "test-file.txt",
-				Description: "A test file",
-				Type:        file.FileTypeCorpus,
-				Locked:      false,
-			},
-			Content: "",
-			Codes:   []file.CodedSection{},
+	documentChildTests := reducer_helpers.AggregateChildMapTests(reducer_helpers.AggregateChildMapTestConfig[Project, document.Document]{
+		CreatedEvent: domain_helpers.NewDomainEvent(document.EntityName, "doc-1", document.CreatedDocument, &document.CreatedDocumentPayload{
+			ProjectID: "project-1",
+			Name:      "test-doc.txt",
 		}),
-		UpdatedEvent:      domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.UpdatedFile, &file.UpdatedFilePayload{Name: "new-name.txt", Description: "Updated"}),
-		DeletedEvent:      domain_helpers.NewDomainEvent(file.EntityName, "file-1", file.DeletedFile, nil),
-		EntityAfterCreate: file.BuildTestFile("file-1", file.FileData{ProjectID: "project-1", Name: "test-file.txt", Description: "A test file"}),
-		EntityAfterUpdate: file.BuildTestFile("file-1", file.FileData{ProjectID: "project-1", Name: "new-name.txt", Description: "Updated"}),
+		UpdatedEvent:      domain_helpers.NewDomainEvent(document.EntityName, "doc-1", document.UpdatedDocument, &document.UpdatedDocumentPayload{Name: "new-name.txt", Description: "Updated"}),
+		DeletedEvent:      domain_helpers.NewDomainEvent(document.EntityName, "doc-1", document.DeletedDocument, nil),
+		EntityAfterCreate: document.BuildTestDocument("doc-1", document.DocumentData{ProjectID: "project-1", Name: "test-doc.txt"}),
+		EntityAfterUpdate: document.BuildTestDocument("doc-1", document.DocumentData{ProjectID: "project-1", Name: "new-name.txt", Description: "Updated"}),
 		CreateParent:      createEmptyProject,
-		GetMap:            func(p *Project) map[string]file.File { return p.Files },
+		GetMap:            func(p *Project) map[string]document.Document { return p.Documents },
 	})
 
 	combinedTests := append(tests, deletedEntityTests...)
-	combinedTests = append(combinedTests, codeChildTests...)
-	combinedTests = append(combinedTests, fileChildTests...)
+	combinedTests = append(combinedTests, documentChildTests...)
 
-	reducer_helpers.RunReducerTests(t, combinedTests, Reducer, clearFileTimestamps)
+	reducer_helpers.RunReducerTests(t, combinedTests, Reducer, normalizeProject)
 }
 
-func clearFileTimestamps(proj *Project) *Project {
+func normalizeProject(proj *Project) *Project {
 	if proj == nil {
 		return nil
 	}
-	for id, f := range proj.Files {
-		f.Time = th.DefaultTestTime()
-		proj.Files[id] = f
+	newDocuments := make(map[string]document.Document, len(proj.Documents))
+	for id, d := range proj.Documents {
+		d.Time = th.DefaultTestTime()
+		newDocuments[id] = d
 	}
-	return proj
+	updated := *proj
+	updated.Documents = newDocuments
+	return &updated
 }

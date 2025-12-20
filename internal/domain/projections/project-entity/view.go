@@ -1,9 +1,8 @@
 package projectview
 
 import (
-	"hermes-relay/internal/domain/entities/code"
 	"hermes-relay/internal/domain/entities/project"
-	fileview "hermes-relay/internal/domain/projections/file-entity"
+	documentview "hermes-relay/internal/domain/projections/document-entity"
 )
 
 type Project = project.Project
@@ -13,8 +12,7 @@ type ProjectView struct {
 	Version int    `json:"version"`
 	Healthy bool   `json:"healthy"`
 	project.ProjectData
-	Codes map[string]code.Code            `json:"codes"`
-	Files map[string]fileview.FileSummary `json:"files"`
+	Documents map[string]documentview.DocumentSummary `json:"documents"`
 }
 
 func (pv ProjectView) GetID() string {

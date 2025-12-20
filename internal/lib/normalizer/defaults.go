@@ -38,6 +38,14 @@ func DocumentID(s string) string {
 	return utils.NormalizeID("document", s)
 }
 
+func AnnotationID(s string) string {
+	return utils.NormalizeID("annotation", s)
+}
+
+func CodeID(s string) string {
+	return utils.NormalizeID("code", s)
+}
+
 func init() {
 	defaults["trim"] = Trim
 	defaults["collapse"] = Collapse
@@ -46,4 +54,6 @@ func init() {
 	defaults["uppercase"] = Uppercase
 	defaults["project_id"] = ProjectID
 	defaults["document_id"] = DocumentID
+	defaults["annotation_id"] = AnnotationID
+	defaults["code_id"] = CodeID
 }
