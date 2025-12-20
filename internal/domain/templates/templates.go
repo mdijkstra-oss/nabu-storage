@@ -17,13 +17,13 @@ type DefaultDocument struct {
 
 func DefaultDocuments() []DefaultDocument {
 	return []DefaultDocument{
-		{
-			Name:    "Codebook",
-			Content: codebookContent,
-		},
-		{
-			Name:    "AI Analytical Memo",
-			Content: memoContent,
-		},
+		//{
+		//	Name:    "Codebook",
+		//	Content: codebookContent,
+		//},
+		//{
+		//	Name:    "AI Analytical Memo",
+		//	Content: memoContent,
+		//},
 	}
 }
