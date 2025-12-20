@@ -5,17 +5,23 @@ import "hermes-relay/internal/cqrs/commands"
 const EntityName commands.AggregateType = "Document"
 
 const (
+	PositionHead = "head"
+	PositionTail = "tail"
+)
+
+const (
 	CreateDocument commands.Action = "CreateDocument"
 	UpdateDocument commands.Action = "UpdateDocument"
 	PinDocument    commands.Action = "PinDocument"
 	UnpinDocument  commands.Action = "UnpinDocument"
 	DeleteDocument commands.Action = "DeleteDocument"
 
-	InsertBlocks   commands.Action = "InsertBlocks"
-	DeleteBlocks   commands.Action = "DeleteBlocks"
-	ReplaceBlocks  commands.Action = "ReplaceBlocks"
-	MoveBlocks     commands.Action = "MoveBlocks"
-	ReplaceContent commands.Action = "ReplaceContent"
+	InsertBlocks     commands.Action = "InsertBlocks"
+	DeleteBlocks     commands.Action = "DeleteBlocks"
+	ReplaceBlocks    commands.Action = "ReplaceBlocks"
+	MoveBlocks       commands.Action = "MoveBlocks"
+	ReplaceContent   commands.Action = "ReplaceContent"
+	UpdateBlockProps commands.Action = "UpdateBlockProps"
 )
 
 type CreateDocumentPayload struct {
@@ -34,7 +40,7 @@ type UnpinDocumentPayload = commands.EmptyPayload
 type DeleteDocumentPayload = commands.EmptyPayload
 
 type InsertBlocksPayload struct {
-	Position string  `json:"position"`
+	Position string  `json:"position" validate:"required,block_position"`
 	Blocks   []Block `json:"blocks" validate:"required,min=1"`
 }
 
@@ -49,9 +55,14 @@ type ReplaceBlocksPayload struct {
 
 type MoveBlocksPayload struct {
 	BlockIDs []string `json:"block_ids" validate:"required,min=1"`
-	Position string   `json:"position"`
+	Position string   `json:"position" validate:"required,block_position"`
 }
 
 type ReplaceContentPayload struct {
 	Content []Block `json:"content" validate:"required"`
+}
+
+type UpdateBlockPropsPayload struct {
+	BlockIDs []string   `json:"block_ids" validate:"required,min=1"`
+	Props    BlockProps `json:"props"`
 }

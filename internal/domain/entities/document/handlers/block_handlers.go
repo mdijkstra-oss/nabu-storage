@@ -4,17 +4,37 @@ import (
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/cqrs/dispatch"
 	"hermes-relay/internal/domain/entities/document"
+	"hermes-relay/internal/domain/entities/project"
+	"hermes-relay/internal/domain/projections/registry"
 	"hermes-relay/internal/lib/utils"
 )
 
-func NewBlockRouter() dispatch.CommandRouter {
+func NewBlockRouter(registryState *registry.RegistryState) dispatch.CommandRouter {
 	return dispatch.LimitOnEntity(document.EntityName,
 		withBlockValidation[document.InsertBlocksPayload](document.InsertBlocks, document.InsertedBlocks, getBlocksFromInsert),
 		dispatch.ToUpdateEntityEvent[document.DeleteBlocksPayload, document.DeletedBlocksPayload](document.DeleteBlocks, document.DeletedBlocks),
 		withBlockValidation[document.ReplaceBlocksPayload](document.ReplaceBlocks, document.ReplacedBlocks, getBlocksFromReplace),
 		dispatch.ToUpdateEntityEvent[document.MoveBlocksPayload, document.MovedBlocksPayload](document.MoveBlocks, document.MovedBlocks),
 		withBlockValidation[document.ReplaceContentPayload](document.ReplaceContent, document.ReplacedContent, getBlocksFromContent),
+		registry.ValidateDomain(registryState, validateUpdateBlockProps,
+			dispatch.ToUpdateEntityEvent[document.UpdateBlockPropsPayload, document.UpdatedBlockPropsPayload](document.UpdateBlockProps, document.UpdatedBlockProps),
+		),
 	)
+}
+
+func validateUpdateBlockProps(proj project.Project, payload document.UpdateBlockPropsPayload, msg *commands.AnyMessage) error {
+	doc, exists := proj.GetDocument(msg.AggregateID)
+	if !exists {
+		return utils.FieldError("aggregate_id", "document not found")
+	}
+
+	for _, blockID := range payload.BlockIDs {
+		if _, found := document.FindBlock(doc.Content, blockID); !found {
+			return utils.FieldError("block_ids", "block not found: "+blockID)
+		}
+	}
+
+	return nil
 }
 
 func getBlocksFromInsert(p *document.InsertBlocksPayload) []document.Block {

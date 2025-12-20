@@ -109,3 +109,33 @@ func ValidAnnotationID(id string) bool {
 func ValidCodeID(id string) bool {
 	return ValidateID("code", id)
 }
+
+func ValidBlockID(id string) bool {
+	return ValidPrefixedID("block", id)
+}
+
+func ValidBlockPosition(position string) bool {
+	if position == "head" || position == "tail" {
+		return true
+	}
+	if strings.HasPrefix(position, "head:") {
+		return ValidBlockID(strings.TrimPrefix(position, "head:"))
+	}
+	if strings.HasPrefix(position, "tail:") {
+		return ValidBlockID(strings.TrimPrefix(position, "tail:"))
+	}
+	return ValidBlockID(position)
+}
+
+func ParseBlockPosition(position string) (op string, parentID string) {
+	if position == "head" || position == "tail" {
+		return position, ""
+	}
+	if strings.HasPrefix(position, "head:") {
+		return "head", strings.TrimPrefix(position, "head:")
+	}
+	if strings.HasPrefix(position, "tail:") {
+		return "tail", strings.TrimPrefix(position, "tail:")
+	}
+	return "after", position
+}

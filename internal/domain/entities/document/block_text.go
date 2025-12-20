@@ -6,12 +6,12 @@ const (
 	BlockTypeQuote     BlockType = "quote"
 )
 
-type HeadingExtraProps struct {
-	Level int `validate:"required,min=1,max=6"`
+type HeadingProps struct {
+	Level int `json:"level,omitempty" validate:"required,min=1,max=6"`
 }
 
 func init() {
 	RegisterBlockType(BlockTypeParagraph, nil)
-	RegisterBlockType(BlockTypeHeading, HeadingExtraProps{})
+	RegisterBlockType(BlockTypeHeading, HeadingProps{})
 	RegisterBlockType(BlockTypeQuote, nil)
 }

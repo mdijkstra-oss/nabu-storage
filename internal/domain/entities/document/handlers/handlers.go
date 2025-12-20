@@ -8,6 +8,6 @@ import (
 func NewRouter(registryState *registry.RegistryState) dispatch.CommandRouter {
 	return dispatch.CombineRouters(
 		NewDocumentRouter(registryState),
-		NewBlockRouter(),
+		NewBlockRouter(registryState),
 	)
 }

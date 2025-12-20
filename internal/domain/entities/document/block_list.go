@@ -7,13 +7,13 @@ const (
 	BlockTypeToggleList   BlockType = "toggleListItem"
 )
 
-type CheckListExtraProps struct {
-	Checked *bool `validate:"required"`
+type CheckListProps struct {
+	Checked *bool `json:"checked,omitempty" validate:"required"`
 }
 
 func init() {
 	RegisterBlockType(BlockTypeBulletList, nil)
 	RegisterBlockType(BlockTypeNumberedList, nil)
-	RegisterBlockType(BlockTypeCheckList, CheckListExtraProps{})
+	RegisterBlockType(BlockTypeCheckList, CheckListProps{})
 	RegisterBlockType(BlockTypeToggleList, nil)
 }

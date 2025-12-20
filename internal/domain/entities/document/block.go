@@ -24,13 +24,10 @@ type CommonBlockProps struct {
 
 type BlockProps struct {
 	CommonBlockProps
-	Level        int    `json:"level,omitempty"`
-	Checked      *bool  `json:"checked,omitempty"`
-	Language     string `json:"language,omitempty"`
-	URL          string `json:"url,omitempty"`
-	Caption      string `json:"caption,omitempty"`
-	PreviewWidth int    `json:"previewWidth,omitempty"`
-	Name         string `json:"name,omitempty"`
+	HeadingProps
+	CheckListProps
+	MediaProps
+	CodeProps
 }
 
 type InlineContent struct {

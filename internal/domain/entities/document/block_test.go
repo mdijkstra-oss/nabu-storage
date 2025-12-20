@@ -2,123 +2,37 @@ package document
 
 import (
 	"testing"
+
+	th "hermes-relay/internal/lib/test-helpers"
 )
 
 func TestValidateBlock(t *testing.T) {
-	tests := []struct {
-		name    string
-		block   Block
-		wantErr bool
+	T, F := true, false
+	h := func(level int) BlockProps { return BlockProps{HeadingProps: HeadingProps{Level: level}} }
+	chk := func(v bool) BlockProps { return BlockProps{CheckListProps: CheckListProps{Checked: &v}} }
+	img := func(url string) BlockProps { return BlockProps{MediaProps: MediaProps{URL: url}} }
+
+	th.RunFunctionTests(t, []struct {
+		Name     string
+		Input    Block
+		Expected bool
 	}{
-		{
-			name:    "valid paragraph",
-			block:   Block{ID: "b1", Type: BlockTypeParagraph},
-			wantErr: false,
-		},
-		{
-			name:    "missing ID",
-			block:   Block{Type: BlockTypeParagraph},
-			wantErr: true,
-		},
-		{
-			name:    "valid heading level 1",
-			block:   Block{ID: "b1", Type: BlockTypeHeading, Props: BlockProps{Level: 1}},
-			wantErr: false,
-		},
-		{
-			name:    "valid heading level 6",
-			block:   Block{ID: "b1", Type: BlockTypeHeading, Props: BlockProps{Level: 6}},
-			wantErr: false,
-		},
-		{
-			name:    "heading missing level",
-			block:   Block{ID: "b1", Type: BlockTypeHeading},
-			wantErr: true,
-		},
-		{
-			name:    "heading level too high",
-			block:   Block{ID: "b1", Type: BlockTypeHeading, Props: BlockProps{Level: 7}},
-			wantErr: true,
-		},
-		{
-			name:    "valid checklist checked",
-			block:   Block{ID: "b1", Type: BlockTypeCheckList, Props: BlockProps{Checked: boolPtr(true)}},
-			wantErr: false,
-		},
-		{
-			name:    "valid checklist unchecked",
-			block:   Block{ID: "b1", Type: BlockTypeCheckList, Props: BlockProps{Checked: boolPtr(false)}},
-			wantErr: false,
-		},
-		{
-			name:    "checklist missing checked",
-			block:   Block{ID: "b1", Type: BlockTypeCheckList},
-			wantErr: true,
-		},
-		{
-			name:    "valid image with URL",
-			block:   Block{ID: "b1", Type: BlockTypeImage, Props: BlockProps{URL: "https://example.com/img.png"}},
-			wantErr: false,
-		},
-		{
-			name:    "image missing URL",
-			block:   Block{ID: "b1", Type: BlockTypeImage},
-			wantErr: true,
-		},
-		{
-			name:    "valid code block",
-			block:   Block{ID: "b1", Type: BlockTypeCodeBlock},
-			wantErr: false,
-		},
-		{
-			name:    "valid bullet list",
-			block:   Block{ID: "b1", Type: BlockTypeBulletList},
-			wantErr: false,
-		},
-		{
-			name:    "valid table",
-			block:   Block{ID: "b1", Type: BlockTypeTable},
-			wantErr: false,
-		},
-		{
-			name: "valid nested children",
-			block: Block{
-				ID:   "b1",
-				Type: BlockTypeParagraph,
-				Children: []Block{
-					{ID: "b2", Type: BlockTypeParagraph},
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "invalid nested child",
-			block: Block{
-				ID:   "b1",
-				Type: BlockTypeParagraph,
-				Children: []Block{
-					{ID: "b2", Type: BlockTypeHeading},
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name:    "unknown block type",
-			block:   Block{ID: "b1", Type: "unknown"},
-			wantErr: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := ValidateBlock(tt.block)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("ValidateBlock() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func boolPtr(b bool) *bool {
-	return &b
+		{"valid paragraph", Block{ID: "b1", Type: BlockTypeParagraph}, F},
+		{"missing ID", Block{Type: BlockTypeParagraph}, T},
+		{"valid heading level 1", Block{ID: "b1", Type: BlockTypeHeading, Props: h(1)}, F},
+		{"valid heading level 6", Block{ID: "b1", Type: BlockTypeHeading, Props: h(6)}, F},
+		{"heading missing level", Block{ID: "b1", Type: BlockTypeHeading}, T},
+		{"heading level too high", Block{ID: "b1", Type: BlockTypeHeading, Props: h(7)}, T},
+		{"valid checklist checked", Block{ID: "b1", Type: BlockTypeCheckList, Props: chk(true)}, F},
+		{"valid checklist unchecked", Block{ID: "b1", Type: BlockTypeCheckList, Props: chk(false)}, F},
+		{"checklist missing checked", Block{ID: "b1", Type: BlockTypeCheckList}, T},
+		{"valid image with URL", Block{ID: "b1", Type: BlockTypeImage, Props: img("https://example.com/img.png")}, F},
+		{"image missing URL", Block{ID: "b1", Type: BlockTypeImage}, T},
+		{"valid code block", Block{ID: "b1", Type: BlockTypeCodeBlock}, F},
+		{"valid bullet list", Block{ID: "b1", Type: BlockTypeBulletList}, F},
+		{"valid table", Block{ID: "b1", Type: BlockTypeTable}, F},
+		{"valid nested children", Block{ID: "b1", Type: BlockTypeParagraph, Children: []Block{{ID: "b2", Type: BlockTypeParagraph}}}, F},
+		{"invalid nested child", Block{ID: "b1", Type: BlockTypeParagraph, Children: []Block{{ID: "b2", Type: BlockTypeHeading}}}, T},
+		{"unknown block type", Block{ID: "b1", Type: "unknown"}, T},
+	}, ValidateBlock, func(err error) bool { return err != nil })
 }

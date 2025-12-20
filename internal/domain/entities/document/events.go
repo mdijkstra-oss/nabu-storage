@@ -9,11 +9,12 @@ const (
 	UnpinnedDocument = "UnpinnedDocument"
 	DeletedDocument  = "DeletedDocument"
 
-	InsertedBlocks  = "InsertedBlocks"
-	DeletedBlocks   = "DeletedBlocks"
-	ReplacedBlocks  = "ReplacedBlocks"
-	MovedBlocks     = "MovedBlocks"
-	ReplacedContent = "ReplacedContent"
+	InsertedBlocks    = "InsertedBlocks"
+	DeletedBlocks     = "DeletedBlocks"
+	ReplacedBlocks    = "ReplacedBlocks"
+	MovedBlocks       = "MovedBlocks"
+	ReplacedContent   = "ReplacedContent"
+	UpdatedBlockProps = "UpdatedBlockProps"
 )
 
 type CreatedDocumentPayload struct {
@@ -32,3 +33,4 @@ type DeletedBlocksPayload = DeleteBlocksPayload
 type ReplacedBlocksPayload = ReplaceBlocksPayload
 type MovedBlocksPayload = MoveBlocksPayload
 type ReplacedContentPayload = ReplaceContentPayload
+type UpdatedBlockPropsPayload = UpdateBlockPropsPayload

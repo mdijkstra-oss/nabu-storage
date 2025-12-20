@@ -52,4 +52,6 @@ func init() {
 	registerFieldValidation("document_id", ValidDocumentID)
 	registerFieldValidation("annotation_id", ValidAnnotationID)
 	registerFieldValidation("code_id", ValidCodeID)
+	registerFieldValidation("block_id", ValidBlockID)
+	registerFieldValidation("block_position", ValidBlockPosition)
 }

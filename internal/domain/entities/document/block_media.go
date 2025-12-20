@@ -7,13 +7,16 @@ const (
 	BlockTypeFile  BlockType = "file"
 )
 
-type MediaExtraProps struct {
-	URL string `validate:"required"`
+type MediaProps struct {
+	URL          string `json:"url,omitempty" validate:"required"`
+	Caption      string `json:"caption,omitempty"`
+	PreviewWidth int    `json:"previewWidth,omitempty"`
+	Name         string `json:"name,omitempty"`
 }
 
 func init() {
-	RegisterBlockType(BlockTypeImage, MediaExtraProps{})
-	RegisterBlockType(BlockTypeVideo, MediaExtraProps{})
-	RegisterBlockType(BlockTypeAudio, MediaExtraProps{})
-	RegisterBlockType(BlockTypeFile, MediaExtraProps{})
+	RegisterBlockType(BlockTypeImage, MediaProps{})
+	RegisterBlockType(BlockTypeVideo, MediaProps{})
+	RegisterBlockType(BlockTypeAudio, MediaProps{})
+	RegisterBlockType(BlockTypeFile, MediaProps{})
 }
