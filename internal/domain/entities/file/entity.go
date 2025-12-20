@@ -10,8 +10,9 @@ type File struct {
 	Healthy bool   `json:"healthy"`
 	Version int    `json:"version"`
 	FileData
-	Content string         `json:"content"`
-	Codes   []CodedSection `json:"codes"`
+	Content   string         `json:"content"`
+	Codes     []CodedSection `json:"codes"`
+	CodeCount int            `json:"code_count"`
 }
 
 func (f File) GetID() string {

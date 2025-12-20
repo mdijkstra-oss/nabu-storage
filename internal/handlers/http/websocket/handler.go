@@ -143,13 +143,12 @@ func filterProjectForFile(p *project.Project, fileID string) *project.Project {
 		return p
 	}
 
-	// TODO: Optimize performance - this is a temporary workaround, implement proper selective loading
 	filteredFiles := make(map[string]file.File)
 	for id, f := range p.Files {
 		if id == fileID {
-			filteredFiles[id] = f
+			filteredFiles[id] = withCodeCount(f)
 		} else {
-			filteredFiles[id] = withoutContentAndCodes(f)
+			filteredFiles[id] = withCodeCountOnly(f)
 		}
 	}
 
@@ -158,9 +157,15 @@ func filterProjectForFile(p *project.Project, fileID string) *project.Project {
 	return &filtered
 }
 
-func withoutContentAndCodes(f file.File) file.File {
+func withCodeCount(f file.File) file.File {
+	f.CodeCount = len(f.Codes)
+	return f
+}
+
+func withCodeCountOnly(f file.File) file.File {
+	f.CodeCount = len(f.Codes)
 	f.Content = ""
-	f.Codes = []file.CodedSection{}
+	f.Codes = nil
 	return f
 }
 
