@@ -5,10 +5,10 @@ import (
 )
 
 //go:embed codebook.md
-var codebookContent string
+var codebookContent string //nolint:unused
 
 //go:embed llm-memo.md
-var memoContent string
+var memoContent string //nolint:unused
 
 type DefaultDocument struct {
 	Name    string

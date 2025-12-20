@@ -163,7 +163,7 @@ func TestCommandHandlers(t *testing.T) {
 		expected []expectedMessage
 	}{
 		{
-			name: "CreateProject triggers saga to create default documents",
+			name: "CreateProject creates project (saga disabled)",
 			input: commands.ToAny(commands.NewCommand[project.CreateProjectPayload, any](
 				project.CreateProject,
 				project.CreateProjectPayload{Name: "New Project"},
@@ -175,10 +175,6 @@ func TestCommandHandlers(t *testing.T) {
 			expected: []expectedMessage{
 				{commands.Command, project.CreateProject, project.EntityName},
 				{commands.DomainEvent, project.CreatedProject, project.EntityName},
-				{commands.Command, document.CreateDocument, document.EntityName},
-				{commands.DomainEvent, document.CreatedDocument, document.EntityName},
-				{commands.Command, document.CreateDocument, document.EntityName},
-				{commands.DomainEvent, document.CreatedDocument, document.EntityName},
 			},
 		},
 		{

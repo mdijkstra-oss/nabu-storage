@@ -87,10 +87,10 @@ func TestDecidePatchWithStateChanges(t *testing.T) {
 		{
 			Name: "Changing document content generates patch",
 			Before: buildProject(map[string]document.Document{
-				"doc-1": buildDocument("doc-1", "test.txt", []document.Block{{ID: "b1", Type: "paragraph"}}, nil),
+				"doc-1": buildDocument("doc-1", "test.txt", []document.Block{{ID: "b1", Type: document.BlockTypeParagraph}}, nil),
 			}),
 			After: buildProject(map[string]document.Document{
-				"doc-1": buildDocument("doc-1", "test.txt", []document.Block{{ID: "b2", Type: "heading"}}, nil),
+				"doc-1": buildDocument("doc-1", "test.txt", []document.Block{{ID: "b2", Type: document.BlockTypeHeading}}, nil),
 			}),
 			IsActive:        true,
 			ExpectedType:    ActionTypePatch,

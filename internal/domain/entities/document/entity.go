@@ -48,7 +48,7 @@ type DocumentData struct {
 	Time        time.Time    `json:"time" validate:"omitempty,lte"`
 	Original    string       `json:"original"`
 	Pinned      bool         `json:"pinned"`
-	Content     []Block      `json:"content"`
+	Content     []Block `json:"content"`
 	Annotations []Annotation `json:"annotations"`
 }
 

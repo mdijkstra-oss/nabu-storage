@@ -267,6 +267,21 @@ func WalkStructFields(v reflect.Value, visitor StructFieldVisitor) error {
 	return nil
 }
 
+func CopyMatchingFields(src, dst any) error {
+	srcValue := reflect.ValueOf(src)
+	if srcValue.Kind() == reflect.Ptr {
+		srcValue = srcValue.Elem()
+	}
+
+	return IterateFields(dst, func(field reflect.StructField, dstField reflect.Value) (bool, error) {
+		srcField := srcValue.FieldByName(field.Name)
+		if srcField.IsValid() && dstField.CanSet() {
+			dstField.Set(srcField)
+		}
+		return true, nil
+	})
+}
+
 func DeepCopyFields(v reflect.Value) {
 	_ = WalkReflectValue(v, func(field reflect.Value) error {
 		switch field.Kind() {
