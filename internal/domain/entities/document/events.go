@@ -15,6 +15,9 @@ const (
 	MovedBlocks       = "MovedBlocks"
 	ReplacedContent   = "ReplacedContent"
 	UpdatedBlockProps = "UpdatedBlockProps"
+
+	AddedDocumentTags   = "AddedDocumentTags"
+	RemovedDocumentTags = "RemovedDocumentTags"
 )
 
 type CreatedDocumentPayload struct {
@@ -34,3 +37,6 @@ type ReplacedBlocksPayload = ReplaceBlocksPayload
 type MovedBlocksPayload = MoveBlocksPayload
 type ReplacedContentPayload = ReplaceContentPayload
 type UpdatedBlockPropsPayload = UpdateBlockPropsPayload
+
+type AddedDocumentTagsPayload = AddDocumentTagsPayload
+type RemovedDocumentTagsPayload = RemoveDocumentTagsPayload

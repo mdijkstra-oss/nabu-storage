@@ -22,6 +22,9 @@ const (
 	MoveBlocks       commands.Action = "MoveBlocks"
 	ReplaceContent   commands.Action = "ReplaceContent"
 	UpdateBlockProps commands.Action = "UpdateBlockProps"
+
+	AddDocumentTags    commands.Action = "AddDocumentTags"
+	RemoveDocumentTags commands.Action = "RemoveDocumentTags"
 )
 
 type CreateDocumentPayload struct {
@@ -65,4 +68,12 @@ type ReplaceContentPayload struct {
 type UpdateBlockPropsPayload struct {
 	BlockIDs []string   `json:"block_ids" validate:"required,min=1"`
 	Props    BlockProps `json:"props"`
+}
+
+type AddDocumentTagsPayload struct {
+	Tags []string `json:"tags" validate:"required,min=1"`
+}
+
+type RemoveDocumentTagsPayload struct {
+	Tags []string `json:"tags" validate:"required,min=1"`
 }

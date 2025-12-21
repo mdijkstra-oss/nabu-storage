@@ -95,3 +95,19 @@ func Reduce[T, U any](slice []T, initial U, fn func(U, T) U) U {
 	}
 	return result
 }
+
+func ToSet[T comparable](slice []T) map[T]bool {
+	set := make(map[T]bool, len(slice))
+	for _, item := range slice {
+		set[item] = true
+	}
+	return set
+}
+
+func Keys[K comparable, V any](m map[K]V) []K {
+	result := make([]K, 0, len(m))
+	for k := range m {
+		result = append(result, k)
+	}
+	return result
+}

@@ -14,6 +14,8 @@ var DocumentReducer = projection.CombineReducers(
 		projection.For(document.PinnedDocument, projection.PinnedEntity[Document]),
 		projection.For(document.UnpinnedDocument, projection.UnpinnedEntity[Document]),
 		projection.For(document.DeletedDocument, projection.DeletedEntity[Document]),
+		projection.For(document.AddedDocumentTags, addedDocumentTagsReducer),
+		projection.For(document.RemovedDocumentTags, removedDocumentTagsReducer),
 	),
 )
 
@@ -30,4 +32,14 @@ func createdDocumentReducer(_ *Document, message *commands.AnyMessage, payload *
 			Content:     []document.Block{},
 		},
 	}
+}
+
+func addedDocumentTagsReducer(current *Document, _ *commands.AnyMessage, payload *document.AddedDocumentTagsPayload) *Document {
+	current.Tags = document.AddTags(current.Tags, payload.Tags)
+	return current
+}
+
+func removedDocumentTagsReducer(current *Document, _ *commands.AnyMessage, payload *document.RemovedDocumentTagsPayload) *Document {
+	current.Tags = document.RemoveTags(current.Tags, payload.Tags)
+	return current
 }
