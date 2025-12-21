@@ -17,9 +17,9 @@ start:
 start-prod:
 	@set -a && . ./.prod.env && set +a && go run cmd/main.go
 
-.PHONY: sample
-sample:
-	@set -a && . ./.env && export PERSISTENCE_DIR=./sample-data && go run cmd/main.go
+.PHONY: nabu
+nabu:
+	@set -a && . ./.env && export PERSISTENCE_DIR=~/Documents/nabu-persistence && go run cmd/main.go
 
 .PHONY: dev
 dev:

@@ -40,12 +40,18 @@ func (d Document) WithPinned(pinned bool) any {
 	return &d
 }
 
+func (d Document) WithUpdatedAt(t time.Time) any {
+	d.UpdatedAt = t
+	return &d
+}
+
 type DocumentData struct {
 	ProjectID   string       `json:"project_id" validate:"required"`
 	Name        string       `json:"name" validate:"required,max=200" normalize:"trim"`
 	Description string       `json:"description" validate:"max=2000" normalize:"trim"`
 	Title       string       `json:"title" validate:"omitempty,min=1,max=200"`
 	Time        time.Time    `json:"time" validate:"omitempty,lte"`
+	UpdatedAt   time.Time    `json:"updated_at"`
 	Original    string       `json:"original"`
 	Pinned      bool         `json:"pinned"`
 	Tags        []string     `json:"tags,omitempty"`

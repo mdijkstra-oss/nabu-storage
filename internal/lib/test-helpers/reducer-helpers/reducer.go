@@ -29,16 +29,17 @@ func RunReducerTests[T any](t *testing.T, tests []ReducerTestCase[T], reducer fu
 			if len(mapFunc) > 0 {
 				actual = mapFunc[0](result)
 			}
-			test_helpers.AssertEqual(t, actual, tt.Expected, "result", ignoreVersionFields()...)
+			test_helpers.AssertEqual(t, actual, tt.Expected, "result", ignoreMetaFields()...)
 		})
 	}
 }
 
-func ignoreVersionFields() []cmp.Option {
+func ignoreMetaFields() []cmp.Option {
+	ignoredFields := map[string]bool{"Version": true, "UpdatedAt": true}
 	return []cmp.Option{
 		cmp.FilterPath(func(p cmp.Path) bool {
 			if sf, ok := p.Last().(cmp.StructField); ok {
-				return sf.Name() == "Version"
+				return ignoredFields[sf.Name()]
 			}
 			return false
 		}, cmp.Ignore()),

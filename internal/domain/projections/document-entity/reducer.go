@@ -5,12 +5,14 @@ import (
 	"hermes-relay/internal/domain/entities/document"
 )
 
-var Reducer = projection.WithVersionIncrement(
-	projection.WithHealthCheck(
-		projection.CombineReducers(
-			DocumentReducer,
-			BlockReducer,
-			projection.DeletedProjectReducer[document.Document],
+var Reducer = projection.WithTimestamp[document.Document](
+	projection.WithVersionIncrement(
+		projection.WithHealthCheck(
+			projection.CombineReducers(
+				DocumentReducer,
+				BlockReducer,
+				projection.DeletedProjectReducer[document.Document],
+			),
 		),
 	),
 )

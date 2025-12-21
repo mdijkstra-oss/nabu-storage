@@ -8,15 +8,17 @@ import (
 	documentview "hermes-relay/internal/domain/projections/document-entity"
 )
 
-var projectReducer = projection.WithVersionIncrement(
-	projection.WithHealthCheck(
-		projection.CombineReducers(
-			projection.For(project.CreatedProject, CreatedProjectReducer),
-			projection.IfExists(
-				projection.For(project.UpdatedProject, projection.UpdatedEntity[Project, project.UpdatedProjectPayload]),
-				projection.For(project.PinnedProject, projection.PinnedEntity[Project]),
-				projection.For(project.UnpinnedProject, projection.UnpinnedEntity[Project]),
-				projection.For(project.DeletedProject, projection.DeletedEntity[Project]),
+var projectReducer = projection.WithTimestamp[Project](
+	projection.WithVersionIncrement(
+		projection.WithHealthCheck(
+			projection.CombineReducers(
+				projection.For(project.CreatedProject, CreatedProjectReducer),
+				projection.IfExists(
+					projection.For(project.UpdatedProject, projection.UpdatedEntity[Project, project.UpdatedProjectPayload]),
+					projection.For(project.PinnedProject, projection.PinnedEntity[Project]),
+					projection.For(project.UnpinnedProject, projection.UnpinnedEntity[Project]),
+					projection.For(project.DeletedProject, projection.DeletedEntity[Project]),
+				),
 			),
 		),
 	),

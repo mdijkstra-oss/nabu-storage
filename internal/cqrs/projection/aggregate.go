@@ -1,6 +1,9 @@
 package projection
 
-import "hermes-relay/internal/cqrs/commands"
+import (
+	"hermes-relay/internal/cqrs/commands"
+	"hermes-relay/internal/lib/utils"
+)
 
 func ApplyChildReducerToMap[Parent Entity, Child Entity](
 	getMap func(*Parent) map[string]Child,
@@ -25,10 +28,10 @@ func ApplyChildReducerToMap[Parent Entity, Child Entity](
 
 		newEntity := childReducer(entityPtr, event)
 
-		// Create new map to avoid shared state between before/after snapshots.
+		// Deep copy map to avoid shared state between before/after snapshots.
 		// Bootstrap captures state before and after event application for patch generation.
-		// If we mutate the original map, both snapshots point to same data = null patches.
-		newMap := copyMap(entityMap)
+		// If we share references, both snapshots point to same data = null patches.
+		newMap := utils.DeepCopyMap(entityMap)
 
 		if newEntity == nil {
 			delete(newMap, entityID)
@@ -38,12 +41,4 @@ func ApplyChildReducerToMap[Parent Entity, Child Entity](
 
 		return setMap(current, newMap)
 	}
-}
-
-func copyMap[K comparable, V any](m map[K]V) map[K]V {
-	newMap := make(map[K]V, len(m))
-	for k, v := range m {
-		newMap[k] = v
-	}
-	return newMap
 }

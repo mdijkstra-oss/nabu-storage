@@ -17,9 +17,9 @@ type Block struct {
 type BlockType string
 
 type CommonBlockProps struct {
-	BackgroundColor string `json:"backgroundColor,omitempty"`
-	TextColor       string `json:"textColor,omitempty"`
-	TextAlignment   string `json:"textAlignment,omitempty"`
+	BackgroundColor string `json:"background_color,omitempty"`
+	TextColor       string `json:"text_color,omitempty"`
+	TextAlignment   string `json:"text_alignment,omitempty"`
 }
 
 type BlockProps struct {
@@ -57,8 +57,8 @@ type Styles struct {
 	Underline       *bool  `json:"underline,omitempty"`
 	Strikethrough   *bool  `json:"strikethrough,omitempty"`
 	Code            *bool  `json:"code,omitempty"`
-	TextColor       string `json:"textColor,omitempty"`
-	BackgroundColor string `json:"backgroundColor,omitempty"`
+	TextColor       string `json:"text_color,omitempty"`
+	BackgroundColor string `json:"background_color,omitempty"`
 }
 
 var blockExtraProps = map[BlockType]reflect.Type{}

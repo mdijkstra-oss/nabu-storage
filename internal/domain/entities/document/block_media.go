@@ -10,7 +10,7 @@ const (
 type MediaProps struct {
 	URL          string `json:"url,omitempty" validate:"required"`
 	Caption      string `json:"caption,omitempty"`
-	PreviewWidth int    `json:"previewWidth,omitempty"`
+	PreviewWidth int    `json:"preview_width,omitempty"`
 	Name         string `json:"name,omitempty"`
 }
 

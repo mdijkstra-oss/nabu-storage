@@ -2,12 +2,14 @@ package project
 
 import (
 	"hermes-relay/internal/domain/entities/document"
+	"time"
 )
 
 type ProjectData struct {
-	Name        string `json:"name" validate:"required,max=200" normalize:"trim"`
-	Description string `json:"description" validate:"max=2000" normalize:"trim"`
-	Pinned      bool   `json:"pinned"`
+	Name        string    `json:"name" validate:"required,max=200" normalize:"trim"`
+	Description string    `json:"description" validate:"max=2000" normalize:"trim"`
+	Pinned      bool      `json:"pinned"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 type Project struct {
@@ -46,6 +48,11 @@ func (p Project) WithVersion(v int) any {
 
 func (p Project) WithPinned(pinned bool) any {
 	p.Pinned = pinned
+	return &p
+}
+
+func (p Project) WithUpdatedAt(t time.Time) any {
+	p.UpdatedAt = t
 	return &p
 }
 

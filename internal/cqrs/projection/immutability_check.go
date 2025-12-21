@@ -5,8 +5,11 @@ import (
 	"hermes-relay/internal/cqrs/commands"
 	"os"
 	"reflect"
+	"time"
 	"unsafe"
 )
+
+var timeType = reflect.TypeOf(time.Time{})
 
 func WithImmutabilityCheck[T Entity](reducer Reducer[T]) Reducer[T] {
 	if !isDevMode() {
@@ -48,6 +51,10 @@ func checkSharedMemory(before, after reflect.Value, visited map[uintptr]bool) bo
 	}
 
 	if before.Type() != after.Type() {
+		return false
+	}
+
+	if before.Type() == timeType {
 		return false
 	}
 

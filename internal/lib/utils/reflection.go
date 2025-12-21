@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+
+	"github.com/jinzhu/copier"
 )
 
 func IsNilPtr[T any](v T) bool {
@@ -303,4 +305,18 @@ func DeepCopyFields(v reflect.Value) {
 		}
 		return nil
 	})
+}
+
+func DeepCopy[T any](src T) T {
+	var dst T
+	_ = copier.CopyWithOption(&dst, &src, copier.Option{DeepCopy: true})
+	return dst
+}
+
+func DeepCopyMap[K comparable, V any](m map[K]V) map[K]V {
+	newMap := make(map[K]V, len(m))
+	for k, v := range m {
+		newMap[k] = DeepCopy(v)
+	}
+	return newMap
 }
