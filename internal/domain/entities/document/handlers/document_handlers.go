@@ -21,6 +21,9 @@ func NewDocumentRouter(registryState *registry.RegistryState) dispatch.CommandRo
 			dispatch.ToEmptyDomainEvent(document.UnpinDocument, document.UnpinnedDocument),
 			dispatch.ToUpdateEntityEvent[document.AddDocumentTagsPayload, document.AddedDocumentTagsPayload](document.AddDocumentTags, document.AddedDocumentTags),
 			dispatch.ToUpdateEntityEvent[document.RemoveDocumentTagsPayload, document.RemovedDocumentTagsPayload](document.RemoveDocumentTags, document.RemovedDocumentTags),
+			dispatch.ToUpdateEntityEvent[document.AddAnnotationsPayload, document.AddedAnnotationsPayload](document.AddDocumentAnnotations, document.AddedAnnotations),
+			dispatch.ToUpdateEntityEvent[document.RemoveAnnotationsPayload, document.RemovedAnnotationsPayload](document.RemoveDocumentAnnotations, document.RemovedAnnotations),
+			dispatch.ToUpdateEntityEvent[document.UpdateAnnotationPropsPayload, document.UpdatedAnnotationPropsPayload](document.UpdateDocumentAnnotationProps, document.UpdatedAnnotationProps),
 		),
 		dispatch.ToEmptyDomainEvent(document.DeleteDocument, document.DeletedDocument),
 	)

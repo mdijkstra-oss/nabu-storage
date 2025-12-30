@@ -25,6 +25,10 @@ const (
 
 	AddDocumentTags    commands.Action = "AddDocumentTags"
 	RemoveDocumentTags commands.Action = "RemoveDocumentTags"
+
+	AddDocumentAnnotations        commands.Action = "AddAnnotations"
+	RemoveDocumentAnnotations     commands.Action = "RemoveAnnotations"
+	UpdateDocumentAnnotationProps commands.Action = "UpdateAnnotationProps"
 )
 
 type CreateDocumentPayload struct {
@@ -76,4 +80,23 @@ type AddDocumentTagsPayload struct {
 
 type RemoveDocumentTagsPayload struct {
 	Tags []string `json:"tags" validate:"required,min=1"`
+}
+
+type AddAnnotationsPayload struct {
+	Annotations []Annotation `json:"annotations" validate:"required,min=1,dive"`
+}
+
+type RemoveAnnotationsPayload struct {
+	AnnotationIDs []string `json:"annotation_ids" validate:"required,min=1"`
+}
+
+type AnnotationPropsUpdate struct {
+	Color   *string        `json:"color,omitempty" validate:"omitempty,radix_color"`
+	Reason  *string        `json:"reason,omitempty"`
+	Payload *CodingPayload `json:"payload,omitempty" validate:"omitempty,dive"`
+}
+
+type UpdateAnnotationPropsPayload struct {
+	AnnotationIDs []string              `json:"annotation_ids" validate:"required,min=1"`
+	Props         AnnotationPropsUpdate `json:"props" validate:"required"`
 }

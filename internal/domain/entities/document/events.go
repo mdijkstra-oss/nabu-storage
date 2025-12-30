@@ -18,6 +18,10 @@ const (
 
 	AddedDocumentTags   = "AddedDocumentTags"
 	RemovedDocumentTags = "RemovedDocumentTags"
+
+	AddedAnnotations        = "AddedAnnotations"
+	RemovedAnnotations      = "RemovedAnnotations"
+	UpdatedAnnotationProps  = "UpdatedAnnotationProps"
 )
 
 type CreatedDocumentPayload struct {
@@ -40,3 +44,7 @@ type UpdatedBlockPropsPayload = UpdateBlockPropsPayload
 
 type AddedDocumentTagsPayload = AddDocumentTagsPayload
 type RemovedDocumentTagsPayload = RemoveDocumentTagsPayload
+
+type AddedAnnotationsPayload = AddAnnotationsPayload
+type RemovedAnnotationsPayload = RemoveAnnotationsPayload
+type UpdatedAnnotationPropsPayload = UpdateAnnotationPropsPayload
