@@ -54,7 +54,7 @@ type DocumentData struct {
 	UpdatedAt   time.Time    `json:"updated_at"`
 	Original    string       `json:"original"`
 	Pinned      bool         `json:"pinned"`
-	Tags        []string     `json:"tags,omitempty"`
+	Tags        []string     `json:"tags"`
 	Content     []Block      `json:"content"`
 	Annotations []Annotation `json:"annotations"`
 }

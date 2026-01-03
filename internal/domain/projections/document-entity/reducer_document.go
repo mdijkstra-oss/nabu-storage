@@ -32,7 +32,10 @@ func createdDocumentReducer(_ *Document, message *commands.AnyMessage, payload *
 			Name:        payload.Name,
 			Description: payload.Description,
 			Time:        now,
+			UpdatedAt:   now,
 			Content:     []document.Block{},
+			Tags:        []string{},
+			Annotations: []document.Annotation{},
 		},
 	}
 }
