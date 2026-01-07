@@ -43,17 +43,16 @@ func (rs *RegistryState) GetAllProjects() []project.Project {
 	return utils.Values(rs.state.Projects)
 }
 
-func (rs *RegistryState) GetProjectIDForEntity(aggregateType commands.AggregateType, aggregateID string) string {
+func (rs *RegistryState) GetProjectIDForEntity(aggregateID string) string {
 	rs.mu.RLock()
 	defer rs.mu.RUnlock()
-	key := string(aggregateType) + ":" + aggregateID
-	return rs.state.EntityToProject[key]
+	return rs.state.EntityToProject[aggregateID]
 }
 
 func (rs *RegistryState) ResolveProjectID(message *commands.AnyMessage) string {
 	projectID := commands.ExtractProjectID(message)
 	if projectID == "" {
-		projectID = rs.GetProjectIDForEntity(message.AggregateType, message.AggregateID)
+		projectID = rs.GetProjectIDForEntity(message.AggregateID)
 	}
 	return projectID
 }

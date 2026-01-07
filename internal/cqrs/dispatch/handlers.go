@@ -12,7 +12,7 @@ func ToCreateEntityEvent[P, PE any](commandAction, eventAction commands.Action, 
 
 		// Copies struct, so all good
 		withID := *message
-		withID.AggregateID = utils.NewID()
+		withID.AggregateID = utils.NewAggregateID(string(message.AggregateType))
 		withID.Timestamp = time.Now()
 
 		// What is a create but an update with more fields

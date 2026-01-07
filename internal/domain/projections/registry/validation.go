@@ -8,8 +8,12 @@ import (
 	"hermes-relay/internal/lib/utils"
 )
 
-func EnsureProjectHealth(registry *RegistryState, handler dispatch.CommandRouter) dispatch.CommandRouter {
+func EnsureHealth(registry *RegistryState, handler dispatch.CommandRouter) dispatch.CommandRouter {
 	return func(message *commands.AnyMessage, publisher dispatch.PublishFunc) (*commands.AnyMessage, error) {
+		if message.AggregateID == "" {
+			return handler(message, publisher)
+		}
+
 		projectID := registry.ResolveProjectID(message)
 		if projectID == "" {
 			return handler(message, publisher)
@@ -17,27 +21,14 @@ func EnsureProjectHealth(registry *RegistryState, handler dispatch.CommandRouter
 
 		proj := registry.GetProject(projectID)
 		if proj == nil {
+			if isCreateAction(message.Action) {
+				return handler(message, publisher)
+			}
 			return nil, utils.FieldError("ProjectID", "not found")
 		}
 
 		if !proj.IsHealthy() {
 			return nil, &utils.InternalError{Message: "project is in unhealthy state, commands are blocked"}
-		}
-
-		return handler(message, publisher)
-	}
-}
-
-func EnsureEntityHealth(registry *RegistryState, handler dispatch.CommandRouter) dispatch.CommandRouter {
-	return func(message *commands.AnyMessage, publisher dispatch.PublishFunc) (*commands.AnyMessage, error) {
-		if message.AggregateID == "" {
-			return handler(message, publisher)
-		}
-
-		projectID := registry.ResolveProjectID(message)
-		proj := registry.GetProject(projectID)
-		if proj == nil {
-			return handler(message, publisher)
 		}
 
 		if err := checkEntityHealth(*proj, message.Action, string(message.AggregateType), message.AggregateID); err != nil {

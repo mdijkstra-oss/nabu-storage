@@ -2,6 +2,15 @@ package document
 
 import "hermes-relay/internal/lib/utils"
 
+func AssignAnnotationIDs(annotations []Annotation) []Annotation {
+	return utils.Map(annotations, func(a Annotation) Annotation {
+		if a.ID == "" {
+			a.ID = utils.NewAnnotationID()
+		}
+		return a
+	})
+}
+
 func AddAnnotations(current []Annotation, add []Annotation) []Annotation {
 	existingIDs := utils.ToSet(utils.Map(current, func(a Annotation) string { return a.ID }))
 	result := make([]Annotation, len(current))

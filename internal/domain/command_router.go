@@ -10,12 +10,10 @@ import (
 
 func NewCommandRouter(registryState *registry.RegistryState) dispatch.CommandRouter {
 	return dispatch.LimitOnType(commands.Command,
-		registry.EnsureProjectHealth(registryState,
-			registry.EnsureEntityHealth(registryState,
-				dispatch.CombineRouters(
-					documenthandlers.NewRouter(registryState),
-					projecthandlers.NewRouter(registryState),
-				),
+		registry.EnsureHealth(registryState,
+			dispatch.CombineRouters(
+				documenthandlers.NewRouter(registryState),
+				projecthandlers.NewRouter(registryState),
 			),
 		),
 	)

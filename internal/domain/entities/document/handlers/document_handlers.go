@@ -21,7 +21,7 @@ func NewDocumentRouter(registryState *registry.RegistryState) dispatch.CommandRo
 			dispatch.ToEmptyDomainEvent(document.UnpinDocument, document.UnpinnedDocument),
 			dispatch.ToUpdateEntityEvent[document.AddDocumentTagsPayload, document.AddedDocumentTagsPayload](document.AddDocumentTags, document.AddedDocumentTags),
 			dispatch.ToUpdateEntityEvent[document.RemoveDocumentTagsPayload, document.RemovedDocumentTagsPayload](document.RemoveDocumentTags, document.RemovedDocumentTags),
-			dispatch.ToUpdateEntityEvent[document.AddAnnotationsPayload, document.AddedAnnotationsPayload](document.AddDocumentAnnotations, document.AddedAnnotations),
+			withAnnotationIDs(document.AddDocumentAnnotations, document.AddedAnnotations),
 			dispatch.ToUpdateEntityEvent[document.RemoveAnnotationsPayload, document.RemovedAnnotationsPayload](document.RemoveDocumentAnnotations, document.RemovedAnnotations),
 			dispatch.ToUpdateEntityEvent[document.UpdateAnnotationPropsPayload, document.UpdatedAnnotationPropsPayload](document.UpdateDocumentAnnotationProps, document.UpdatedAnnotationProps),
 		),
@@ -39,4 +39,21 @@ func createDocumentFromPayload(payload *document.CreateDocumentPayload) document
 
 func validateCreateDocument(_ project.Project, _ document.CreateDocumentPayload, _ *commands.AnyMessage) error {
 	return nil
+}
+
+func withAnnotationIDs(commandAction, eventAction commands.Action) dispatch.CommandRouter {
+	return func(message *commands.AnyMessage, publisher dispatch.PublishFunc) (*commands.AnyMessage, error) {
+		if message.Action != commandAction {
+			return nil, nil
+		}
+
+		var payload document.AddAnnotationsPayload
+		if err := commands.EnsureValidPayload(message, &payload); err != nil {
+			return nil, err
+		}
+
+		payload.Annotations = document.AssignAnnotationIDs(payload.Annotations)
+
+		return commands.ToDomainEvent(message, eventAction, any(payload)), nil
+	}
 }

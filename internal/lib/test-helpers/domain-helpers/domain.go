@@ -51,8 +51,8 @@ func AssertDomainEventMessage(t *testing.T, got, want *commands.AnyMessage, msg 
 		t.Errorf("%s: expected DomainEvent, got %s", msg, got.Type)
 	}
 
-	if !utils.ValidID(got.AggregateID) {
-		t.Errorf("%s: AggregateID must be valid UUID, got %s", msg, got.AggregateID)
+	if !utils.ValidAggregateID(string(got.AggregateType), got.AggregateID) {
+		t.Errorf("%s: AggregateID must be valid for %s, got %s", msg, got.AggregateType, got.AggregateID)
 	}
 
 	AssertMessage(t, got, want, msg, extraOpts...)

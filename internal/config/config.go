@@ -55,7 +55,7 @@ func getPersistenceDir() string {
 		slog.Warn("failed to get user home directory, using relative path", "error", err)
 		return "persistence-data"
 	}
-	return filepath.Join(home, "Documents", "hermes-persistence")
+	return filepath.Join(home, "Documents", "nabu-persistence")
 }
 
 func parseCorsOrigins(origins string) []string {

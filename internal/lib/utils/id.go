@@ -12,6 +12,7 @@ var entityPrefixes = map[string]string{
 	"Document":   "document",
 	"Annotation": "annotation",
 	"Code":       "code",
+	"Block":      "block",
 }
 
 var blockNamespace = uuid.MustParse("6ba7b810-9dad-11d1-80b4-00c04fd430c8")
@@ -43,6 +44,18 @@ func NewAnnotationID() string {
 
 func NewCodeID() string {
 	return NewPrefixedID("code")
+}
+
+func NewBlockID() string {
+	return NewPrefixedID("block")
+}
+
+func NewAggregateID(aggregateType string) string {
+	prefix, ok := entityPrefixes[aggregateType]
+	if !ok {
+		panic("unknown aggregate type: " + aggregateType)
+	}
+	return NewPrefixedID(prefix)
 }
 
 func ValidID(id string) bool {
@@ -92,6 +105,14 @@ func NormalizeAggregateID(aggregateType, id string) string {
 		return id
 	}
 	return NormalizeID(prefix, id)
+}
+
+func ValidAggregateID(aggregateType, id string) bool {
+	prefix, ok := entityPrefixes[aggregateType]
+	if !ok {
+		return ValidID(id)
+	}
+	return ValidateID(prefix, id)
 }
 
 func ValidProjectID(id string) bool {

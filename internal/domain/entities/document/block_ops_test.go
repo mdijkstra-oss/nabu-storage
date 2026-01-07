@@ -26,6 +26,10 @@ func blockIDs(blocks []Block) []string {
 	return result
 }
 
+func bWithContent(id string, content string) Block {
+	return Block{ID: id, Type: BlockTypeParagraph, Content: []InlineContent{{Type: InlineTypeText, Text: content}}}
+}
+
 func TestInsertBlocksAfter(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -59,6 +63,91 @@ func TestInsertBlocksAfter(t *testing.T) {
 			}
 			if tt.wantChildren != nil {
 				th.AssertEqual(t, blockIDs(result[0].Children), tt.wantChildren, "children ids")
+			}
+		})
+	}
+}
+
+func TestInsertBlocksAfterUpsert(t *testing.T) {
+	tests := []struct {
+		name        string
+		blocks      []Block
+		pos         string
+		add         []Block
+		wantIDs     []string
+		wantContent map[string]string
+	}{
+		{
+			name:    "upsert existing block updates in place",
+			blocks:  []Block{bWithContent("a", "old"), bWithContent("b", "old")},
+			pos:     PositionTail,
+			add:     []Block{bWithContent("a", "new")},
+			wantIDs: []string{"a", "b"},
+			wantContent: map[string]string{
+				"a": "new",
+				"b": "old",
+			},
+		},
+		{
+			name:    "upsert mixed existing and new",
+			blocks:  []Block{bWithContent("a", "old"), bWithContent("b", "old")},
+			pos:     PositionTail,
+			add:     []Block{bWithContent("a", "new"), bWithContent("x", "new")},
+			wantIDs: []string{"a", "b", "x"},
+			wantContent: map[string]string{
+				"a": "new",
+				"b": "old",
+				"x": "new",
+			},
+		},
+		{
+			name:    "upsert all existing no position change",
+			blocks:  []Block{bWithContent("a", "old"), bWithContent("b", "old"), bWithContent("c", "old")},
+			pos:     PositionHead,
+			add:     []Block{bWithContent("b", "new"), bWithContent("c", "new")},
+			wantIDs: []string{"a", "b", "c"},
+			wantContent: map[string]string{
+				"a": "old",
+				"b": "new",
+				"c": "new",
+			},
+		},
+		{
+			name:    "upsert nested block in place",
+			blocks:  []Block{b("a", bWithContent("a1", "old")), bWithContent("b", "old")},
+			pos:     PositionTail,
+			add:     []Block{bWithContent("a1", "new")},
+			wantIDs: []string{"a", "b"},
+			wantContent: map[string]string{
+				"a1": "new",
+				"b":  "old",
+			},
+		},
+		{
+			name:    "duplicate insert same id twice",
+			blocks:  []Block{bWithContent("a", "v1")},
+			pos:     PositionTail,
+			add:     []Block{bWithContent("a", "v2")},
+			wantIDs: []string{"a"},
+			wantContent: map[string]string{
+				"a": "v2",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, _ := InsertBlocksAfter(tt.blocks, tt.pos, tt.add)
+			th.AssertEqual(t, blockIDs(result), tt.wantIDs, "ids")
+
+			for id, wantText := range tt.wantContent {
+				block, found := FindBlock(result, id)
+				th.AssertEqual(t, found, true, "block "+id+" found")
+				gotText := ""
+				if len(block.Content) > 0 {
+					gotText = block.Content[0].Text
+				}
+				th.AssertEqual(t, gotText, wantText, "block "+id+" content")
 			}
 		})
 	}

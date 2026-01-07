@@ -3,22 +3,68 @@ package document
 import "hermes-relay/internal/lib/utils"
 
 func InsertBlocksAfter(blocks []Block, position string, newBlocks []Block) ([]Block, bool) {
+	// Upsert: update existing blocks in place, only insert truly new ones
+	existing, toInsert := partitionByExistence(blocks, newBlocks)
+	blocks = updateBlocksInPlace(blocks, existing)
+
+	if len(toInsert) == 0 {
+		return blocks, true
+	}
+
 	op, parentID := utils.ParseBlockPosition(position)
 
 	if parentID == "" {
 		if op == PositionHead {
-			return insertAtHead(blocks, newBlocks), true
+			return insertAtHead(blocks, toInsert), true
 		}
-		return insertAtTail(blocks, newBlocks), true
+		return insertAtTail(blocks, toInsert), true
 	}
 
 	if op == PositionHead {
-		return insertAsFirstChild(blocks, parentID, newBlocks)
+		return insertAsFirstChild(blocks, parentID, toInsert)
 	}
 	if op == PositionTail {
-		return insertAsLastChild(blocks, parentID, newBlocks)
+		return insertAsLastChild(blocks, parentID, toInsert)
 	}
-	return insertAfterID(blocks, parentID, newBlocks)
+	return insertAfterID(blocks, parentID, toInsert)
+}
+
+func partitionByExistence(tree []Block, newBlocks []Block) (existing, toInsert []Block) {
+	for _, nb := range newBlocks {
+		if _, found := FindBlock(tree, nb.ID); found {
+			existing = append(existing, nb)
+		} else {
+			toInsert = append(toInsert, nb)
+		}
+	}
+	return
+}
+
+func updateBlocksInPlace(blocks []Block, updates []Block) []Block {
+	if len(updates) == 0 {
+		return blocks
+	}
+	updateMap := make(map[string]Block, len(updates))
+	for _, u := range updates {
+		updateMap[u.ID] = u
+	}
+	return updateInTree(blocks, updateMap)
+}
+
+func updateInTree(blocks []Block, updates map[string]Block) []Block {
+	result := make([]Block, len(blocks))
+	for i, b := range blocks {
+		if update, found := updates[b.ID]; found {
+			result[i] = update
+		} else if len(b.Children) > 0 {
+			updated := b
+			updated.Children = updateInTree(b.Children, updates)
+			result[i] = updated
+		} else {
+			result[i] = b
+		}
+	}
+	return result
 }
 
 func insertAtHead(blocks []Block, newBlocks []Block) []Block {

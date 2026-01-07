@@ -11,11 +11,11 @@ import (
 
 func NewBlockRouter(registryState *registry.RegistryState) dispatch.CommandRouter {
 	return dispatch.LimitOnEntity(document.EntityName,
-		withBlockValidation[document.InsertBlocksPayload](document.InsertBlocks, document.InsertedBlocks, getBlocksFromInsert),
+		withBlockValidation[document.InsertBlocksPayload](document.InsertBlocks, document.InsertedBlocks, assignAndGetBlocksFromInsert),
 		dispatch.ToUpdateEntityEvent[document.DeleteBlocksPayload, document.DeletedBlocksPayload](document.DeleteBlocks, document.DeletedBlocks),
-		withBlockValidation[document.ReplaceBlocksPayload](document.ReplaceBlocks, document.ReplacedBlocks, getBlocksFromReplace),
+		withBlockValidation[document.ReplaceBlocksPayload](document.ReplaceBlocks, document.ReplacedBlocks, assignAndGetBlocksFromReplace),
 		dispatch.ToUpdateEntityEvent[document.MoveBlocksPayload, document.MovedBlocksPayload](document.MoveBlocks, document.MovedBlocks),
-		withBlockValidation[document.ReplaceContentPayload](document.ReplaceContent, document.ReplacedContent, getBlocksFromContent),
+		withBlockValidation[document.ReplaceContentPayload](document.ReplaceContent, document.ReplacedContent, assignAndGetBlocksFromContent),
 		registry.ValidateDomain(registryState, validateUpdateBlockProps,
 			dispatch.ToUpdateEntityEvent[document.UpdateBlockPropsPayload, document.UpdatedBlockPropsPayload](document.UpdateBlockProps, document.UpdatedBlockProps),
 		),
@@ -37,19 +37,22 @@ func validateUpdateBlockProps(proj project.Project, payload document.UpdateBlock
 	return nil
 }
 
-func getBlocksFromInsert(p *document.InsertBlocksPayload) []document.Block {
+func assignAndGetBlocksFromInsert(p *document.InsertBlocksPayload) []document.Block {
+	p.Blocks = document.AssignBlockIDs(p.Blocks)
 	return p.Blocks
 }
 
-func getBlocksFromReplace(p *document.ReplaceBlocksPayload) []document.Block {
+func assignAndGetBlocksFromReplace(p *document.ReplaceBlocksPayload) []document.Block {
+	p.Blocks = document.AssignBlockIDs(p.Blocks)
 	return p.Blocks
 }
 
-func getBlocksFromContent(p *document.ReplaceContentPayload) []document.Block {
+func assignAndGetBlocksFromContent(p *document.ReplaceContentPayload) []document.Block {
+	p.Content = document.AssignBlockIDs(p.Content)
 	return p.Content
 }
 
-func withBlockValidation[P any](commandAction, eventAction commands.Action, getBlocks func(*P) []document.Block) dispatch.CommandRouter {
+func withBlockValidation[P any](commandAction, eventAction commands.Action, assignAndGetBlocks func(*P) []document.Block) dispatch.CommandRouter {
 	return func(message *commands.AnyMessage, publisher dispatch.PublishFunc) (*commands.AnyMessage, error) {
 		if message.Action != commandAction {
 			return nil, nil
@@ -60,11 +63,11 @@ func withBlockValidation[P any](commandAction, eventAction commands.Action, getB
 			return nil, err
 		}
 
-		blocks := getBlocks(&payload)
+		blocks := assignAndGetBlocks(&payload)
 		if err := document.ValidateBlocks(blocks); err != nil {
 			return nil, utils.FieldError("blocks", err.Error())
 		}
 
-		return commands.ToDomainEvent(message, eventAction), nil
+		return commands.ToDomainEvent(message, eventAction, any(payload)), nil
 	}
 }

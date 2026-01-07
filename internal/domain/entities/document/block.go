@@ -108,3 +108,21 @@ func ValidateBlocks(blocks []Block) error {
 	}
 	return nil
 }
+
+func AssignBlockIDs(blocks []Block) []Block {
+	result := make([]Block, len(blocks))
+	for i, b := range blocks {
+		result[i] = assignBlockID(b)
+	}
+	return result
+}
+
+func assignBlockID(b Block) Block {
+	if b.ID == "" {
+		b.ID = utils.NewBlockID()
+	}
+	if len(b.Children) > 0 {
+		b.Children = AssignBlockIDs(b.Children)
+	}
+	return b
+}

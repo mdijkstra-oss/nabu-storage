@@ -3,7 +3,6 @@ package registry
 import (
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/cqrs/projection"
-	"hermes-relay/internal/domain/entities/document"
 	"hermes-relay/internal/domain/entities/project"
 	projectview "hermes-relay/internal/domain/projections/project-entity"
 )
@@ -59,16 +58,15 @@ func extractProjectID(registry *Registry, event *commands.AnyMessage) string {
 		return projectID
 	}
 
-	key := string(event.AggregateType) + ":" + event.AggregateID
-	return registry.EntityToProject[key]
+	return registry.EntityToProject[event.AggregateID]
 }
 
 func updateLookupTable(lookup map[string]string, event *commands.AnyMessage, projectID string) {
-	if event.AggregateType != document.EntityName {
+	if event.AggregateType == project.EntityName {
 		return
 	}
 
-	key := string(event.AggregateType) + ":" + event.AggregateID
+	key := event.AggregateID
 
 	if commands.IsCreatedEvent(event.Action) {
 		lookup[key] = projectID
