@@ -6,7 +6,7 @@ import (
 	"hermes-relay/internal/domain/projections/registry"
 )
 
-func NewRouter(_ *registry.RegistryState) dispatch.CommandRouter {
+func NewRouter(_ *registry.Store) dispatch.CommandRouter {
 	return dispatch.CombineRouters(
 		dispatch.LimitOnEntity(project.EntityName,
 			dispatch.ToCreateEntityEvent[project.CreateProjectPayload, project.CreatedProjectPayload](project.CreateProject, project.CreatedProject, createProjectFromPayload),

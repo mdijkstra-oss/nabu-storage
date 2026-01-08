@@ -8,18 +8,22 @@ import (
 	"hermes-relay/internal/lib/utils"
 )
 
-func EnsureHealth(registry *RegistryState, handler dispatch.CommandRouter) dispatch.CommandRouter {
+func EnsureHealth(store *Store, handler dispatch.CommandRouter) dispatch.CommandRouter {
 	return func(message *commands.AnyMessage, publisher dispatch.PublishFunc) (*commands.AnyMessage, error) {
 		if message.AggregateID == "" {
 			return handler(message, publisher)
 		}
 
-		projectID := registry.ResolveProjectID(message)
+		projectID := projection.Read(store, func(r *Registry) string {
+			return ResolveProjectID(r, message)
+		})
 		if projectID == "" {
 			return handler(message, publisher)
 		}
 
-		proj := registry.GetProject(projectID)
+		proj := projection.Read(store, func(r *Registry) *project.Project {
+			return GetProject(r, projectID)
+		})
 		if proj == nil {
 			if isCreateAction(message.Action) {
 				return handler(message, publisher)
@@ -39,14 +43,16 @@ func EnsureHealth(registry *RegistryState, handler dispatch.CommandRouter) dispa
 	}
 }
 
-func EnsureExpectedVersion(registry *RegistryState, handler dispatch.CommandRouter) dispatch.CommandRouter {
+func EnsureExpectedVersion(store *Store, handler dispatch.CommandRouter) dispatch.CommandRouter {
 	return func(message *commands.AnyMessage, publisher dispatch.PublishFunc) (*commands.AnyMessage, error) {
 		if message.ExpectedEntityVersion == nil {
 			return handler(message, publisher)
 		}
 
-		projectID := registry.ResolveProjectID(message)
-		proj := registry.GetProject(projectID)
+		proj := projection.Read(store, func(r *Registry) *project.Project {
+			projectID := ResolveProjectID(r, message)
+			return GetProject(r, projectID)
+		})
 		if proj == nil {
 			return handler(message, publisher)
 		}
@@ -111,12 +117,12 @@ func checkEntityHealth(proj project.Project, action commands.Action, aggregateTy
 }
 
 func ValidateDomain[P any](
-	registry *RegistryState,
+	store *Store,
 	validator func(project.Project, P, *commands.AnyMessage) error,
 	handler dispatch.CommandRouter,
 ) dispatch.CommandRouter {
 	return NormalizeDomain[P](
-		registry,
+		store,
 		func(proj project.Project, payload P, msg *commands.AnyMessage) (P, error) {
 			return payload, validator(proj, payload, msg)
 		},
@@ -125,21 +131,23 @@ func ValidateDomain[P any](
 }
 
 func NormalizeDomain[P any](
-	registry *RegistryState,
+	store *Store,
 	normalize func(project.Project, P, *commands.AnyMessage) (P, error),
 	handler dispatch.CommandRouter,
 ) dispatch.CommandRouter {
-	return TransformDomain(registry, normalize, handler)
+	return TransformDomain(store, normalize, handler)
 }
 
 func TransformDomain[In, Out any](
-	registry *RegistryState,
+	store *Store,
 	transform func(project.Project, In, *commands.AnyMessage) (Out, error),
 	handler dispatch.CommandRouter,
 ) dispatch.CommandRouter {
 	return func(message *commands.AnyMessage, publisher dispatch.PublishFunc) (*commands.AnyMessage, error) {
-		projectID := registry.ResolveProjectID(message)
-		proj := registry.GetProject(projectID)
+		proj := projection.Read(store, func(r *Registry) *project.Project {
+			projectID := ResolveProjectID(r, message)
+			return GetProject(r, projectID)
+		})
 
 		if proj == nil {
 			return nil, utils.FieldError("ProjectID", "not found")

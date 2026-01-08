@@ -8,11 +8,11 @@ import (
 	"hermes-relay/internal/domain/projections/registry"
 )
 
-func NewDocumentRouter(registryState *registry.RegistryState) dispatch.CommandRouter {
+func NewDocumentRouter(store *registry.Store) dispatch.CommandRouter {
 	return dispatch.CombineRouters(
 		dispatch.LimitOnEntity(document.EntityName,
 			dispatch.LimitOnAction(document.CreateDocument,
-				registry.ValidateDomain(registryState, validateCreateDocument,
+				registry.ValidateDomain(store, validateCreateDocument,
 					dispatch.ToCreateEntityEvent[document.CreateDocumentPayload, document.CreatedDocumentPayload](document.CreateDocument, document.CreatedDocument, createDocumentFromPayload),
 				),
 			),

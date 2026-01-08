@@ -7,14 +7,14 @@ import (
 	"hermes-relay/internal/lib/utils"
 )
 
-func QueryAllProjects(state *RegistryState, query projection.PaginationQuery) []projection.PaginationResult[projectview.ProjectSummary] {
-	allProjects := state.GetAllProjects()
+func QueryAllProjects(store *Store, query projection.PaginationQuery) []projection.PaginationResult[projectview.ProjectSummary] {
+	allProjects := projection.Read(store, GetAllProjects)
 	projectSummaries := utils.Map(allProjects, projectview.ToSummary)
 	return projection.Paginate(projectSummaries, query)
 }
 
-func QueryProjectEvents(query projection.EmptyQuery, projectID string, state *RegistryState) []commands.AnyMessage {
-	events := state.GetProjectEvents(projectID)
-	// TODO: paginate on this query
-	return events
+func QueryProjectEvents(query projection.EmptyQuery, projectID string, store *Store) []commands.AnyMessage {
+	return projection.Read(store, func(r *Registry) []commands.AnyMessage {
+		return GetProjectEvents(r, projectID)
+	})
 }

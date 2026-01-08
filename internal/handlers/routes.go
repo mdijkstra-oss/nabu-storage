@@ -15,7 +15,7 @@ import (
 	net "net/http"
 )
 
-func SetupHTTPHandlers(r chi.Router, publisher *dispatch.InMemoryPublisher, registryState *registry.RegistryState, hub *websocket.Hub, corsOrigins []string) {
+func SetupHTTPHandlers(r chi.Router, publisher *dispatch.InMemoryPublisher, store *registry.Store, hub *websocket.Hub, corsOrigins []string) {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.RequestID)
@@ -24,15 +24,15 @@ func SetupHTTPHandlers(r chi.Router, publisher *dispatch.InMemoryPublisher, regi
 	r.Use(http.WithHeaders(http.DefaultHeaders))
 
 	r.Post("/commands", http.CommandHandler(publisher.Publish))
-	r.Get("/ws/{projectId}", websocket.Handler(hub, registryState, publisher.Subscribe))
+	r.Get("/ws/{projectId}", websocket.Handler(hub, store, publisher.Subscribe))
 
 	r.Route("/queries/projects", func(r chi.Router) {
 		r.Get("/", http.Query(func(query projection.PaginationQuery) []projection.PaginationResult[projectview.ProjectSummary] {
-			return registry.QueryAllProjects(registryState, query)
+			return registry.QueryAllProjects(store, query)
 		}))
 
 		r.Route("/{projectId}", func(r chi.Router) {
-			r.Get("/events", http.RegistryQuery(registryState, registry.QueryProjectEvents))
+			r.Get("/events", http.StoreQuery(store, registry.QueryProjectEvents))
 		})
 	})
 

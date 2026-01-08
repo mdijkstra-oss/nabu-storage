@@ -9,14 +9,14 @@ import (
 	"hermes-relay/internal/lib/utils"
 )
 
-func NewBlockRouter(registryState *registry.RegistryState) dispatch.CommandRouter {
+func NewBlockRouter(store *registry.Store) dispatch.CommandRouter {
 	return dispatch.LimitOnEntity(document.EntityName,
 		withBlockValidation[document.InsertBlocksPayload](document.InsertBlocks, document.InsertedBlocks, assignAndGetBlocksFromInsert),
 		dispatch.ToUpdateEntityEvent[document.DeleteBlocksPayload, document.DeletedBlocksPayload](document.DeleteBlocks, document.DeletedBlocks),
 		withBlockValidation[document.ReplaceBlocksPayload](document.ReplaceBlocks, document.ReplacedBlocks, assignAndGetBlocksFromReplace),
 		dispatch.ToUpdateEntityEvent[document.MoveBlocksPayload, document.MovedBlocksPayload](document.MoveBlocks, document.MovedBlocks),
 		withBlockValidation[document.ReplaceContentPayload](document.ReplaceContent, document.ReplacedContent, assignAndGetBlocksFromContent),
-		registry.ValidateDomain(registryState, validateUpdateBlockProps,
+		registry.ValidateDomain(store, validateUpdateBlockProps,
 			dispatch.ToUpdateEntityEvent[document.UpdateBlockPropsPayload, document.UpdatedBlockPropsPayload](document.UpdateBlockProps, document.UpdatedBlockProps),
 		),
 	)

@@ -8,12 +8,12 @@ import (
 	"hermes-relay/internal/domain/projections/registry"
 )
 
-func NewCommandRouter(registryState *registry.RegistryState) dispatch.CommandRouter {
+func NewCommandRouter(store *registry.Store) dispatch.CommandRouter {
 	return dispatch.LimitOnType(commands.Command,
-		registry.EnsureHealth(registryState,
+		registry.EnsureHealth(store,
 			dispatch.CombineRouters(
-				documenthandlers.NewRouter(registryState),
-				projecthandlers.NewRouter(registryState),
+				documenthandlers.NewRouter(store),
+				projecthandlers.NewRouter(store),
 			),
 		),
 	)
@@ -27,9 +27,9 @@ func NewSagaRouter() dispatch.CommandRouter {
 	)
 }
 
-func CommandHandlers(registryState *registry.RegistryState) []dispatch.CommandRouter {
+func CommandHandlers(store *registry.Store) []dispatch.CommandRouter {
 	return []dispatch.CommandRouter{
-		NewCommandRouter(registryState),
+		NewCommandRouter(store),
 		NewSagaRouter(),
 	}
 }

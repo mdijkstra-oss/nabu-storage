@@ -2,6 +2,7 @@ package http
 
 import (
 	"github.com/go-chi/chi/v5"
+	"hermes-relay/internal/cqrs/projection"
 	"hermes-relay/internal/domain/projections/registry"
 	"hermes-relay/internal/lib/utils"
 	"log/slog"
@@ -66,9 +67,9 @@ func Query[Q, R any](handler func(Q) R) http.HandlerFunc {
 	}
 }
 
-func RegistryQuery[Q, R any](
-	registryState *registry.RegistryState,
-	handler func(Q, string, *registry.RegistryState) R,
+func StoreQuery[Q, R any](
+	store *registry.Store,
+	handler func(Q, string, *registry.Store) R,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		projectID := chi.URLParam(r, "projectId")
@@ -77,8 +78,10 @@ func RegistryQuery[Q, R any](
 			return
 		}
 
-		proj := registryState.GetProject(projectID)
-		if proj == nil {
+		proj := projection.Read(store, func(reg *registry.Registry) *registry.Registry {
+			return reg
+		})
+		if registry.GetProject(proj, projectID) == nil {
 			respondWithError(w, &utils.NotFoundError{Message: "project not found"})
 			return
 		}
@@ -89,7 +92,7 @@ func RegistryQuery[Q, R any](
 			return
 		}
 
-		result := handler(query, projectID, registryState)
+		result := handler(query, projectID, store)
 		respondWithJSON(w, result)
 	}
 }

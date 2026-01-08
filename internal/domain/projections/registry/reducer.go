@@ -12,11 +12,7 @@ var Reducer = NewReducer(projectview.Reducer)
 func NewReducer(projectReducer projection.Reducer[project.Project]) projection.Reducer[Registry] {
 	return func(current *Registry, event *commands.AnyMessage) *Registry {
 		if current == nil {
-			current = &Registry{
-				Projects:        make(map[string]project.Project),
-				EntityToProject: make(map[string]string),
-				Events:          make(map[string][]commands.AnyMessage),
-			}
+			current = EmptyRegistry()
 		}
 
 		projectID := extractProjectID(current, event)
@@ -67,10 +63,12 @@ func updateLookupTable(lookup map[string]string, event *commands.AnyMessage, pro
 	}
 
 	key := event.AggregateID
+	entityType := string(event.AggregateType)
 
-	if commands.IsCreatedEvent(event.Action) {
+	// Match exact entity lifecycle events, not sub-entity events like DeletedBlocks
+	if event.Action == commands.Action("Created"+entityType) {
 		lookup[key] = projectID
-	} else if commands.IsDeletedEvent(event.Action) {
+	} else if event.Action == commands.Action("Deleted"+entityType) {
 		delete(lookup, key)
 	}
 }

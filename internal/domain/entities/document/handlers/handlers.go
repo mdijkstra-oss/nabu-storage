@@ -5,9 +5,9 @@ import (
 	"hermes-relay/internal/domain/projections/registry"
 )
 
-func NewRouter(registryState *registry.RegistryState) dispatch.CommandRouter {
+func NewRouter(store *registry.Store) dispatch.CommandRouter {
 	return dispatch.CombineRouters(
-		NewDocumentRouter(registryState),
-		NewBlockRouter(registryState),
+		NewDocumentRouter(store),
+		NewBlockRouter(store),
 	)
 }

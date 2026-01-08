@@ -2,6 +2,7 @@ package registry
 
 import (
 	"hermes-relay/internal/cqrs/commands"
+	"hermes-relay/internal/cqrs/projection"
 	"hermes-relay/internal/domain/entities/document"
 	"hermes-relay/internal/domain/entities/project"
 	th "hermes-relay/internal/lib/test-helpers"
@@ -29,14 +30,14 @@ func TestRegistryReducer(t *testing.T) {
 			Event:   domain_helpers.NewDomainEvent(document.EntityName, "doc-1", document.CreatedDocument, &document.CreatedDocumentPayload{ProjectID: "project-1", Name: "test.md"}),
 			Expected: registryWith(
 				projectWith("project-1", "Test Project", "", map[string]document.Document{"doc-1": testDocument("doc-1", "project-1", "test.md")}),
-				withLookup("Document:doc-1", "project-1"),
+				withLookup("doc-1", "project-1"),
 			),
 		},
 		{
 			Name: "DeletedDocument removes from lookup table",
 			Initial: registryWith(
 				projectWith("project-1", "Test Project", "", map[string]document.Document{"doc-1": testDocument("doc-1", "project-1", "test.md")}),
-				withLookup("Document:doc-1", "project-1"),
+				withLookup("doc-1", "project-1"),
 			),
 			Event:    domain_helpers.NewDomainEvent(document.EntityName, "doc-1", document.DeletedDocument, nil),
 			Expected: registryWith(emptyProject("project-1", "Test Project")),
@@ -51,12 +52,12 @@ func TestRegistryReducer(t *testing.T) {
 			Name: "UpdatedDocument routes to correct project via lookup",
 			Initial: registryWith(
 				projectWith("project-1", "Test Project", "", map[string]document.Document{"doc-1": testDocument("doc-1", "project-1", "old-name.md")}),
-				withLookup("Document:doc-1", "project-1"),
+				withLookup("doc-1", "project-1"),
 			),
 			Event: domain_helpers.NewDomainEvent(document.EntityName, "doc-1", document.UpdatedDocument, &document.UpdatedDocumentPayload{Name: "new-name.md"}),
 			Expected: registryWith(
 				projectWith("project-1", "Test Project", "", map[string]document.Document{"doc-1": testDocument("doc-1", "project-1", "new-name.md")}),
-				withLookup("Document:doc-1", "project-1"),
+				withLookup("doc-1", "project-1"),
 			),
 		},
 		{
@@ -69,7 +70,90 @@ func TestRegistryReducer(t *testing.T) {
 			Expected: registryWith(
 				projectWith("project-1", "Project 1", "", map[string]document.Document{"doc-1": testDocument("doc-1", "project-1", "test.md")}),
 				emptyProject("project-2", "Project 2"),
-				withLookup("Document:doc-1", "project-1"),
+				withLookup("doc-1", "project-1"),
+			),
+		},
+		{
+			Name: "InsertedBlocks routes to correct document via lookup",
+			Initial: registryWith(
+				projectWith("project-1", "Test Project", "", map[string]document.Document{"doc-1": testDocument("doc-1", "project-1", "test.md")}),
+				withLookup("doc-1", "project-1"),
+			),
+			Event: domain_helpers.NewDomainEvent(document.EntityName, "doc-1", document.InsertedBlocks, &document.InsertedBlocksPayload{
+				Position: "head:",
+				Blocks:   []document.Block{testBlock("block-1", "Hello world")},
+			}),
+			Expected: registryWith(
+				projectWith("project-1", "Test Project", "", map[string]document.Document{
+					"doc-1": testDocumentWithContent("doc-1", "project-1", "test.md", []document.Block{testBlock("block-1", "Hello world")}),
+				}),
+				withLookup("doc-1", "project-1"),
+			),
+		},
+		{
+			Name: "DeletedBlocks routes to correct document via lookup",
+			Initial: registryWith(
+				projectWith("project-1", "Test Project", "", map[string]document.Document{
+					"doc-1": testDocumentWithContent("doc-1", "project-1", "test.md", []document.Block{
+						testBlock("block-1", "First"),
+						testBlock("block-2", "Second"),
+					}),
+				}),
+				withLookup("doc-1", "project-1"),
+			),
+			Event: domain_helpers.NewDomainEvent(document.EntityName, "doc-1", document.DeletedBlocks, &document.DeletedBlocksPayload{
+				BlockIDs: []string{"block-1"},
+			}),
+			Expected: registryWith(
+				projectWith("project-1", "Test Project", "", map[string]document.Document{
+					"doc-1": testDocumentWithContent("doc-1", "project-1", "test.md", []document.Block{testBlock("block-2", "Second")}),
+				}),
+				withLookup("doc-1", "project-1"),
+			),
+		},
+		{
+			Name: "ReplacedContent routes to correct document via lookup",
+			Initial: registryWith(
+				projectWith("project-1", "Test Project", "", map[string]document.Document{
+					"doc-1": testDocumentWithContent("doc-1", "project-1", "test.md", []document.Block{testBlock("block-1", "Old content")}),
+				}),
+				withLookup("doc-1", "project-1"),
+			),
+			Event: domain_helpers.NewDomainEvent(document.EntityName, "doc-1", document.ReplacedContent, &document.ReplacedContentPayload{
+				Content: []document.Block{testBlock("block-new", "New content")},
+			}),
+			Expected: registryWith(
+				projectWith("project-1", "Test Project", "", map[string]document.Document{
+					"doc-1": testDocumentWithContent("doc-1", "project-1", "test.md", []document.Block{testBlock("block-new", "New content")}),
+				}),
+				withLookup("doc-1", "project-1"),
+			),
+		},
+		{
+			Name: "Block events isolated between projects",
+			Initial: registryWith(
+				projectWith("project-1", "Project 1", "", map[string]document.Document{
+					"doc-1": testDocumentWithContent("doc-1", "project-1", "doc1.md", []document.Block{}),
+				}),
+				projectWith("project-2", "Project 2", "", map[string]document.Document{
+					"doc-2": testDocumentWithContent("doc-2", "project-2", "doc2.md", []document.Block{}),
+				}),
+				withLookup("doc-1", "project-1"),
+				withLookup("doc-2", "project-2"),
+			),
+			Event: domain_helpers.NewDomainEvent(document.EntityName, "doc-1", document.InsertedBlocks, &document.InsertedBlocksPayload{
+				Position: "head:",
+				Blocks:   []document.Block{testBlock("block-1", "Only in doc-1")},
+			}),
+			Expected: registryWith(
+				projectWith("project-1", "Project 1", "", map[string]document.Document{
+					"doc-1": testDocumentWithContent("doc-1", "project-1", "doc1.md", []document.Block{testBlock("block-1", "Only in doc-1")}),
+				}),
+				projectWith("project-2", "Project 2", "", map[string]document.Document{
+					"doc-2": testDocumentWithContent("doc-2", "project-2", "doc2.md", []document.Block{}),
+				}),
+				withLookup("doc-1", "project-1"),
+				withLookup("doc-2", "project-2"),
 			),
 		},
 	}
@@ -123,6 +207,25 @@ func testDocument(id, projectID, name string) document.Document {
 	})
 }
 
+func testDocumentWithContent(id, projectID, name string, content []document.Block) document.Document {
+	return document.BuildTestDocument(id, document.DocumentData{
+		ProjectID: projectID,
+		Name:      name,
+		Content:   content,
+	})
+}
+
+func testBlock(id, text string) document.Block {
+	return document.Block{
+		ID:   id,
+		Type: document.BlockTypeParagraph,
+		Content: []document.InlineContent{{
+			Type: document.InlineTypeText,
+			Text: text,
+		}},
+	}
+}
+
 func normalizeRegistry(reg *Registry) *Registry {
 	if reg == nil {
 		return nil
@@ -139,7 +242,7 @@ func normalizeRegistry(reg *Registry) *Registry {
 }
 
 type resolveProjectIDInput struct {
-	Setup func(*RegistryState)
+	Setup func(*Store)
 	Event *commands.AnyMessage
 }
 
@@ -152,7 +255,7 @@ func TestResolveProjectID(t *testing.T) {
 		{
 			Name: "Project aggregate returns aggregate ID directly",
 			Input: resolveProjectIDInput{
-				Setup: func(rs *RegistryState) {},
+				Setup: func(store *Store) {},
 				Event: &commands.AnyMessage{
 					AggregateType: "Project",
 					AggregateID:   "proj-123",
@@ -164,7 +267,7 @@ func TestResolveProjectID(t *testing.T) {
 		{
 			Name: "Document with ProjectID in payload extracts it",
 			Input: resolveProjectIDInput{
-				Setup: func(rs *RegistryState) {},
+				Setup: func(store *Store) {},
 				Event: domain_helpers.NewDomainEvent(document.EntityName, "doc-1", document.CreatedDocument, &document.CreatedDocumentPayload{
 					ProjectID: "proj-456",
 					Name:      "test.md",
@@ -175,12 +278,12 @@ func TestResolveProjectID(t *testing.T) {
 		{
 			Name: "Document without ProjectID in payload falls back to registry lookup",
 			Input: resolveProjectIDInput{
-				Setup: func(rs *RegistryState) {
-					rs.ApplyEvent(domain_helpers.NewDomainEvent(project.EntityName, "proj-100", project.CreatedProject, &project.CreatedProjectPayload{
+				Setup: func(store *Store) {
+					projection.Apply(store, domain_helpers.NewDomainEvent(project.EntityName, "proj-100", project.CreatedProject, &project.CreatedProjectPayload{
 						Name:        "Test Project",
 						Description: "Test",
 					}))
-					rs.ApplyEvent(domain_helpers.NewDomainEvent(document.EntityName, "doc-99", document.CreatedDocument, &document.CreatedDocumentPayload{
+					projection.Apply(store, domain_helpers.NewDomainEvent(document.EntityName, "doc-99", document.CreatedDocument, &document.CreatedDocumentPayload{
 						ProjectID: "proj-100",
 						Name:      "existing.md",
 					}))
@@ -196,7 +299,7 @@ func TestResolveProjectID(t *testing.T) {
 		{
 			Name: "Unknown entity returns empty string",
 			Input: resolveProjectIDInput{
-				Setup: func(rs *RegistryState) {},
+				Setup: func(store *Store) {},
 				Event: &commands.AnyMessage{
 					AggregateType: "Document",
 					AggregateID:   "unknown-doc",
@@ -208,7 +311,7 @@ func TestResolveProjectID(t *testing.T) {
 		{
 			Name: "Unknown aggregate type returns empty string",
 			Input: resolveProjectIDInput{
-				Setup: func(rs *RegistryState) {},
+				Setup: func(store *Store) {},
 				Event: &commands.AnyMessage{
 					AggregateType: "UnknownType",
 					AggregateID:   "some-id",
@@ -220,8 +323,10 @@ func TestResolveProjectID(t *testing.T) {
 	}
 
 	th.RunFunctionTests(t, tests, func(input resolveProjectIDInput) string {
-		registryState := NewRegistryState()
-		input.Setup(registryState)
-		return registryState.ResolveProjectID(input.Event)
+		store := NewStore()
+		input.Setup(store)
+		return projection.Read(store, func(r *Registry) string {
+			return ResolveProjectID(r, input.Event)
+		})
 	})
 }

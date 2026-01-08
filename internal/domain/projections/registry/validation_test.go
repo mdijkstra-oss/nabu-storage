@@ -3,6 +3,7 @@ package registry
 import (
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/cqrs/dispatch"
+	"hermes-relay/internal/cqrs/projection"
 	"hermes-relay/internal/domain/entities/document"
 	"hermes-relay/internal/domain/entities/project"
 	"hermes-relay/internal/lib/test-helpers/domain-helpers"
@@ -36,11 +37,11 @@ func TestEnsureExpectedVersion(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			handlerCalled = false
-			rs := NewRegistryState()
+			store := NewStore()
 			for _, evt := range tc.setup {
-				rs.ApplyEvent(evt)
+				projection.Apply(store, evt)
 			}
-			handler := EnsureExpectedVersion(rs, passthrough)
+			handler := EnsureExpectedVersion(store, passthrough)
 			_, err := handler(tc.command, nil)
 
 			if tc.expectErr == "" {

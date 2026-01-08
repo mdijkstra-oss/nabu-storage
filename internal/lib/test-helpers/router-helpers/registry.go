@@ -2,21 +2,22 @@ package router_helpers
 
 import (
 	"hermes-relay/internal/cqrs/commands"
+	"hermes-relay/internal/cqrs/projection"
 	"hermes-relay/internal/domain/projections/registry"
 )
 
-func NewTestRegistry(events []*commands.AnyMessage) *registry.RegistryState {
-	reg := registry.NewRegistryState()
-	ApplyTestEvents(reg, events)
-	return reg
+func NewTestStore(events []*commands.AnyMessage) *registry.Store {
+	store := registry.NewStore()
+	ApplyTestEvents(store, events)
+	return store
 }
 
-func ApplyTestEvents(reg *registry.RegistryState, events []*commands.AnyMessage) {
+func ApplyTestEvents(store *registry.Store, events []*commands.AnyMessage) {
 	for _, event := range events {
-		ApplyTestEvent(reg, event)
+		ApplyTestEvent(store, event)
 	}
 }
 
-func ApplyTestEvent(reg *registry.RegistryState, event *commands.AnyMessage) {
-	reg.ApplyEvent(event)
+func ApplyTestEvent(store *registry.Store, event *commands.AnyMessage) {
+	projection.Apply(store, event)
 }

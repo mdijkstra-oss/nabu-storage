@@ -6,6 +6,7 @@ import (
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/cqrs/dispatch"
 	"hermes-relay/internal/cqrs/patches"
+	"hermes-relay/internal/cqrs/projection"
 	"hermes-relay/internal/domain/entities/document"
 	"hermes-relay/internal/domain/entities/project"
 	"hermes-relay/internal/domain/projections/registry"
@@ -27,7 +28,7 @@ type Message struct {
 	Data      any    `json:"data"`
 }
 
-func Handler(hub *Hub, registryState *registry.RegistryState, subscribe func(dispatch.CommandRouter) func()) http.HandlerFunc {
+func Handler(hub *Hub, store *registry.Store, subscribe func(dispatch.CommandRouter) func()) http.HandlerFunc {
 	upgrader := websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
 			return true
@@ -50,7 +51,7 @@ func Handler(hub *Hub, registryState *registry.RegistryState, subscribe func(dis
 		}
 		defer func() { utils.ShouldWork(conn.Close()) }()
 
-		handleConnection(conn, projectID, documentID, hub, registryState, subscribe)
+		handleConnection(conn, projectID, documentID, hub, store, subscribe)
 	}
 }
 
@@ -84,7 +85,7 @@ func handleConnection(
 	projectID string,
 	documentID string,
 	hub *Hub,
-	registryState *registry.RegistryState,
+	store *registry.Store,
 	subscribe func(dispatch.CommandRouter) func(),
 ) {
 	hub.Register(projectID, conn)
@@ -96,7 +97,7 @@ func handleConnection(
 	defer close(done)
 	go startPingSender(conn, done)
 
-	sendInitialSnapshot(conn, projectID, documentID, registryState)
+	sendInitialSnapshot(conn, projectID, documentID, store)
 
 	unsubscribe := subscribe(dispatch.LimitOnType(
 		commands.SystemEvent,
@@ -118,9 +119,11 @@ func handleConnection(
 	}
 }
 
-func sendInitialSnapshot(conn *websocket.Conn, projectID string, documentID string, registryState *registry.RegistryState) {
+func sendInitialSnapshot(conn *websocket.Conn, projectID string, documentID string, store *registry.Store) {
 	utils.GuardWith(func() {
-		proj := registryState.GetProject(projectID)
+		proj := projection.Read(store, func(r *registry.Registry) *project.Project {
+			return registry.GetProject(r, projectID)
+		})
 		if proj == nil {
 			slog.Warn("project not found for initial snapshot", "projectID", projectID)
 			return

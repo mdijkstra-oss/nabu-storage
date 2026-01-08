@@ -21,10 +21,10 @@ func RunRouterTests(
 	t *testing.T,
 	setupCommands []*commands.AnyMessage,
 	tests []RouterTestCase,
-	newRouter func(*registry.RegistryState) dispatch.CommandRouter,
+	newRouter func(*registry.Store) dispatch.CommandRouter,
 ) {
-	reg := NewTestRegistry(setupCommands)
-	router := newRouter(reg)
+	store := NewTestStore(setupCommands)
+	router := newRouter(store)
 
 	publisherTests := make([]dispatch.PublisherTestCase, len(tests))
 	for i, tt := range tests {

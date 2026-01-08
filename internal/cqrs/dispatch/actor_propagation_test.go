@@ -19,7 +19,7 @@ const (
 	TestEvent4   commands.Action = "TestEvent4"
 )
 
-func testActorRouter(_ *registry.RegistryState) dispatch.CommandRouter {
+func testActorRouter(_ *registry.Store) dispatch.CommandRouter {
 	return dispatch.CombineRouters(
 		dispatch.LimitOnAction(TestCommand1, func(msg *commands.AnyMessage, _ dispatch.PublishFunc) (*commands.AnyMessage, error) {
 			return commands.ToDomainEvent(msg, TestEvent1), nil

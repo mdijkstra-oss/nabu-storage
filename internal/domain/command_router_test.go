@@ -196,19 +196,19 @@ func TestCommandHandlers(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			reg := rh.NewTestRegistry(setupCommands)
+			store := rh.NewTestStore(setupCommands)
 			publisher := dispatch.NewInMemoryPublisher()
 
 			var published []*commands.AnyMessage
 			publisher.Subscribe(func(msg *commands.AnyMessage, _ dispatch.PublishFunc) (*commands.AnyMessage, error) {
 				published = append(published, msg)
 				if msg.Type == commands.DomainEvent {
-					rh.ApplyTestEvent(reg, msg)
+					rh.ApplyTestEvent(store, msg)
 				}
 				return nil, nil
 			})
 
-			for _, router := range CommandHandlers(reg) {
+			for _, router := range CommandHandlers(store) {
 				publisher.Subscribe(router)
 			}
 
