@@ -13,11 +13,19 @@ func buildProject(documents map[string]document.Document) *project.Project {
 	return &proj
 }
 
-func buildDocument(id, name string, content []document.Block, annotations []document.Annotation) document.Document {
+func buildDocument(id, name string, content []document.Block, annotations map[string]document.Annotation) document.Document {
 	d := document.BuildTestDocument(id, document.DocumentData{ProjectID: "proj-1", Name: name})
 	d.Content = content
 	d.Annotations = annotations
 	return d
+}
+
+func annMap(anns ...document.Annotation) map[string]document.Annotation {
+	result := make(map[string]document.Annotation, len(anns))
+	for _, a := range anns {
+		result[a.ID] = a
+	}
+	return result
 }
 
 func buildTestAnnotation(id, text string) document.Annotation {
@@ -43,16 +51,16 @@ func TestDecidePatchWithStateChanges(t *testing.T) {
 		{
 			Name: "Removing annotations generates patch",
 			Before: buildProject(map[string]document.Document{
-				"doc-1": buildDocument("doc-1", "test.txt", nil, []document.Annotation{
+				"doc-1": buildDocument("doc-1", "test.txt", nil, annMap(
 					buildTestAnnotation("a1", "text1"),
 					buildTestAnnotation("a2", "text2"),
 					buildTestAnnotation("a3", "text3"),
-				}),
+				)),
 			}),
 			After: buildProject(map[string]document.Document{
-				"doc-1": buildDocument("doc-1", "test.txt", nil, []document.Annotation{
+				"doc-1": buildDocument("doc-1", "test.txt", nil, annMap(
 					buildTestAnnotation("a3", "text3"),
-				}),
+				)),
 			}),
 			IsActive:        true,
 			ExpectedType:    ActionTypePatch,
@@ -61,12 +69,12 @@ func TestDecidePatchWithStateChanges(t *testing.T) {
 		{
 			Name: "Adding annotations generates patch",
 			Before: buildProject(map[string]document.Document{
-				"doc-1": buildDocument("doc-1", "test.txt", nil, []document.Annotation{}),
+				"doc-1": buildDocument("doc-1", "test.txt", nil, map[string]document.Annotation{}),
 			}),
 			After: buildProject(map[string]document.Document{
-				"doc-1": buildDocument("doc-1", "test.txt", nil, []document.Annotation{
+				"doc-1": buildDocument("doc-1", "test.txt", nil, annMap(
 					buildTestAnnotation("a1", "new"),
-				}),
+				)),
 			}),
 			IsActive:        true,
 			ExpectedType:    ActionTypePatch,

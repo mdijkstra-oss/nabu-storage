@@ -1,45 +1,64 @@
 package document
 
-import "hermes-relay/internal/lib/utils"
+import (
+	"hermes-relay/internal/lib/text-search/find"
+	"hermes-relay/internal/lib/utils"
+	"strings"
+)
 
-func AssignAnnotationIDs(annotations []Annotation) []Annotation {
-	return utils.Map(annotations, func(a Annotation) Annotation {
-		if a.ID == "" {
-			a.ID = utils.NewAnnotationID()
-		}
-		return a
-	})
+func normalizeForComparison(text string) string {
+	return strings.ToLower(find.NormalizeText(text))
 }
 
-func AddAnnotation(current []Annotation, ann Annotation) []Annotation {
-	result := make([]Annotation, len(current)+1)
-	copy(result, current)
-	result[len(current)] = ann
+func hasMatchingAnnotation(current map[string]Annotation, text string) bool {
+	normalized := normalizeForComparison(text)
+	for _, ann := range current {
+		if normalizeForComparison(ann.Text) == normalized {
+			return true
+		}
+	}
+	return false
+}
+
+func AddAnnotation(current map[string]Annotation, ann Annotation) map[string]Annotation {
+	if hasMatchingAnnotation(current, ann.Text) {
+		return current
+	}
+	result := make(map[string]Annotation, len(current)+1)
+	for k, v := range current {
+		result[k] = v
+	}
+	result[ann.ID] = ann
 	return result
 }
 
-func RemoveAnnotations(current []Annotation, removeIDs []string) []Annotation {
+func RemoveAnnotations(current map[string]Annotation, removeIDs []string) map[string]Annotation {
 	removeSet := utils.ToSet(removeIDs)
-	return utils.Filter(current, func(a Annotation) bool {
-		return !removeSet[a.ID]
-	})
+	result := make(map[string]Annotation, len(current))
+	for k, v := range current {
+		if !removeSet[k] {
+			result[k] = v
+		}
+	}
+	return result
 }
 
-func UpdateAnnotationProps(current []Annotation, ids []string, props AnnotationPropsUpdate) []Annotation {
+func UpdateAnnotationProps(current map[string]Annotation, ids []string, props AnnotationPropsUpdate) map[string]Annotation {
 	updateSet := utils.ToSet(ids)
-	return utils.Map(current, func(a Annotation) Annotation {
-		if !updateSet[a.ID] {
-			return a
+	result := make(map[string]Annotation, len(current))
+	for k, v := range current {
+		if updateSet[k] {
+			if props.Color != nil {
+				v.Color = *props.Color
+			}
+			if props.Reason != nil {
+				v.Reason = *props.Reason
+			}
+			if props.Payload != nil {
+				v.Payload = props.Payload
+			}
 		}
-		if props.Color != nil {
-			a.Color = *props.Color
-		}
-		if props.Reason != nil {
-			a.Reason = *props.Reason
-		}
-		if props.Payload != nil {
-			a.Payload = props.Payload
-		}
-		return a
-	})
+		result[k] = v
+	}
+	return result
 }

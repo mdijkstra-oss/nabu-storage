@@ -17,7 +17,7 @@ func BuildTestDocument(id string, overrides DocumentData) Document {
 		Pinned:      false,
 		Tags:        []string{},
 		Content:     []Block{},
-		Annotations: []Annotation{},
+		Annotations: map[string]Annotation{},
 	}
 	merged := utils.ApplyPartialUpdate(defaults, overrides)
 	return Document{

@@ -55,8 +55,8 @@ type DocumentData struct {
 	Original    string       `json:"original"`
 	Pinned      bool         `json:"pinned"`
 	Tags        []string     `json:"tags"`
-	Content     []Block      `json:"content"`
-	Annotations []Annotation `json:"annotations"`
+	Content     []Block                `json:"content"`
+	Annotations map[string]Annotation `json:"annotations"`
 }
 
 type Confidence string
