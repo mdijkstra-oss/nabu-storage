@@ -16,7 +16,7 @@ var DocumentReducer = projection.CombineReducers(
 		projection.For(document.DeletedDocument, projection.DeletedEntity[Document]),
 		projection.For(document.AddedDocumentTags, addedDocumentTagsReducer),
 		projection.For(document.RemovedDocumentTags, removedDocumentTagsReducer),
-		projection.For(document.AddedAnnotations, addedAnnotationsReducer),
+		projection.For(document.AddedAnnotation, addedAnnotationReducer),
 		projection.For(document.RemovedAnnotations, removedAnnotationsReducer),
 		projection.For(document.UpdatedAnnotationProps, updatedAnnotationPropsReducer),
 	),
@@ -50,8 +50,8 @@ func removedDocumentTagsReducer(current *Document, _ *commands.AnyMessage, paylo
 	return current
 }
 
-func addedAnnotationsReducer(current *Document, _ *commands.AnyMessage, payload *document.AddedAnnotationsPayload) *Document {
-	current.Annotations = document.AddAnnotations(current.Annotations, payload.Annotations)
+func addedAnnotationReducer(current *Document, _ *commands.AnyMessage, payload *document.AddedAnnotationPayload) *Document {
+	current.Annotations = document.AddAnnotation(current.Annotations, payload.Annotation)
 	return current
 }
 

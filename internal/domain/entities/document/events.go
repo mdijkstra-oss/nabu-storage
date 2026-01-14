@@ -19,7 +19,7 @@ const (
 	AddedDocumentTags   = "AddedDocumentTags"
 	RemovedDocumentTags = "RemovedDocumentTags"
 
-	AddedAnnotations        = "AddedAnnotations"
+	AddedAnnotation         = "AddedAnnotation"
 	RemovedAnnotations      = "RemovedAnnotations"
 	UpdatedAnnotationProps  = "UpdatedAnnotationProps"
 )
@@ -45,6 +45,6 @@ type UpdatedBlockPropsPayload = UpdateBlockPropsPayload
 type AddedDocumentTagsPayload = AddDocumentTagsPayload
 type RemovedDocumentTagsPayload = RemoveDocumentTagsPayload
 
-type AddedAnnotationsPayload = AddAnnotationsPayload
+type AddedAnnotationPayload = AddAnnotationPayload
 type RemovedAnnotationsPayload = RemoveAnnotationsPayload
 type UpdatedAnnotationPropsPayload = UpdateAnnotationPropsPayload

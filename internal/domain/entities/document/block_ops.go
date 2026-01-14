@@ -1,6 +1,9 @@
 package document
 
-import "hermes-relay/internal/lib/utils"
+import (
+	"hermes-relay/internal/lib/utils"
+	"strings"
+)
 
 func InsertBlocksAfter(blocks []Block, position string, newBlocks []Block) ([]Block, bool) {
 	// Upsert: update existing blocks in place, only insert truly new ones
@@ -277,4 +280,34 @@ func replaceInTree(blocks []Block, ids map[string]bool, newBlocks []Block) []Blo
 		}
 	}
 	return result
+}
+
+func ExtractBlockText(block Block) string {
+	var parts []string
+	for _, inline := range block.Content {
+		parts = append(parts, extractInlineText(inline))
+	}
+	for _, child := range block.Children {
+		parts = append(parts, ExtractBlockText(child))
+	}
+	return strings.Join(parts, "")
+}
+
+func extractInlineText(inline InlineContent) string {
+	if len(inline.Content) > 0 {
+		var parts []string
+		for _, styled := range inline.Content {
+			parts = append(parts, styled.Text)
+		}
+		return strings.Join(parts, "")
+	}
+	return inline.Text
+}
+
+func ExtractDocumentText(blocks []Block) string {
+	var parts []string
+	for _, block := range blocks {
+		parts = append(parts, ExtractBlockText(block))
+	}
+	return strings.Join(parts, "\n")
 }

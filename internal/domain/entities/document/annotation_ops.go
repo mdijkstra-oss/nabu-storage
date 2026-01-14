@@ -11,16 +11,10 @@ func AssignAnnotationIDs(annotations []Annotation) []Annotation {
 	})
 }
 
-func AddAnnotations(current []Annotation, add []Annotation) []Annotation {
-	existingIDs := utils.ToSet(utils.Map(current, func(a Annotation) string { return a.ID }))
-	result := make([]Annotation, len(current))
+func AddAnnotation(current []Annotation, ann Annotation) []Annotation {
+	result := make([]Annotation, len(current)+1)
 	copy(result, current)
-
-	for _, ann := range add {
-		if !existingIDs[ann.ID] {
-			result = append(result, ann)
-		}
-	}
+	result[len(current)] = ann
 	return result
 }
 

@@ -259,3 +259,117 @@ func TestUpdateBlocksProps(t *testing.T) {
 		})
 	}
 }
+
+func TestExtractBlockText(t *testing.T) {
+	tests := []struct {
+		name  string
+		block Block
+		want  string
+	}{
+		{
+			name:  "empty block",
+			block: Block{ID: "a", Type: BlockTypeParagraph},
+			want:  "",
+		},
+		{
+			name:  "single text inline",
+			block: Block{ID: "a", Type: BlockTypeParagraph, Content: []InlineContent{{Type: InlineTypeText, Text: "hello"}}},
+			want:  "hello",
+		},
+		{
+			name: "multiple text inlines",
+			block: Block{ID: "a", Type: BlockTypeParagraph, Content: []InlineContent{
+				{Type: InlineTypeText, Text: "hello "},
+				{Type: InlineTypeText, Text: "world"},
+			}},
+			want: "hello world",
+		},
+		{
+			name: "link inline extracts styled text",
+			block: Block{ID: "a", Type: BlockTypeParagraph, Content: []InlineContent{
+				{Type: InlineTypeLink, Href: "http://example.com", Content: []StyledText{{Text: "click here"}}},
+			}},
+			want: "click here",
+		},
+		{
+			name: "mixed text and link",
+			block: Block{ID: "a", Type: BlockTypeParagraph, Content: []InlineContent{
+				{Type: InlineTypeText, Text: "see "},
+				{Type: InlineTypeLink, Href: "http://example.com", Content: []StyledText{{Text: "this link"}}},
+				{Type: InlineTypeText, Text: " for details"},
+			}},
+			want: "see this link for details",
+		},
+		{
+			name: "nested children",
+			block: Block{ID: "a", Type: BlockTypeParagraph, Content: []InlineContent{{Type: InlineTypeText, Text: "parent"}},
+				Children: []Block{
+					{ID: "a1", Type: BlockTypeParagraph, Content: []InlineContent{{Type: InlineTypeText, Text: "child"}}},
+				}},
+			want: "parentchild",
+		},
+		{
+			name: "deeply nested children",
+			block: Block{ID: "a", Type: BlockTypeParagraph, Content: []InlineContent{{Type: InlineTypeText, Text: "L0"}},
+				Children: []Block{
+					{ID: "a1", Type: BlockTypeParagraph, Content: []InlineContent{{Type: InlineTypeText, Text: "L1"}},
+						Children: []Block{
+							{ID: "a1a", Type: BlockTypeParagraph, Content: []InlineContent{{Type: InlineTypeText, Text: "L2"}}},
+						}},
+				}},
+			want: "L0L1L2",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := ExtractBlockText(tt.block)
+			th.AssertEqual(t, got, tt.want, "text")
+		})
+	}
+}
+
+func TestExtractDocumentText(t *testing.T) {
+	tests := []struct {
+		name   string
+		blocks []Block
+		want   string
+	}{
+		{
+			name:   "empty document",
+			blocks: nil,
+			want:   "",
+		},
+		{
+			name:   "single block",
+			blocks: []Block{{ID: "a", Type: BlockTypeParagraph, Content: []InlineContent{{Type: InlineTypeText, Text: "hello"}}}},
+			want:   "hello",
+		},
+		{
+			name: "multiple blocks joined with newline",
+			blocks: []Block{
+				{ID: "a", Type: BlockTypeParagraph, Content: []InlineContent{{Type: InlineTypeText, Text: "first"}}},
+				{ID: "b", Type: BlockTypeParagraph, Content: []InlineContent{{Type: InlineTypeText, Text: "second"}}},
+			},
+			want: "first\nsecond",
+		},
+		{
+			name: "blocks with nested children",
+			blocks: []Block{
+				{ID: "a", Type: BlockTypeParagraph, Content: []InlineContent{{Type: InlineTypeText, Text: "parent"}},
+					Children: []Block{
+						{ID: "a1", Type: BlockTypeParagraph, Content: []InlineContent{{Type: InlineTypeText, Text: "child"}}},
+					}},
+				{ID: "b", Type: BlockTypeParagraph, Content: []InlineContent{{Type: InlineTypeText, Text: "other"}}},
+			},
+			want: "parentchild\nother",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := ExtractDocumentText(tt.blocks)
+			th.AssertEqual(t, got, tt.want, "text")
+		})
+	}
+}

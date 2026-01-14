@@ -14,47 +14,35 @@ func ptr(s string) *string {
 	return &s
 }
 
-func TestAddAnnotations(t *testing.T) {
+func TestAddAnnotation(t *testing.T) {
 	tests := []struct {
 		name    string
 		current []Annotation
-		add     []Annotation
+		add     Annotation
 		want    []Annotation
 	}{
 		{
 			name:    "add to empty",
 			current: nil,
-			add:     []Annotation{ann("a1", "text1", "amber")},
+			add:     ann("a1", "text1", "amber"),
 			want:    []Annotation{ann("a1", "text1", "amber")},
 		},
 		{
-			name:    "add single",
+			name:    "add to existing",
 			current: []Annotation{ann("a1", "text1", "amber")},
-			add:     []Annotation{ann("a2", "text2", "blue")},
+			add:     ann("a2", "text2", "blue"),
 			want:    []Annotation{ann("a1", "text1", "amber"), ann("a2", "text2", "blue")},
 		},
 		{
-			name:    "add multiple",
-			current: []Annotation{ann("a1", "text1", "amber")},
-			add:     []Annotation{ann("a2", "text2", "blue"), ann("a3", "text3", "green")},
+			name:    "add third",
+			current: []Annotation{ann("a1", "text1", "amber"), ann("a2", "text2", "blue")},
+			add:     ann("a3", "text3", "green"),
 			want:    []Annotation{ann("a1", "text1", "amber"), ann("a2", "text2", "blue"), ann("a3", "text3", "green")},
-		},
-		{
-			name:    "skip duplicate id",
-			current: []Annotation{ann("a1", "text1", "amber")},
-			add:     []Annotation{ann("a1", "different", "blue")},
-			want:    []Annotation{ann("a1", "text1", "amber")},
-		},
-		{
-			name:    "mixed new and duplicate",
-			current: []Annotation{ann("a1", "text1", "amber")},
-			add:     []Annotation{ann("a1", "dup", "blue"), ann("a2", "new", "green")},
-			want:    []Annotation{ann("a1", "text1", "amber"), ann("a2", "new", "green")},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := AddAnnotations(tt.current, tt.add)
+			got := AddAnnotation(tt.current, tt.add)
 			th.AssertEqual(t, got, tt.want, "annotations")
 		})
 	}

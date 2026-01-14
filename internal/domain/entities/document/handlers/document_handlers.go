@@ -6,6 +6,8 @@ import (
 	"hermes-relay/internal/domain/entities/document"
 	"hermes-relay/internal/domain/entities/project"
 	"hermes-relay/internal/domain/projections/registry"
+	"hermes-relay/internal/lib/text-search/find"
+	"hermes-relay/internal/lib/utils"
 )
 
 func NewDocumentRouter(store *registry.Store) dispatch.CommandRouter {
@@ -21,7 +23,7 @@ func NewDocumentRouter(store *registry.Store) dispatch.CommandRouter {
 			dispatch.ToEmptyDomainEvent(document.UnpinDocument, document.UnpinnedDocument),
 			dispatch.ToUpdateEntityEvent[document.AddDocumentTagsPayload, document.AddedDocumentTagsPayload](document.AddDocumentTags, document.AddedDocumentTags),
 			dispatch.ToUpdateEntityEvent[document.RemoveDocumentTagsPayload, document.RemovedDocumentTagsPayload](document.RemoveDocumentTags, document.RemovedDocumentTags),
-			withAnnotationIDs(document.AddDocumentAnnotations, document.AddedAnnotations),
+			addAnnotationHandler(store, document.AddDocumentAnnotation, document.AddedAnnotation),
 			dispatch.ToUpdateEntityEvent[document.RemoveAnnotationsPayload, document.RemovedAnnotationsPayload](document.RemoveDocumentAnnotations, document.RemovedAnnotations),
 			dispatch.ToUpdateEntityEvent[document.UpdateAnnotationPropsPayload, document.UpdatedAnnotationPropsPayload](document.UpdateDocumentAnnotationProps, document.UpdatedAnnotationProps),
 		),
@@ -41,19 +43,28 @@ func validateCreateDocument(_ project.Project, _ document.CreateDocumentPayload,
 	return nil
 }
 
-func withAnnotationIDs(commandAction, eventAction commands.Action) dispatch.CommandRouter {
-	return func(message *commands.AnyMessage, publisher dispatch.PublishFunc) (*commands.AnyMessage, error) {
-		if message.Action != commandAction {
-			return nil, nil
+func addAnnotationHandler(store *registry.Store, commandAction, eventAction commands.Action) dispatch.CommandRouter {
+	normalize := func(proj project.Project, payload document.AddAnnotationPayload, msg *commands.AnyMessage) (document.AddAnnotationPayload, error) {
+		doc, exists := proj.GetDocument(msg.AggregateID)
+		if !exists {
+			return payload, utils.FieldError("document_id", "not found")
 		}
 
-		var payload document.AddAnnotationsPayload
-		if err := commands.EnsureValidPayload(message, &payload); err != nil {
-			return nil, err
+		docText := document.ExtractDocumentText(doc.Content)
+		matchedText, found := find.Find(payload.Annotation.Text, docText)
+		if !found {
+			return payload, utils.FieldError("annotation.text", "text not found in document")
 		}
 
-		payload.Annotations = document.AssignAnnotationIDs(payload.Annotations)
+		payload.Annotation.Text = matchedText
+		payload.Annotation.ID = utils.NewAnnotationID()
 
-		return commands.ToDomainEvent(message, eventAction, any(payload)), nil
+		return payload, nil
 	}
+
+	return dispatch.LimitOnAction(commandAction,
+		registry.NormalizeDomain(store, normalize,
+			dispatch.ToUpdateEntityEvent[document.AddAnnotationPayload, document.AddedAnnotationPayload](commandAction, eventAction),
+		),
+	)
 }
