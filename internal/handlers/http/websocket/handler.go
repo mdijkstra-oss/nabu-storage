@@ -1,19 +1,19 @@
 package websocket
 
 import (
+	"log/slog"
+	"net/http"
+	"time"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/websocket"
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/cqrs/dispatch"
 	"hermes-relay/internal/cqrs/patches"
 	"hermes-relay/internal/cqrs/projection"
-	"hermes-relay/internal/domain/entities/document"
 	"hermes-relay/internal/domain/entities/project"
 	"hermes-relay/internal/domain/projections/registry"
 	"hermes-relay/internal/lib/utils"
-	"log/slog"
-	"net/http"
-	"time"
 )
 
 const (
@@ -42,8 +42,6 @@ func Handler(hub *Hub, store *registry.Store, subscribe func(dispatch.CommandRou
 			return
 		}
 
-		documentID := r.URL.Query().Get("documentId")
-
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -51,7 +49,7 @@ func Handler(hub *Hub, store *registry.Store, subscribe func(dispatch.CommandRou
 		}
 		defer func() { utils.ShouldWork(conn.Close()) }()
 
-		handleConnection(conn, projectID, documentID, hub, store, subscribe)
+		handleConnection(conn, projectID, hub, store, subscribe)
 	}
 }
 
@@ -83,7 +81,6 @@ func startPingSender(conn *websocket.Conn, done chan struct{}) {
 func handleConnection(
 	conn *websocket.Conn,
 	projectID string,
-	documentID string,
 	hub *Hub,
 	store *registry.Store,
 	subscribe func(dispatch.CommandRouter) func(),
@@ -97,7 +94,7 @@ func handleConnection(
 	defer close(done)
 	go startPingSender(conn, done)
 
-	sendInitialSnapshot(conn, projectID, documentID, store)
+	sendInitialSnapshot(conn, projectID, store)
 
 	unsubscribe := subscribe(dispatch.LimitOnType(
 		commands.SystemEvent,
@@ -119,7 +116,7 @@ func handleConnection(
 	}
 }
 
-func sendInitialSnapshot(conn *websocket.Conn, projectID string, documentID string, store *registry.Store) {
+func sendInitialSnapshot(conn *websocket.Conn, projectID string, store *registry.Store) {
 	utils.GuardWith(func() {
 		proj := projection.Read(store, func(r *registry.Registry) *project.Project {
 			return registry.GetProject(r, projectID)
@@ -129,43 +126,14 @@ func sendInitialSnapshot(conn *websocket.Conn, projectID string, documentID stri
 			return
 		}
 
-		filteredProject := filterProjectForDocument(proj, documentID)
-
 		msg := Message{
 			Type:      "snapshot",
 			ProjectID: projectID,
-			Data:      filteredProject,
+			Data:      proj,
 		}
 
 		utils.ShouldWork(conn.WriteJSON(msg))
 	}, "projectID", projectID, "operation", "sendInitialSnapshot")
-}
-
-func filterProjectForDocument(p *project.Project, documentID string) *project.Project {
-	if documentID == "" {
-		return p
-	}
-
-	filteredDocs := make(map[string]document.Document)
-	for id, d := range p.Documents {
-		if id == documentID {
-			filteredDocs[id] = d
-		} else {
-			filteredDocs[id] = withoutContentAndAnnotations(d)
-		}
-	}
-
-	filtered := *p
-	filtered.Documents = filteredDocs
-	return &filtered
-}
-
-func withoutContentAndAnnotations(d document.Document) document.Document {
-	d.Blocks = nil
-	d.HeadID = ""
-	d.TailID = ""
-	d.Annotations = nil
-	return d
 }
 
 func forwardProjectEvent[T patches.ProjectEventPayload](
