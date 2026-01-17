@@ -208,10 +208,13 @@ func testDocument(id, projectID, name string) document.Document {
 }
 
 func testDocumentWithContent(id, projectID, name string, content []document.Block) document.Document {
+	tree := document.FromArray(content)
 	return document.BuildTestDocument(id, document.DocumentData{
 		ProjectID: projectID,
 		Name:      name,
-		Content:   content,
+		Blocks:    tree.Blocks,
+		HeadID:    tree.HeadID,
+		TailID:    tree.TailID,
 	})
 }
 

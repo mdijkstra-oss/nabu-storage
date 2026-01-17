@@ -5,36 +5,98 @@ import (
 	"strings"
 )
 
-func InsertBlocksAfter(blocks []Block, position string, newBlocks []Block) ([]Block, bool) {
-	// Upsert: update existing blocks in place, only insert truly new ones
-	existing, toInsert := partitionByExistence(blocks, newBlocks)
-	blocks = updateBlocksInPlace(blocks, existing)
+type BlockTree struct {
+	Blocks map[string]Block
+	HeadID string
+	TailID string
+}
 
-	if len(toInsert) == 0 {
-		return blocks, true
+func NewBlockTree() BlockTree {
+	return BlockTree{Blocks: make(map[string]Block)}
+}
+
+func ToBlockTree(d DocumentData) BlockTree {
+	if d.Blocks == nil {
+		return NewBlockTree()
+	}
+	return BlockTree{Blocks: d.Blocks, HeadID: d.HeadID, TailID: d.TailID}
+}
+
+func (t BlockTree) Get(id string) (Block, bool) {
+	b, ok := t.Blocks[id]
+	return b, ok
+}
+
+func (t BlockTree) set(b Block) BlockTree {
+	newBlocks := copyBlocks(t.Blocks)
+	newBlocks[b.ID] = b
+	return BlockTree{Blocks: newBlocks, HeadID: t.HeadID, TailID: t.TailID}
+}
+
+func (t BlockTree) setMany(blocks []Block) BlockTree {
+	newBlocks := copyBlocks(t.Blocks)
+	for _, b := range blocks {
+		newBlocks[b.ID] = b
+	}
+	return BlockTree{Blocks: newBlocks, HeadID: t.HeadID, TailID: t.TailID}
+}
+
+func (t BlockTree) remove(id string) BlockTree {
+	newBlocks := copyBlocks(t.Blocks)
+	delete(newBlocks, id)
+	return BlockTree{Blocks: newBlocks, HeadID: t.HeadID, TailID: t.TailID}
+}
+
+func (t BlockTree) withHead(id string) BlockTree {
+	return BlockTree{Blocks: t.Blocks, HeadID: id, TailID: t.TailID}
+}
+
+func (t BlockTree) withTail(id string) BlockTree {
+	return BlockTree{Blocks: t.Blocks, HeadID: t.HeadID, TailID: id}
+}
+
+func copyBlocks(blocks map[string]Block) map[string]Block {
+	result := make(map[string]Block, len(blocks))
+	for k, v := range blocks {
+		result[k] = v
+	}
+	return result
+}
+
+func InsertBlocksAfter(tree BlockTree, position string, newBlocks []Block) (BlockTree, bool) {
+	if len(newBlocks) == 0 {
+		return tree, true
 	}
 
+	existing, toInsert := partitionByExistence(tree, newBlocks)
+	tree = updateBlocksInPlace(tree, existing)
+
+	if len(toInsert) == 0 {
+		return tree, true
+	}
+
+	toInsert = assignBlockIDs(toInsert)
 	op, parentID := utils.ParseBlockPosition(position)
 
 	if parentID == "" {
 		if op == PositionHead {
-			return insertAtHead(blocks, toInsert), true
+			return insertAtHead(tree, toInsert), true
 		}
-		return insertAtTail(blocks, toInsert), true
+		return insertAtTail(tree, toInsert), true
 	}
 
 	if op == PositionHead {
-		return insertAsFirstChild(blocks, parentID, toInsert)
+		return insertAsFirstChild(tree, parentID, toInsert)
 	}
 	if op == PositionTail {
-		return insertAsLastChild(blocks, parentID, toInsert)
+		return insertAsLastChild(tree, parentID, toInsert)
 	}
-	return insertAfterID(blocks, parentID, toInsert)
+	return insertAfterID(tree, parentID, toInsert)
 }
 
-func partitionByExistence(tree []Block, newBlocks []Block) (existing, toInsert []Block) {
+func partitionByExistence(tree BlockTree, newBlocks []Block) (existing, toInsert []Block) {
 	for _, nb := range newBlocks {
-		if _, found := FindBlock(tree, nb.ID); found {
+		if _, found := tree.Get(nb.ID); found {
 			existing = append(existing, nb)
 		} else {
 			toInsert = append(toInsert, nb)
@@ -43,128 +105,246 @@ func partitionByExistence(tree []Block, newBlocks []Block) (existing, toInsert [
 	return
 }
 
-func updateBlocksInPlace(blocks []Block, updates []Block) []Block {
+func updateBlocksInPlace(tree BlockTree, updates []Block) BlockTree {
 	if len(updates) == 0 {
+		return tree
+	}
+	for _, u := range updates {
+		if existing, ok := tree.Get(u.ID); ok {
+			updated := u
+			updated.NextID = existing.NextID
+			updated.PrevID = existing.PrevID
+			updated.FirstChildID = existing.FirstChildID
+			updated.LastChildID = existing.LastChildID
+			updated.ParentID = existing.ParentID
+			tree = tree.set(updated)
+		}
+	}
+	return tree
+}
+
+func assignBlockIDs(blocks []Block) []Block {
+	result := make([]Block, len(blocks))
+	for i, b := range blocks {
+		if b.ID == "" {
+			b.ID = utils.NewBlockID()
+		}
+		result[i] = b
+	}
+	return result
+}
+
+func linkChain(blocks []Block) []Block {
+	if len(blocks) == 0 {
 		return blocks
 	}
-	updateMap := make(map[string]Block, len(updates))
-	for _, u := range updates {
-		updateMap[u.ID] = u
-	}
-	return updateInTree(blocks, updateMap)
-}
-
-func updateInTree(blocks []Block, updates map[string]Block) []Block {
 	result := make([]Block, len(blocks))
 	for i, b := range blocks {
-		if update, found := updates[b.ID]; found {
-			result[i] = update
-		} else if len(b.Children) > 0 {
-			updated := b
-			updated.Children = updateInTree(b.Children, updates)
-			result[i] = updated
+		if i > 0 {
+			b.PrevID = blocks[i-1].ID
+		}
+		if i < len(blocks)-1 {
+			b.NextID = blocks[i+1].ID
+		}
+		result[i] = b
+	}
+	return result
+}
+
+func insertAtHead(tree BlockTree, newBlocks []Block) BlockTree {
+	newBlocks = linkChain(newBlocks)
+	tree = tree.setMany(newBlocks)
+
+	firstNew := newBlocks[0]
+	lastNew := newBlocks[len(newBlocks)-1]
+
+	if tree.HeadID != "" {
+		oldHead, _ := tree.Get(tree.HeadID)
+		oldHead.PrevID = lastNew.ID
+		tree = tree.set(oldHead)
+
+		lastNew.NextID = tree.HeadID
+		tree = tree.set(lastNew)
+	} else {
+		tree = tree.withTail(lastNew.ID)
+	}
+
+	return tree.withHead(firstNew.ID)
+}
+
+func insertAtTail(tree BlockTree, newBlocks []Block) BlockTree {
+	newBlocks = linkChain(newBlocks)
+	tree = tree.setMany(newBlocks)
+
+	firstNew := newBlocks[0]
+	lastNew := newBlocks[len(newBlocks)-1]
+
+	if tree.TailID != "" {
+		oldTail, _ := tree.Get(tree.TailID)
+		oldTail.NextID = firstNew.ID
+		tree = tree.set(oldTail)
+
+		firstNew.PrevID = tree.TailID
+		tree = tree.set(firstNew)
+	} else {
+		tree = tree.withHead(firstNew.ID)
+	}
+
+	return tree.withTail(lastNew.ID)
+}
+
+func insertAfterID(tree BlockTree, blockID string, newBlocks []Block) (BlockTree, bool) {
+	target, ok := tree.Get(blockID)
+	if !ok {
+		return tree, false
+	}
+
+	newBlocks = linkChain(newBlocks)
+
+	for i := range newBlocks {
+		newBlocks[i].ParentID = target.ParentID
+	}
+
+	newBlocks[0].PrevID = target.ID
+
+	oldNextID := target.NextID
+	if oldNextID != "" {
+		newBlocks[len(newBlocks)-1].NextID = oldNextID
+	}
+
+	tree = tree.setMany(newBlocks)
+
+	target.NextID = newBlocks[0].ID
+	tree = tree.set(target)
+
+	if oldNextID != "" {
+		next, _ := tree.Get(oldNextID)
+		next.PrevID = newBlocks[len(newBlocks)-1].ID
+		tree = tree.set(next)
+	} else {
+		if target.ParentID != "" {
+			parent, _ := tree.Get(target.ParentID)
+			parent.LastChildID = newBlocks[len(newBlocks)-1].ID
+			tree = tree.set(parent)
 		} else {
-			result[i] = b
+			tree = tree.withTail(newBlocks[len(newBlocks)-1].ID)
 		}
 	}
-	return result
+
+	return tree, true
 }
 
-func insertAtHead(blocks []Block, newBlocks []Block) []Block {
-	result := make([]Block, 0, len(blocks)+len(newBlocks))
-	result = append(result, newBlocks...)
-	result = append(result, blocks...)
-	return result
-}
-
-func insertAtTail(blocks []Block, newBlocks []Block) []Block {
-	result := make([]Block, 0, len(blocks)+len(newBlocks))
-	result = append(result, blocks...)
-	result = append(result, newBlocks...)
-	return result
-}
-
-func insertAsFirstChild(blocks []Block, parentID string, newBlocks []Block) ([]Block, bool) {
-	for i, b := range blocks {
-		if b.ID == parentID {
-			newChildren := insertAtHead(b.Children, newBlocks)
-			return replaceChildrenAtIndex(blocks, i, newChildren), true
-		}
-		if len(b.Children) > 0 {
-			if children, found := insertAsFirstChild(b.Children, parentID, newBlocks); found {
-				return replaceChildrenAtIndex(blocks, i, children), true
-			}
-		}
+func insertAsFirstChild(tree BlockTree, parentID string, newBlocks []Block) (BlockTree, bool) {
+	parent, ok := tree.Get(parentID)
+	if !ok {
+		return tree, false
 	}
-	return blocks, false
-}
 
-func insertAsLastChild(blocks []Block, parentID string, newBlocks []Block) ([]Block, bool) {
-	for i, b := range blocks {
-		if b.ID == parentID {
-			newChildren := insertAtTail(b.Children, newBlocks)
-			return replaceChildrenAtIndex(blocks, i, newChildren), true
-		}
-		if len(b.Children) > 0 {
-			if children, found := insertAsLastChild(b.Children, parentID, newBlocks); found {
-				return replaceChildrenAtIndex(blocks, i, children), true
-			}
-		}
+	newBlocks = linkChain(newBlocks)
+	for i := range newBlocks {
+		newBlocks[i].ParentID = parentID
 	}
-	return blocks, false
-}
+	tree = tree.setMany(newBlocks)
 
-func insertAfterID(blocks []Block, blockID string, newBlocks []Block) ([]Block, bool) {
-	for i, b := range blocks {
-		if b.ID == blockID {
-			return insertAtIndex(blocks, i+1, newBlocks), true
-		}
-		if len(b.Children) > 0 {
-			if children, found := insertAfterID(b.Children, blockID, newBlocks); found {
-				return replaceChildrenAtIndex(blocks, i, children), true
-			}
-		}
+	firstNew := newBlocks[0]
+	lastNew := newBlocks[len(newBlocks)-1]
+
+	if parent.FirstChildID != "" {
+		oldFirst, _ := tree.Get(parent.FirstChildID)
+		oldFirst.PrevID = lastNew.ID
+		tree = tree.set(oldFirst)
+
+		lastNew.NextID = parent.FirstChildID
+		tree = tree.set(lastNew)
+	} else {
+		parent.LastChildID = lastNew.ID
 	}
-	return blocks, false
+
+	parent.FirstChildID = firstNew.ID
+	tree = tree.set(parent)
+
+	return tree, true
 }
 
-func insertAtIndex(blocks []Block, index int, newBlocks []Block) []Block {
-	result := make([]Block, 0, len(blocks)+len(newBlocks))
-	result = append(result, blocks[:index]...)
-	result = append(result, newBlocks...)
-	result = append(result, blocks[index:]...)
-	return result
+func insertAsLastChild(tree BlockTree, parentID string, newBlocks []Block) (BlockTree, bool) {
+	parent, ok := tree.Get(parentID)
+	if !ok {
+		return tree, false
+	}
+
+	newBlocks = linkChain(newBlocks)
+	for i := range newBlocks {
+		newBlocks[i].ParentID = parentID
+	}
+	tree = tree.setMany(newBlocks)
+
+	firstNew := newBlocks[0]
+	lastNew := newBlocks[len(newBlocks)-1]
+
+	if parent.LastChildID != "" {
+		oldLast, _ := tree.Get(parent.LastChildID)
+		oldLast.NextID = firstNew.ID
+		tree = tree.set(oldLast)
+
+		firstNew.PrevID = parent.LastChildID
+		tree = tree.set(firstNew)
+	} else {
+		parent.FirstChildID = firstNew.ID
+	}
+
+	parent.LastChildID = lastNew.ID
+	tree = tree.set(parent)
+
+	return tree, true
 }
 
-func replaceChildrenAtIndex(blocks []Block, index int, newChildren []Block) []Block {
-	result := make([]Block, len(blocks))
-	copy(result, blocks)
-	updated := result[index]
-	updated.Children = newChildren
-	result[index] = updated
-	return result
-}
-
-func DeleteBlocksByID(blocks []Block, ids []string) []Block {
+func DeleteBlocksByID(tree BlockTree, ids []string) BlockTree {
 	idSet := toSet(ids)
-	return deleteFromTree(blocks, idSet)
+	for id := range idSet {
+		tree = unlinkAndRemove(tree, id)
+	}
+	return tree
 }
 
-func deleteFromTree(blocks []Block, ids map[string]bool) []Block {
-	result := make([]Block, 0, len(blocks))
-	for _, b := range blocks {
-		if ids[b.ID] {
-			continue
-		}
-		if len(b.Children) > 0 {
-			updated := b
-			updated.Children = deleteFromTree(b.Children, ids)
-			result = append(result, updated)
-		} else {
-			result = append(result, b)
-		}
+func unlinkAndRemove(tree BlockTree, id string) BlockTree {
+	block, ok := tree.Get(id)
+	if !ok {
+		return tree
 	}
-	return result
+
+	childID := block.FirstChildID
+	for childID != "" {
+		child, _ := tree.Get(childID)
+		nextChildID := child.NextID
+		tree = unlinkAndRemove(tree, childID)
+		childID = nextChildID
+	}
+
+	if block.PrevID != "" {
+		prev, _ := tree.Get(block.PrevID)
+		prev.NextID = block.NextID
+		tree = tree.set(prev)
+	} else if block.ParentID != "" {
+		parent, _ := tree.Get(block.ParentID)
+		parent.FirstChildID = block.NextID
+		tree = tree.set(parent)
+	} else if tree.HeadID == id {
+		tree = tree.withHead(block.NextID)
+	}
+
+	if block.NextID != "" {
+		next, _ := tree.Get(block.NextID)
+		next.PrevID = block.PrevID
+		tree = tree.set(next)
+	} else if block.ParentID != "" {
+		parent, _ := tree.Get(block.ParentID)
+		parent.LastChildID = block.PrevID
+		tree = tree.set(parent)
+	} else if tree.TailID == id {
+		tree = tree.withTail(block.PrevID)
+	}
+
+	return tree.remove(id)
 }
 
 func toSet(ids []string) map[string]bool {
@@ -175,120 +355,137 @@ func toSet(ids []string) map[string]bool {
 	return set
 }
 
-func FindBlockDepth(blocks []Block, id string) int {
-	return findDepth(blocks, id, 0)
+func FindBlock(tree BlockTree, id string) (Block, bool) {
+	return tree.Get(id)
 }
 
-func findDepth(blocks []Block, id string, depth int) int {
-	for _, b := range blocks {
-		if b.ID == id {
-			return depth
-		}
-		if len(b.Children) > 0 {
-			if found := findDepth(b.Children, id, depth+1); found >= 0 {
-				return found
-			}
-		}
+func FindBlockDepth(tree BlockTree, id string) int {
+	block, ok := tree.Get(id)
+	if !ok {
+		return -1
 	}
-	return -1
+	depth := 0
+	for block.ParentID != "" {
+		depth++
+		block, _ = tree.Get(block.ParentID)
+	}
+	return depth
 }
 
-func MoveBlocksAfter(blocks []Block, ids []string, position string) []Block {
-	moving := ExtractBlocksByID(blocks, ids)
-	remaining := DeleteBlocksByID(blocks, ids)
-	result, _ := InsertBlocksAfter(remaining, position, moving)
-	return result
+func MoveBlocksAfter(tree BlockTree, ids []string, position string) BlockTree {
+	moving := ExtractBlocksByID(tree, ids)
+	tree = DeleteBlocksByID(tree, ids)
+	tree, _ = InsertBlocksAfter(tree, position, moving)
+	return tree
 }
 
-func ExtractBlocksByID(blocks []Block, ids []string) []Block {
+func ExtractBlocksByID(tree BlockTree, ids []string) []Block {
 	idSet := toSet(ids)
-	return extractFromTree(blocks, idSet)
-}
-
-func extractFromTree(blocks []Block, ids map[string]bool) []Block {
 	var result []Block
-	for _, b := range blocks {
-		if ids[b.ID] {
+	for id := range idSet {
+		if b, ok := tree.Get(id); ok {
 			result = append(result, b)
-		}
-		if len(b.Children) > 0 {
-			result = append(result, extractFromTree(b.Children, ids)...)
 		}
 	}
 	return result
 }
 
-func ReplaceBlocksByID(blocks []Block, ids []string, newBlocks []Block) []Block {
-	idSet := toSet(ids)
-	return replaceInTree(blocks, idSet, newBlocks)
+func ReplaceBlocksByID(tree BlockTree, ids []string, newBlocks []Block) BlockTree {
+	if len(ids) == 0 || len(newBlocks) == 0 {
+		return tree
+	}
+
+	firstOld, ok := tree.Get(ids[0])
+	if !ok {
+		return tree
+	}
+
+	position := firstOld.PrevID
+	if position == "" && firstOld.ParentID != "" {
+		position = "head:" + firstOld.ParentID
+	} else if position == "" {
+		position = PositionHead
+	}
+
+	tree = DeleteBlocksByID(tree, ids)
+	tree, _ = InsertBlocksAfter(tree, position, newBlocks)
+	return tree
 }
 
-func FindBlock(blocks []Block, id string) (Block, bool) {
-	for _, b := range blocks {
-		if b.ID == id {
-			return b, true
-		}
-		if len(b.Children) > 0 {
-			if found, ok := FindBlock(b.Children, id); ok {
-				return found, true
-			}
+func UpdateBlocksProps(tree BlockTree, ids []string, props BlockProps) BlockTree {
+	for _, id := range ids {
+		if block, ok := tree.Get(id); ok {
+			block.Props = utils.ApplyPartialUpdate(block.Props, props)
+			tree = tree.set(block)
 		}
 	}
-	return Block{}, false
+	return tree
 }
 
-func UpdateBlocksProps(blocks []Block, ids []string, props BlockProps) []Block {
-	idSet := toSet(ids)
-	return updatePropsInTree(blocks, idSet, props)
+func ToArray(tree BlockTree) []Block {
+	if tree.HeadID == "" {
+		return []Block{}
+	}
+	return collectSiblings(tree, tree.HeadID)
 }
 
-func updatePropsInTree(blocks []Block, ids map[string]bool, props BlockProps) []Block {
-	result := make([]Block, len(blocks))
+func collectSiblings(tree BlockTree, startID string) []Block {
+	var result []Block
+	currentID := startID
+	for currentID != "" {
+		block, ok := tree.Get(currentID)
+		if !ok {
+			break
+		}
+		blockCopy := block
+		blockCopy.NextID = ""
+		blockCopy.PrevID = ""
+		blockCopy.ParentID = ""
+		blockCopy.FirstChildID = ""
+		blockCopy.LastChildID = ""
+		blockCopy.Children = nil
+
+		result = append(result, blockCopy)
+		currentID = block.NextID
+	}
+	return result
+}
+
+func FromArray(blocks []Block) BlockTree {
+	tree := NewBlockTree()
+	if len(blocks) == 0 {
+		return tree
+	}
+	return insertNestedBlocks(tree, PositionHead, blocks)
+}
+
+func insertNestedBlocks(tree BlockTree, position string, blocks []Block) BlockTree {
+	if len(blocks) == 0 {
+		return tree
+	}
+
+	flatBlocks := make([]Block, len(blocks))
 	for i, b := range blocks {
-		if ids[b.ID] {
-			updated := b
-			updated.Props = utils.ApplyPartialUpdate(b.Props, props)
-			result[i] = updated
-		} else if len(b.Children) > 0 {
-			updated := b
-			updated.Children = updatePropsInTree(b.Children, ids, props)
-			result[i] = updated
-		} else {
-			result[i] = b
-		}
+		flat := b
+		flat.Children = nil
+		flatBlocks[i] = flat
 	}
-	return result
-}
 
-func replaceInTree(blocks []Block, ids map[string]bool, newBlocks []Block) []Block {
-	result := make([]Block, 0, len(blocks))
-	replaced := false
+	tree, _ = InsertBlocksAfter(tree, position, flatBlocks)
+
 	for _, b := range blocks {
-		if ids[b.ID] {
-			if !replaced {
-				result = append(result, newBlocks...)
-				replaced = true
-			}
-			continue
-		}
 		if len(b.Children) > 0 {
-			updated := b
-			updated.Children = replaceInTree(b.Children, ids, newBlocks)
-			result = append(result, updated)
-		} else {
-			result = append(result, b)
+			tree = insertNestedBlocks(tree, "head:"+b.ID, b.Children)
 		}
 	}
-	return result
+
+	return tree
 }
 
 func ExtractBlockText(block Block) string {
 	var parts []string
 	for _, inline := range block.Content {
 		parts = append(parts, extractInlineText(inline))
-	}
-	for _, child := range block.Children {
-		parts = append(parts, ExtractBlockText(child))
 	}
 	return strings.Join(parts, "")
 }
@@ -304,7 +501,8 @@ func extractInlineText(inline InlineContent) string {
 	return inline.Text
 }
 
-func ExtractDocumentText(blocks []Block) string {
+func ExtractDocumentText(tree BlockTree) string {
+	blocks := ToArray(tree)
 	var parts []string
 	for _, block := range blocks {
 		parts = append(parts, ExtractBlockText(block))

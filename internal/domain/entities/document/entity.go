@@ -46,17 +46,25 @@ func (d Document) WithUpdatedAt(t time.Time) any {
 }
 
 type DocumentData struct {
-	ProjectID   string       `json:"project_id" validate:"required"`
-	Name        string       `json:"name" validate:"required,max=200" normalize:"trim"`
-	Description string       `json:"description" validate:"max=2000" normalize:"trim"`
-	Title       string       `json:"title" validate:"omitempty,min=1,max=200"`
-	Time        time.Time    `json:"time" validate:"omitempty,lte"`
-	UpdatedAt   time.Time    `json:"updated_at"`
-	Original    string       `json:"original"`
-	Pinned      bool         `json:"pinned"`
-	Tags        []string     `json:"tags"`
-	Content     []Block                `json:"content"`
+	ProjectID   string    `json:"project_id" validate:"required"`
+	Name        string    `json:"name" validate:"required,max=200" normalize:"trim"`
+	Description string    `json:"description" validate:"max=2000" normalize:"trim"`
+	Title       string    `json:"title" validate:"omitempty,min=1,max=200"`
+	Time        time.Time `json:"time" validate:"omitempty,lte"`
+	UpdatedAt   time.Time `json:"updated_at"`
+	Original    string    `json:"original"`
+	Pinned      bool      `json:"pinned"`
+	Tags        map[string]Tag `json:"tags"`
+
+	Blocks map[string]Block      `json:"blocks"`
+	HeadID string                `json:"head_id,omitempty"`
+	TailID string                `json:"tail_id,omitempty"`
+
 	Annotations map[string]Annotation `json:"annotations"`
+}
+
+type Tag struct {
+	ID string `json:"id"`
 }
 
 type Confidence string

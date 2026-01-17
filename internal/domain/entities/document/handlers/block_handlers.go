@@ -28,8 +28,9 @@ func validateUpdateBlockProps(proj project.Project, payload document.UpdateBlock
 		return utils.FieldError("aggregate_id", "document not found")
 	}
 
+	tree := document.ToBlockTree(doc.DocumentData)
 	for _, blockID := range payload.BlockIDs {
-		if _, found := document.FindBlock(doc.Content, blockID); !found {
+		if _, found := document.FindBlock(tree, blockID); !found {
 			return utils.FieldError("block_ids", "block not found: "+blockID)
 		}
 	}

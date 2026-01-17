@@ -6,63 +6,160 @@ import (
 	th "hermes-relay/internal/lib/test-helpers"
 )
 
-func b(id string, children ...Block) Block {
-	return Block{ID: id, Type: BlockTypeParagraph, Children: children}
+func block(id string) Block {
+	return Block{ID: id, Type: BlockTypeParagraph}
 }
 
-func bs(ids ...string) []Block {
-	result := make([]Block, len(ids))
-	for i, id := range ids {
-		result[i] = b(id)
-	}
-	return result
+func blockWithContent(id string, text string) Block {
+	return Block{ID: id, Type: BlockTypeParagraph, Content: []InlineContent{{Type: InlineTypeText, Text: text}}}
 }
 
-func blockIDs(blocks []Block) []string {
-	result := make([]string, len(blocks))
+func tree(blocks ...Block) BlockTree {
+	return FromArray(blocks)
+}
+
+func orderedIDs(t BlockTree) []string {
+	blocks := ToArray(t)
+	ids := make([]string, len(blocks))
 	for i, b := range blocks {
-		result[i] = b.ID
+		ids[i] = b.ID
 	}
-	return result
+	return ids
 }
 
-func bWithContent(id string, content string) Block {
-	return Block{ID: id, Type: BlockTypeParagraph, Content: []InlineContent{{Type: InlineTypeText, Text: content}}}
+func childIDs(t BlockTree, parentID string) []string {
+	parent, ok := t.Get(parentID)
+	if !ok || parent.FirstChildID == "" {
+		return nil
+	}
+	var ids []string
+	childID := parent.FirstChildID
+	for childID != "" {
+		child, _ := t.Get(childID)
+		ids = append(ids, child.ID)
+		childID = child.NextID
+	}
+	return ids
+}
+
+func treeWithChild(parentID string, childIDs ...string) BlockTree {
+	t := NewBlockTree()
+	parent := block(parentID)
+	t = t.set(parent)
+	t = t.withHead(parentID)
+	t = t.withTail(parentID)
+
+	for i, cid := range childIDs {
+		child := block(cid)
+		child.ParentID = parentID
+		if i > 0 {
+			child.PrevID = childIDs[i-1]
+		}
+		if i < len(childIDs)-1 {
+			child.NextID = childIDs[i+1]
+		}
+		t = t.set(child)
+	}
+
+	if len(childIDs) > 0 {
+		parent.FirstChildID = childIDs[0]
+		parent.LastChildID = childIDs[len(childIDs)-1]
+		t = t.set(parent)
+	}
+
+	return t
 }
 
 func TestInsertBlocksAfter(t *testing.T) {
 	tests := []struct {
-		name         string
-		blocks       []Block
-		pos          string
-		add          []Block
-		want         []string
-		wantChildren []string
-		notFound     bool
+		name     string
+		tree     BlockTree
+		pos      string
+		add      []Block
+		wantRoot []string
+		notFound bool
 	}{
-		{"at head", bs("a", "b"), PositionHead, bs("x"), []string{"x", "a", "b"}, nil, false},
-		{"at tail", bs("a", "b"), PositionTail, bs("x"), []string{"a", "b", "x"}, nil, false},
-		{"after first", bs("a", "b", "c"), "a", bs("x"), []string{"a", "x", "b", "c"}, nil, false},
-		{"after last", bs("a", "b"), "b", bs("x"), []string{"a", "b", "x"}, nil, false},
-		{"multiple", bs("a", "b"), "a", bs("x", "y"), []string{"a", "x", "y", "b"}, nil, false},
-		{"not found", bs("a", "b"), "z", bs("x"), []string{"a", "b"}, nil, true},
-		{"after nested", []Block{b("a", b("a1"), b("a2")), b("b")}, "a1", bs("x"), []string{"a", "b"}, []string{"a1", "x", "a2"}, false},
-		{"deeply nested", []Block{b("a", b("a1", b("a1a")))}, "a1a", bs("x"), nil, nil, false},
-		{"head:parent", []Block{b("a", b("a1"), b("a2")), b("b")}, "head:a", bs("x"), []string{"a", "b"}, []string{"x", "a1", "a2"}, false},
-		{"tail:parent", []Block{b("a", b("a1"), b("a2")), b("b")}, "tail:a", bs("x"), []string{"a", "b"}, []string{"a1", "a2", "x"}, false},
-		{"head:empty", bs("a", "b"), "head:a", bs("x"), []string{"a", "b"}, []string{"x"}, false},
-		{"head:not found", bs("a", "b"), "head:z", bs("x"), []string{"a", "b"}, nil, true},
+		{"at head", tree(block("a"), block("b")), PositionHead, []Block{block("x")}, []string{"x", "a", "b"}, false},
+		{"at tail", tree(block("a"), block("b")), PositionTail, []Block{block("x")}, []string{"a", "b", "x"}, false},
+		{"after first", tree(block("a"), block("b"), block("c")), "a", []Block{block("x")}, []string{"a", "x", "b", "c"}, false},
+		{"after last", tree(block("a"), block("b")), "b", []Block{block("x")}, []string{"a", "b", "x"}, false},
+		{"multiple", tree(block("a"), block("b")), "a", []Block{block("x"), block("y")}, []string{"a", "x", "y", "b"}, false},
+		{"not found", tree(block("a"), block("b")), "z", []Block{block("x")}, []string{"a", "b"}, true},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, found := InsertBlocksAfter(tt.blocks, tt.pos, tt.add)
+			result, found := InsertBlocksAfter(tt.tree, tt.pos, tt.add)
 			th.AssertEqual(t, found, !tt.notFound, "found")
-			if tt.want != nil {
-				th.AssertEqual(t, blockIDs(result), tt.want, "root ids")
-			}
+			th.AssertEqual(t, orderedIDs(result), tt.wantRoot, "root ids")
+		})
+	}
+}
+
+func TestInsertBlocksAfterNested(t *testing.T) {
+	tests := []struct {
+		name         string
+		tree         BlockTree
+		pos          string
+		add          []Block
+		wantRoot     []string
+		wantChildren []string
+		parentID     string
+		notFound     bool
+	}{
+		{
+			name:         "head:parent inserts as first child",
+			tree:         treeWithChild("a", "a1", "a2"),
+			pos:          "head:a",
+			add:          []Block{block("x")},
+			wantRoot:     []string{"a"},
+			wantChildren: []string{"x", "a1", "a2"},
+			parentID:     "a",
+		},
+		{
+			name:         "tail:parent inserts as last child",
+			tree:         treeWithChild("a", "a1", "a2"),
+			pos:          "tail:a",
+			add:          []Block{block("x")},
+			wantRoot:     []string{"a"},
+			wantChildren: []string{"a1", "a2", "x"},
+			parentID:     "a",
+		},
+		{
+			name:         "after sibling inserts between",
+			tree:         treeWithChild("a", "a1", "a2"),
+			pos:          "a1",
+			add:          []Block{block("x")},
+			wantRoot:     []string{"a"},
+			wantChildren: []string{"a1", "x", "a2"},
+			parentID:     "a",
+		},
+		{
+			name:         "head:empty parent",
+			tree:         tree(block("a"), block("b")),
+			pos:          "head:a",
+			add:          []Block{block("x")},
+			wantRoot:     []string{"a", "b"},
+			wantChildren: []string{"x"},
+			parentID:     "a",
+		},
+		{
+			name:     "head:not found",
+			tree:     tree(block("a"), block("b")),
+			pos:      "head:z",
+			add:      []Block{block("x")},
+			wantRoot: []string{"a", "b"},
+			notFound: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, found := InsertBlocksAfter(tt.tree, tt.pos, tt.add)
+			th.AssertEqual(t, found, !tt.notFound, "found")
+			th.AssertEqual(t, orderedIDs(result), tt.wantRoot, "root ids")
 			if tt.wantChildren != nil {
-				th.AssertEqual(t, blockIDs(result[0].Children), tt.wantChildren, "children ids")
+				th.AssertEqual(t, childIDs(result, tt.parentID), tt.wantChildren, "children ids")
 			}
 		})
 	}
@@ -71,7 +168,7 @@ func TestInsertBlocksAfter(t *testing.T) {
 func TestInsertBlocksAfterUpsert(t *testing.T) {
 	tests := []struct {
 		name        string
-		blocks      []Block
+		tree        BlockTree
 		pos         string
 		add         []Block
 		wantIDs     []string
@@ -79,9 +176,9 @@ func TestInsertBlocksAfterUpsert(t *testing.T) {
 	}{
 		{
 			name:    "upsert existing block updates in place",
-			blocks:  []Block{bWithContent("a", "old"), bWithContent("b", "old")},
+			tree:    tree(blockWithContent("a", "old"), blockWithContent("b", "old")),
 			pos:     PositionTail,
-			add:     []Block{bWithContent("a", "new")},
+			add:     []Block{blockWithContent("a", "new")},
 			wantIDs: []string{"a", "b"},
 			wantContent: map[string]string{
 				"a": "new",
@@ -90,9 +187,9 @@ func TestInsertBlocksAfterUpsert(t *testing.T) {
 		},
 		{
 			name:    "upsert mixed existing and new",
-			blocks:  []Block{bWithContent("a", "old"), bWithContent("b", "old")},
+			tree:    tree(blockWithContent("a", "old"), blockWithContent("b", "old")),
 			pos:     PositionTail,
-			add:     []Block{bWithContent("a", "new"), bWithContent("x", "new")},
+			add:     []Block{blockWithContent("a", "new"), blockWithContent("x", "new")},
 			wantIDs: []string{"a", "b", "x"},
 			wantContent: map[string]string{
 				"a": "new",
@@ -102,9 +199,9 @@ func TestInsertBlocksAfterUpsert(t *testing.T) {
 		},
 		{
 			name:    "upsert all existing no position change",
-			blocks:  []Block{bWithContent("a", "old"), bWithContent("b", "old"), bWithContent("c", "old")},
+			tree:    tree(blockWithContent("a", "old"), blockWithContent("b", "old"), blockWithContent("c", "old")),
 			pos:     PositionHead,
-			add:     []Block{bWithContent("b", "new"), bWithContent("c", "new")},
+			add:     []Block{blockWithContent("b", "new"), blockWithContent("c", "new")},
 			wantIDs: []string{"a", "b", "c"},
 			wantContent: map[string]string{
 				"a": "old",
@@ -112,40 +209,19 @@ func TestInsertBlocksAfterUpsert(t *testing.T) {
 				"c": "new",
 			},
 		},
-		{
-			name:    "upsert nested block in place",
-			blocks:  []Block{b("a", bWithContent("a1", "old")), bWithContent("b", "old")},
-			pos:     PositionTail,
-			add:     []Block{bWithContent("a1", "new")},
-			wantIDs: []string{"a", "b"},
-			wantContent: map[string]string{
-				"a1": "new",
-				"b":  "old",
-			},
-		},
-		{
-			name:    "duplicate insert same id twice",
-			blocks:  []Block{bWithContent("a", "v1")},
-			pos:     PositionTail,
-			add:     []Block{bWithContent("a", "v2")},
-			wantIDs: []string{"a"},
-			wantContent: map[string]string{
-				"a": "v2",
-			},
-		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, _ := InsertBlocksAfter(tt.blocks, tt.pos, tt.add)
-			th.AssertEqual(t, blockIDs(result), tt.wantIDs, "ids")
+			result, _ := InsertBlocksAfter(tt.tree, tt.pos, tt.add)
+			th.AssertEqual(t, orderedIDs(result), tt.wantIDs, "ids")
 
 			for id, wantText := range tt.wantContent {
-				block, found := FindBlock(result, id)
+				b, found := result.Get(id)
 				th.AssertEqual(t, found, true, "block "+id+" found")
 				gotText := ""
-				if len(block.Content) > 0 {
-					gotText = block.Content[0].Text
+				if len(b.Content) > 0 {
+					gotText = b.Content[0].Text
 				}
 				th.AssertEqual(t, gotText, wantText, "block "+id+" content")
 			}
@@ -156,62 +232,82 @@ func TestInsertBlocksAfterUpsert(t *testing.T) {
 func TestDeleteBlocksByID(t *testing.T) {
 	tests := []struct {
 		name         string
-		blocks       []Block
+		tree         BlockTree
 		del          []string
-		want         []string
+		wantRoot     []string
 		wantChildren []string
+		parentID     string
 	}{
-		{"single", bs("a", "b", "c"), []string{"b"}, []string{"a", "c"}, nil},
-		{"multiple", bs("a", "b", "c"), []string{"a", "c"}, []string{"b"}, nil},
-		{"nested", []Block{b("a", b("a1"), b("a2")), b("b")}, []string{"a1"}, []string{"a", "b"}, []string{"a2"}},
-		{"parent", []Block{b("a", b("a1")), b("b")}, []string{"a"}, []string{"b"}, nil},
+		{"single", tree(block("a"), block("b"), block("c")), []string{"b"}, []string{"a", "c"}, nil, ""},
+		{"multiple", tree(block("a"), block("b"), block("c")), []string{"a", "c"}, []string{"b"}, nil, ""},
+		{"nested child", treeWithChild("a", "a1", "a2"), []string{"a1"}, []string{"a"}, []string{"a2"}, "a"},
+		{"parent deletes children", treeWithChild("a", "a1", "a2"), []string{"a"}, []string{}, nil, ""},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := DeleteBlocksByID(tt.blocks, tt.del)
-			th.AssertEqual(t, blockIDs(result), tt.want, "ids")
+			result := DeleteBlocksByID(tt.tree, tt.del)
+			th.AssertEqual(t, orderedIDs(result), tt.wantRoot, "ids")
 			if tt.wantChildren != nil {
-				th.AssertEqual(t, blockIDs(result[0].Children), tt.wantChildren, "children")
+				th.AssertEqual(t, childIDs(result, tt.parentID), tt.wantChildren, "children")
 			}
 		})
 	}
 }
 
 func TestFindBlockDepth(t *testing.T) {
+	deepTree := treeWithChild("a", "a1")
+	a1, _ := deepTree.Get("a1")
+	a1.FirstChildID = "a1a"
+	a1.LastChildID = "a1a"
+	deepTree = deepTree.set(a1)
+	deepChild := block("a1a")
+	deepChild.ParentID = "a1"
+	deepTree = deepTree.set(deepChild)
+
 	th.RunMapTests(t, map[string]int{
 		"a":   0,
 		"a1":  1,
 		"a1a": 2,
 		"z":   -1,
 	}, func(id string) int {
-		blocks := []Block{b("a", b("a1", b("a1a"))), b("b")}
-		return FindBlockDepth(blocks, id)
+		return FindBlockDepth(deepTree, id)
 	})
 }
 
 func TestMoveBlocksAfter(t *testing.T) {
-	result := MoveBlocksAfter(bs("a", "b", "c", "d"), []string{"b"}, "c")
-	th.AssertEqual(t, blockIDs(result), []string{"a", "c", "b", "d"}, "ids")
+	result := MoveBlocksAfter(tree(block("a"), block("b"), block("c"), block("d")), []string{"b"}, "c")
+	th.AssertEqual(t, orderedIDs(result), []string{"a", "c", "b", "d"}, "ids")
 }
 
 func TestExtractBlocksByID(t *testing.T) {
-	blocks := []Block{b("a", b("a1")), b("b"), b("c")}
-	result := ExtractBlocksByID(blocks, []string{"b", "a1"})
+	tr := treeWithChild("a", "a1")
+	tr, _ = InsertBlocksAfter(tr, "a", []Block{block("b"), block("c")})
+
+	result := ExtractBlocksByID(tr, []string{"b", "a1"})
 	th.AssertEqual(t, len(result), 2, "count")
 }
 
 func TestReplaceBlocksByID(t *testing.T) {
-	result := ReplaceBlocksByID(bs("a", "b", "c"), []string{"b"}, bs("x", "y"))
-	th.AssertEqual(t, blockIDs(result), []string{"a", "x", "y", "c"}, "ids")
+	result := ReplaceBlocksByID(tree(block("a"), block("b"), block("c")), []string{"b"}, []Block{block("x"), block("y")})
+	th.AssertEqual(t, orderedIDs(result), []string{"a", "x", "y", "c"}, "ids")
 }
 
 func TestFindBlock(t *testing.T) {
-	blocks := []Block{b("a", b("a1", b("a1a"))), b("b")}
+	deepTree := treeWithChild("a", "a1")
+	a1, _ := deepTree.Get("a1")
+	a1.FirstChildID = "a1a"
+	a1.LastChildID = "a1a"
+	deepTree = deepTree.set(a1)
+	deepChild := block("a1a")
+	deepChild.ParentID = "a1"
+	deepTree = deepTree.set(deepChild)
+	deepTree, _ = InsertBlocksAfter(deepTree, "a", []Block{block("b")})
+
 	th.RunMapTests(t, map[string]bool{
-		"a": true, "a1": true, "a1a": true, "z": false,
+		"a": true, "a1": true, "a1a": true, "b": true, "z": false,
 	}, func(id string) bool {
-		_, found := FindBlock(blocks, id)
+		_, found := FindBlock(deepTree, id)
 		return found
 	})
 }
@@ -220,41 +316,51 @@ func TestUpdateBlocksProps(t *testing.T) {
 	checked, unchecked := true, false
 
 	tests := []struct {
-		name   string
-		blocks []Block
-		ids    []string
-		props  BlockProps
-		check  func(t *testing.T, result []Block)
+		name  string
+		tree  BlockTree
+		ids   []string
+		props BlockProps
+		check func(t *testing.T, result BlockTree)
 	}{
 		{
 			"toggle checked",
-			[]Block{
-				{ID: "a", Type: BlockTypeCheckList, Props: BlockProps{CheckListProps: CheckListProps{Checked: &checked}}},
-				{ID: "b", Type: BlockTypeCheckList},
-				{ID: "c", Type: BlockTypeParagraph},
-			},
+			tree(
+				Block{ID: "a", Type: BlockTypeCheckList, Props: BlockProps{CheckListProps: CheckListProps{Checked: &checked}}},
+				Block{ID: "b", Type: BlockTypeCheckList},
+				Block{ID: "c", Type: BlockTypeParagraph},
+			),
 			[]string{"a", "b"},
 			BlockProps{CheckListProps: CheckListProps{Checked: &unchecked}},
-			func(t *testing.T, result []Block) {
-				th.AssertEqual(t, *result[0].Props.Checked, false, "a.checked")
-				th.AssertEqual(t, *result[1].Props.Checked, false, "b.checked")
-				th.AssertEqual(t, result[2].Props.Checked, (*bool)(nil), "c.checked")
+			func(t *testing.T, result BlockTree) {
+				a, _ := result.Get("a")
+				b, _ := result.Get("b")
+				c, _ := result.Get("c")
+				th.AssertEqual(t, *a.Props.Checked, false, "a.checked")
+				th.AssertEqual(t, *b.Props.Checked, false, "b.checked")
+				th.AssertEqual(t, c.Props.Checked, (*bool)(nil), "c.checked")
 			},
 		},
 		{
 			"nested heading level",
-			[]Block{b("a", Block{ID: "a1", Type: BlockTypeHeading, Props: BlockProps{HeadingProps: HeadingProps{Level: 1}}}), b("b")},
+			func() BlockTree {
+				tr := treeWithChild("a", "a1")
+				a1, _ := tr.Get("a1")
+				a1.Type = BlockTypeHeading
+				a1.Props = BlockProps{HeadingProps: HeadingProps{Level: 1}}
+				return tr.set(a1)
+			}(),
 			[]string{"a1"},
 			BlockProps{HeadingProps: HeadingProps{Level: 2}},
-			func(t *testing.T, result []Block) {
-				th.AssertEqual(t, result[0].Children[0].Props.Level, 2, "level")
+			func(t *testing.T, result BlockTree) {
+				a1, _ := result.Get("a1")
+				th.AssertEqual(t, a1.Props.Level, 2, "level")
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := UpdateBlocksProps(tt.blocks, tt.ids, tt.props)
+			result := UpdateBlocksProps(tt.tree, tt.ids, tt.props)
 			tt.check(t, result)
 		})
 	}
@@ -300,25 +406,6 @@ func TestExtractBlockText(t *testing.T) {
 			}},
 			want: "see this link for details",
 		},
-		{
-			name: "nested children",
-			block: Block{ID: "a", Type: BlockTypeParagraph, Content: []InlineContent{{Type: InlineTypeText, Text: "parent"}},
-				Children: []Block{
-					{ID: "a1", Type: BlockTypeParagraph, Content: []InlineContent{{Type: InlineTypeText, Text: "child"}}},
-				}},
-			want: "parentchild",
-		},
-		{
-			name: "deeply nested children",
-			block: Block{ID: "a", Type: BlockTypeParagraph, Content: []InlineContent{{Type: InlineTypeText, Text: "L0"}},
-				Children: []Block{
-					{ID: "a1", Type: BlockTypeParagraph, Content: []InlineContent{{Type: InlineTypeText, Text: "L1"}},
-						Children: []Block{
-							{ID: "a1a", Type: BlockTypeParagraph, Content: []InlineContent{{Type: InlineTypeText, Text: "L2"}}},
-						}},
-				}},
-			want: "L0L1L2",
-		},
 	}
 
 	for _, tt := range tests {
@@ -331,45 +418,86 @@ func TestExtractBlockText(t *testing.T) {
 
 func TestExtractDocumentText(t *testing.T) {
 	tests := []struct {
-		name   string
-		blocks []Block
-		want   string
+		name string
+		tree BlockTree
+		want string
 	}{
 		{
-			name:   "empty document",
-			blocks: nil,
-			want:   "",
+			name: "empty document",
+			tree: NewBlockTree(),
+			want: "",
 		},
 		{
-			name:   "single block",
-			blocks: []Block{{ID: "a", Type: BlockTypeParagraph, Content: []InlineContent{{Type: InlineTypeText, Text: "hello"}}}},
-			want:   "hello",
+			name: "single block",
+			tree: tree(Block{ID: "a", Type: BlockTypeParagraph, Content: []InlineContent{{Type: InlineTypeText, Text: "hello"}}}),
+			want: "hello",
 		},
 		{
 			name: "multiple blocks joined with newline",
-			blocks: []Block{
-				{ID: "a", Type: BlockTypeParagraph, Content: []InlineContent{{Type: InlineTypeText, Text: "first"}}},
-				{ID: "b", Type: BlockTypeParagraph, Content: []InlineContent{{Type: InlineTypeText, Text: "second"}}},
-			},
+			tree: tree(
+				Block{ID: "a", Type: BlockTypeParagraph, Content: []InlineContent{{Type: InlineTypeText, Text: "first"}}},
+				Block{ID: "b", Type: BlockTypeParagraph, Content: []InlineContent{{Type: InlineTypeText, Text: "second"}}},
+			),
 			want: "first\nsecond",
-		},
-		{
-			name: "blocks with nested children",
-			blocks: []Block{
-				{ID: "a", Type: BlockTypeParagraph, Content: []InlineContent{{Type: InlineTypeText, Text: "parent"}},
-					Children: []Block{
-						{ID: "a1", Type: BlockTypeParagraph, Content: []InlineContent{{Type: InlineTypeText, Text: "child"}}},
-					}},
-				{ID: "b", Type: BlockTypeParagraph, Content: []InlineContent{{Type: InlineTypeText, Text: "other"}}},
-			},
-			want: "parentchild\nother",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := ExtractDocumentText(tt.blocks)
+			got := ExtractDocumentText(tt.tree)
 			th.AssertEqual(t, got, tt.want, "text")
 		})
 	}
+}
+
+func TestFromArrayWithNestedChildren(t *testing.T) {
+	blocks := []Block{
+		{
+			ID:   "a",
+			Type: BlockTypeParagraph,
+			Children: []Block{
+				{ID: "a1", Type: BlockTypeParagraph},
+				{ID: "a2", Type: BlockTypeParagraph},
+			},
+		},
+		{ID: "b", Type: BlockTypeParagraph},
+	}
+
+	tree := FromArray(blocks)
+
+	th.AssertEqual(t, orderedIDs(tree), []string{"a", "b"}, "root ids")
+	th.AssertEqual(t, childIDs(tree, "a"), []string{"a1", "a2"}, "children of a")
+
+	a1, _ := tree.Get("a1")
+	th.AssertEqual(t, a1.ParentID, "a", "a1 parent")
+
+	a2, _ := tree.Get("a2")
+	th.AssertEqual(t, a2.ParentID, "a", "a2 parent")
+}
+
+func TestFromArrayDeeplyNested(t *testing.T) {
+	blocks := []Block{
+		{
+			ID:   "a",
+			Type: BlockTypeParagraph,
+			Children: []Block{
+				{
+					ID:   "a1",
+					Type: BlockTypeParagraph,
+					Children: []Block{
+						{ID: "a1a", Type: BlockTypeParagraph},
+					},
+				},
+			},
+		},
+	}
+
+	tree := FromArray(blocks)
+
+	th.AssertEqual(t, orderedIDs(tree), []string{"a"}, "root")
+	th.AssertEqual(t, childIDs(tree, "a"), []string{"a1"}, "children of a")
+	th.AssertEqual(t, childIDs(tree, "a1"), []string{"a1a"}, "children of a1")
+
+	a1a, _ := tree.Get("a1a")
+	th.AssertEqual(t, a1a.ParentID, "a1", "a1a parent")
 }

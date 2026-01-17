@@ -31,8 +31,6 @@ func TestValidateBlock(t *testing.T) {
 		{"valid code block", Block{ID: "b1", Type: BlockTypeCodeBlock}, F},
 		{"valid bullet list", Block{ID: "b1", Type: BlockTypeBulletList}, F},
 		{"valid table", Block{ID: "b1", Type: BlockTypeTable}, F},
-		{"valid nested children", Block{ID: "b1", Type: BlockTypeParagraph, Children: []Block{{ID: "b2", Type: BlockTypeParagraph}}}, F},
-		{"invalid nested child", Block{ID: "b1", Type: BlockTypeParagraph, Children: []Block{{ID: "b2", Type: BlockTypeHeading}}}, T},
 		{"unknown block type", Block{ID: "b1", Type: "unknown"}, T},
 	}, ValidateBlock, func(err error) bool { return err != nil })
 }

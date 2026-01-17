@@ -14,8 +14,11 @@ func buildProject(documents map[string]document.Document) *project.Project {
 }
 
 func buildDocument(id, name string, content []document.Block, annotations map[string]document.Annotation) document.Document {
+	tree := document.FromArray(content)
 	d := document.BuildTestDocument(id, document.DocumentData{ProjectID: "proj-1", Name: name})
-	d.Content = content
+	d.Blocks = tree.Blocks
+	d.HeadID = tree.HeadID
+	d.TailID = tree.TailID
 	d.Annotations = annotations
 	return d
 }

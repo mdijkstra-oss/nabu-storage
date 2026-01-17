@@ -7,11 +7,16 @@ import (
 )
 
 type Block struct {
-	ID       string          `json:"id"`
-	Type     BlockType       `json:"type"`
-	Props    BlockProps      `json:"props,omitempty"`
-	Content  []InlineContent `json:"content,omitempty"`
-	Children []Block         `json:"children,omitempty"`
+	ID           string          `json:"id"`
+	Type         BlockType       `json:"type"`
+	Props        BlockProps      `json:"props,omitempty"`
+	Content      []InlineContent `json:"content,omitempty"`
+	NextID       string          `json:"next_id,omitempty"`
+	PrevID       string          `json:"prev_id,omitempty"`
+	FirstChildID string          `json:"first_child_id,omitempty"`
+	LastChildID  string          `json:"last_child_id,omitempty"`
+	ParentID     string          `json:"parent_id,omitempty"`
+	Children     []Block         `json:"children,omitempty"`
 }
 
 type BlockType string
@@ -91,12 +96,6 @@ func ValidateBlock(b Block) error {
 		}
 	}
 
-	for _, child := range b.Children {
-		if err := ValidateBlock(child); err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 
@@ -120,9 +119,6 @@ func AssignBlockIDs(blocks []Block) []Block {
 func assignBlockID(b Block) Block {
 	if b.ID == "" {
 		b.ID = utils.NewBlockID()
-	}
-	if len(b.Children) > 0 {
-		b.Children = AssignBlockIDs(b.Children)
 	}
 	return b
 }

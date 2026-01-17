@@ -15,8 +15,10 @@ func BuildTestDocument(id string, overrides DocumentData) Document {
 		UpdatedAt:   th.DefaultTestTime(),
 		Original:    "",
 		Pinned:      false,
-		Tags:        []string{},
-		Content:     []Block{},
+		Tags:        map[string]Tag{},
+		Blocks:      map[string]Block{},
+		HeadID:      "",
+		TailID:      "",
 		Annotations: map[string]Annotation{},
 	}
 	merged := utils.ApplyPartialUpdate(defaults, overrides)

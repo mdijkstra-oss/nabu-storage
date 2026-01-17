@@ -50,7 +50,7 @@ func addAnnotationHandler(store *registry.Store, commandAction, eventAction comm
 			return payload, utils.FieldError("document_id", "not found")
 		}
 
-		docText := document.ExtractDocumentText(doc.Content)
+		docText := document.ExtractDocumentText(document.ToBlockTree(doc.DocumentData))
 		matchedText, found := find.Find(payload.Annotation.Text, docText)
 		if !found {
 			return payload, utils.FieldError("annotation.text", "text not found in document")

@@ -15,33 +15,55 @@ var BlockReducer = projection.IfExists(
 	projection.For(document.UpdatedBlockProps, updatedBlockPropsReducer),
 )
 
+func toBlockTree(d *Document) document.BlockTree {
+	if d.Blocks == nil {
+		return document.NewBlockTree()
+	}
+	return document.BlockTree{
+		Blocks: d.Blocks,
+		HeadID: d.HeadID,
+		TailID: d.TailID,
+	}
+}
+
+func applyBlockTree(d *Document, tree document.BlockTree) *Document {
+	d.Blocks = tree.Blocks
+	d.HeadID = tree.HeadID
+	d.TailID = tree.TailID
+	return d
+}
+
 func insertedBlocksReducer(current *Document, _ *commands.AnyMessage, payload *document.InsertedBlocksPayload) *Document {
-	content, _ := document.InsertBlocksAfter(current.Content, payload.Position, payload.Blocks)
-	current.Content = content
-	return current
+	tree := toBlockTree(current)
+	tree, _ = document.InsertBlocksAfter(tree, payload.Position, payload.Blocks)
+	return applyBlockTree(current, tree)
 }
 
 func deletedBlocksReducer(current *Document, _ *commands.AnyMessage, payload *document.DeletedBlocksPayload) *Document {
-	current.Content = document.DeleteBlocksByID(current.Content, payload.BlockIDs)
-	return current
+	tree := toBlockTree(current)
+	tree = document.DeleteBlocksByID(tree, payload.BlockIDs)
+	return applyBlockTree(current, tree)
 }
 
 func replacedBlocksReducer(current *Document, _ *commands.AnyMessage, payload *document.ReplacedBlocksPayload) *Document {
-	current.Content = document.ReplaceBlocksByID(current.Content, payload.BlockIDs, payload.Blocks)
-	return current
+	tree := toBlockTree(current)
+	tree = document.ReplaceBlocksByID(tree, payload.BlockIDs, payload.Blocks)
+	return applyBlockTree(current, tree)
 }
 
 func movedBlocksReducer(current *Document, _ *commands.AnyMessage, payload *document.MovedBlocksPayload) *Document {
-	current.Content = document.MoveBlocksAfter(current.Content, payload.BlockIDs, payload.Position)
-	return current
+	tree := toBlockTree(current)
+	tree = document.MoveBlocksAfter(tree, payload.BlockIDs, payload.Position)
+	return applyBlockTree(current, tree)
 }
 
 func replacedContentReducer(current *Document, _ *commands.AnyMessage, payload *document.ReplacedContentPayload) *Document {
-	current.Content = payload.Content
-	return current
+	tree := document.FromArray(payload.Content)
+	return applyBlockTree(current, tree)
 }
 
 func updatedBlockPropsReducer(current *Document, _ *commands.AnyMessage, payload *document.UpdatedBlockPropsPayload) *Document {
-	current.Content = document.UpdateBlocksProps(current.Content, payload.BlockIDs, payload.Props)
-	return current
+	tree := toBlockTree(current)
+	tree = document.UpdateBlocksProps(tree, payload.BlockIDs, payload.Props)
+	return applyBlockTree(current, tree)
 }

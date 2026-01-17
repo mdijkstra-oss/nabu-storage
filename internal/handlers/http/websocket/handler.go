@@ -161,7 +161,9 @@ func filterProjectForDocument(p *project.Project, documentID string) *project.Pr
 }
 
 func withoutContentAndAnnotations(d document.Document) document.Document {
-	d.Content = nil
+	d.Blocks = nil
+	d.HeadID = ""
+	d.TailID = ""
 	d.Annotations = nil
 	return d
 }

@@ -3,6 +3,7 @@ package document
 import (
 	"hermes-relay/internal/lib/text-search/find"
 	"hermes-relay/internal/lib/utils"
+	"maps"
 	"strings"
 )
 
@@ -24,9 +25,9 @@ func AddAnnotation(current map[string]Annotation, ann Annotation) map[string]Ann
 	if hasMatchingAnnotation(current, ann.Text) {
 		return current
 	}
-	result := make(map[string]Annotation, len(current)+1)
-	for k, v := range current {
-		result[k] = v
+	result := maps.Clone(current)
+	if result == nil {
+		result = make(map[string]Annotation)
 	}
 	result[ann.ID] = ann
 	return result
