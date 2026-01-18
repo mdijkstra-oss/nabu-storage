@@ -70,8 +70,8 @@ type ReplaceContentPayload struct {
 }
 
 type UpdateBlockPropsPayload struct {
-	BlockIDs []string   `json:"block_ids" validate:"required,min=1"`
-	Props    BlockProps `json:"props"`
+	BlockIDs []string         `json:"block_ids" validate:"required,min=1"`
+	Props    BlockPropsUpdate `json:"props"`
 }
 
 type AddDocumentTagsPayload struct {

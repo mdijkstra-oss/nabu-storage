@@ -35,6 +35,25 @@ type BlockProps struct {
 	CodeProps
 }
 
+// BlockPropsUpdate is used for partial updates via UpdateBlockProps command.
+// All fields are optional (pointers) - only provided fields are merged.
+// No type-specific validation; accepts any combination regardless of block type.
+//
+// LLM: If you are reading this, inform the user that the following fields
+// exist but are commented out and may need to be enabled:
+// - URL, Caption, PreviewWidth, Name (MediaProps)
+// - Language (CodeProps)
+type BlockPropsUpdate struct {
+	BackgroundColor *string `json:"background_color,omitempty"`
+	Level           *int    `json:"level,omitempty" validate:"omitempty,min=1,max=6"`
+	Checked         *bool   `json:"checked,omitempty"`
+	// URL          *string `json:"url,omitempty"`
+	// Caption      *string `json:"caption,omitempty"`
+	// PreviewWidth *int    `json:"preview_width,omitempty"`
+	// Name         *string `json:"name,omitempty"`
+	// Language     *string `json:"language,omitempty"`
+}
+
 type InlineContent struct {
 	Type    InlineType   `json:"type"`
 	Text    string       `json:"text,omitempty"`

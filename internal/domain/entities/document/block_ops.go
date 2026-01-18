@@ -412,10 +412,18 @@ func ReplaceBlocksByID(tree BlockTree, ids []string, newBlocks []Block) BlockTre
 	return tree
 }
 
-func UpdateBlocksProps(tree BlockTree, ids []string, props BlockProps) BlockTree {
+func UpdateBlocksProps(tree BlockTree, ids []string, props BlockPropsUpdate) BlockTree {
 	for _, id := range ids {
 		if block, ok := tree.Get(id); ok {
-			block.Props = utils.ApplyPartialUpdate(block.Props, props)
+			if props.BackgroundColor != nil {
+				block.Props.BackgroundColor = *props.BackgroundColor
+			}
+			if props.Level != nil {
+				block.Props.Level = *props.Level
+			}
+			if props.Checked != nil {
+				block.Props.Checked = props.Checked
+			}
 			tree = tree.set(block)
 		}
 	}

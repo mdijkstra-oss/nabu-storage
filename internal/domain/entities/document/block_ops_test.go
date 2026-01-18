@@ -314,12 +314,13 @@ func TestFindBlock(t *testing.T) {
 
 func TestUpdateBlocksProps(t *testing.T) {
 	checked, unchecked := true, false
+	level2 := 2
 
 	tests := []struct {
 		name  string
 		tree  BlockTree
 		ids   []string
-		props BlockProps
+		props BlockPropsUpdate
 		check func(t *testing.T, result BlockTree)
 	}{
 		{
@@ -330,7 +331,7 @@ func TestUpdateBlocksProps(t *testing.T) {
 				Block{ID: "c", Type: BlockTypeParagraph},
 			),
 			[]string{"a", "b"},
-			BlockProps{CheckListProps: CheckListProps{Checked: &unchecked}},
+			BlockPropsUpdate{Checked: &unchecked},
 			func(t *testing.T, result BlockTree) {
 				a, _ := result.Get("a")
 				b, _ := result.Get("b")
@@ -350,7 +351,7 @@ func TestUpdateBlocksProps(t *testing.T) {
 				return tr.set(a1)
 			}(),
 			[]string{"a1"},
-			BlockProps{HeadingProps: HeadingProps{Level: 2}},
+			BlockPropsUpdate{Level: &level2},
 			func(t *testing.T, result BlockTree) {
 				a1, _ := result.Get("a1")
 				th.AssertEqual(t, a1.Props.Level, 2, "level")

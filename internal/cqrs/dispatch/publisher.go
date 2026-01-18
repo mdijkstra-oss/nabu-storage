@@ -41,8 +41,10 @@ func (p *InMemoryPublisher) Subscribe(router CommandRouter) func() {
 }
 
 func (p *InMemoryPublisher) Publish(event *commands.AnyMessage) (*commands.AnyMessage, error) {
-	if err := commands.ValidateMessage(event); err != nil {
-		return nil, err
+	if event.Type == commands.Command {
+		if err := commands.ValidateMessage(event); err != nil {
+			return nil, err
+		}
 	}
 
 	// Todo: Persistence happens BEFORE state changes

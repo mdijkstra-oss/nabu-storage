@@ -3,6 +3,7 @@ package websocket
 import (
 	"log/slog"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -21,6 +22,25 @@ const (
 	pingPeriod = (pongWait * 9) / 10
 	writeWait  = 10 * time.Second
 )
+
+type connWriter struct {
+	conn *websocket.Conn
+	mu   sync.Mutex
+}
+
+func (w *connWriter) writeJSON(v any) error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	utils.ShouldWork(w.conn.SetWriteDeadline(time.Now().Add(writeWait)))
+	return w.conn.WriteJSON(v)
+}
+
+func (w *connWriter) writePing() error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	utils.ShouldWork(w.conn.SetWriteDeadline(time.Now().Add(writeWait)))
+	return w.conn.WriteMessage(websocket.PingMessage, nil)
+}
 
 type Message struct {
 	Type      string `json:"type"`
@@ -61,15 +81,14 @@ func setupPongHandler(conn *websocket.Conn) {
 	})
 }
 
-func startPingSender(conn *websocket.Conn, done chan struct{}) {
+func startPingSender(writer *connWriter, done chan struct{}) {
 	ticker := time.NewTicker(pingPeriod)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ticker.C:
-			utils.ShouldWork(conn.SetWriteDeadline(time.Now().Add(writeWait)))
-			if err := conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+			if err := writer.writePing(); err != nil {
 				return
 			}
 		case <-done:
@@ -88,19 +107,21 @@ func handleConnection(
 	hub.Register(projectID, conn)
 	defer hub.Unregister(projectID, conn)
 
+	writer := &connWriter{conn: conn}
+
 	setupPongHandler(conn)
 
 	done := make(chan struct{})
 	defer close(done)
-	go startPingSender(conn, done)
+	go startPingSender(writer, done)
 
-	sendInitialSnapshot(conn, projectID, store)
+	sendInitialSnapshot(writer, projectID, store)
 
 	unsubscribe := subscribe(dispatch.LimitOnType(
 		commands.SystemEvent,
 		dispatch.CombineRouters(
-			forwardProjectEvent[patches.PatchEventPayload](conn, projectID, patches.ProjectPatched, "patch"),
-			forwardProjectEvent[patches.SnapshotEventPayload](conn, projectID, patches.ProjectSnapshot, "snapshot"),
+			forwardProjectEvent[patches.PatchEventPayload](writer, projectID, patches.ProjectPatched, "patch"),
+			forwardProjectEvent[patches.SnapshotEventPayload](writer, projectID, patches.ProjectSnapshot, "snapshot"),
 		),
 	))
 	defer unsubscribe()
@@ -116,7 +137,7 @@ func handleConnection(
 	}
 }
 
-func sendInitialSnapshot(conn *websocket.Conn, projectID string, store *registry.Store) {
+func sendInitialSnapshot(writer *connWriter, projectID string, store *registry.Store) {
 	utils.GuardWith(func() {
 		proj := projection.Read(store, func(r *registry.Registry) *project.Project {
 			return registry.GetProject(r, projectID)
@@ -132,12 +153,12 @@ func sendInitialSnapshot(conn *websocket.Conn, projectID string, store *registry
 			Data:      proj,
 		}
 
-		utils.ShouldWork(conn.WriteJSON(msg))
+		utils.ShouldWork(writer.writeJSON(msg))
 	}, "projectID", projectID, "operation", "sendInitialSnapshot")
 }
 
 func forwardProjectEvent[T patches.ProjectEventPayload](
-	conn *websocket.Conn,
+	writer *connWriter,
 	projectID string,
 	action commands.Action,
 	messageType string,
@@ -160,7 +181,7 @@ func forwardProjectEvent[T patches.ProjectEventPayload](
 				Data:      payload.GetData(),
 			}
 
-			utils.ShouldWork(conn.WriteJSON(message))
+			utils.ShouldWork(writer.writeJSON(message))
 		}, "projectID", projectID, "action", action, "operation", "forwardProjectEvent")
 
 		return nil, nil
