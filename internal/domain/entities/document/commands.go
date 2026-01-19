@@ -16,12 +16,11 @@ const (
 	UnpinDocument  commands.Action = "UnpinDocument"
 	DeleteDocument commands.Action = "DeleteDocument"
 
-	InsertBlocks     commands.Action = "InsertBlocks"
-	DeleteBlocks     commands.Action = "DeleteBlocks"
-	ReplaceBlocks    commands.Action = "ReplaceBlocks"
-	MoveBlocks       commands.Action = "MoveBlocks"
-	ReplaceContent   commands.Action = "ReplaceContent"
-	UpdateBlockProps commands.Action = "UpdateBlockProps"
+	InsertBlocks   commands.Action = "InsertBlocks"
+	DeleteBlocks   commands.Action = "DeleteBlocks"
+	MoveBlocks     commands.Action = "MoveBlocks"
+	ReplaceContent commands.Action = "ReplaceContent"
+	UpdateBlock    commands.Action = "UpdateBlock"
 
 	AddDocumentTags    commands.Action = "AddDocumentTags"
 	RemoveDocumentTags commands.Action = "RemoveDocumentTags"
@@ -55,11 +54,6 @@ type DeleteBlocksPayload struct {
 	BlockIDs []string `json:"block_ids" validate:"required,min=1"`
 }
 
-type ReplaceBlocksPayload struct {
-	BlockIDs []string `json:"block_ids" validate:"required,min=1"`
-	Blocks   []Block  `json:"blocks" validate:"required,min=1"`
-}
-
 type MoveBlocksPayload struct {
 	BlockIDs []string `json:"block_ids" validate:"required,min=1"`
 	Position string   `json:"position" validate:"required,block_position"`
@@ -69,9 +63,18 @@ type ReplaceContentPayload struct {
 	Content []Block `json:"content" validate:"required"`
 }
 
-type UpdateBlockPropsPayload struct {
-	BlockIDs []string         `json:"block_ids" validate:"required,min=1"`
-	Props    BlockPropsUpdate `json:"props"`
+type BlockUpdate struct {
+	BlockID string           `json:"block_id" validate:"required"`
+	Type    *BlockType       `json:"type,omitempty"`
+	Props   *BlockPropsUpdate `json:"props,omitempty"`
+	Content []InlineContent  `json:"content,omitempty"`
+}
+
+type UpdateBlockPayload struct {
+	BlockID string           `json:"block_id" validate:"required"`
+	Type    *BlockType       `json:"type,omitempty"`
+	Props   *BlockPropsUpdate `json:"props,omitempty"`
+	Content []InlineContent  `json:"content,omitempty"`
 }
 
 type AddDocumentTagsPayload struct {

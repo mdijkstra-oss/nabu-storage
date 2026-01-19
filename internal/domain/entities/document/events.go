@@ -9,19 +9,18 @@ const (
 	UnpinnedDocument = "UnpinnedDocument"
 	DeletedDocument  = "DeletedDocument"
 
-	InsertedBlocks    = "InsertedBlocks"
-	DeletedBlocks     = "DeletedBlocks"
-	ReplacedBlocks    = "ReplacedBlocks"
-	MovedBlocks       = "MovedBlocks"
-	ReplacedContent   = "ReplacedContent"
-	UpdatedBlockProps = "UpdatedBlockProps"
+	InsertedBlocks  = "InsertedBlocks"
+	DeletedBlocks   = "DeletedBlocks"
+	MovedBlocks     = "MovedBlocks"
+	ReplacedContent = "ReplacedContent"
+	UpdatedBlock    = "UpdatedBlock"
 
 	AddedDocumentTags   = "AddedDocumentTags"
 	RemovedDocumentTags = "RemovedDocumentTags"
 
-	AddedAnnotation         = "AddedAnnotation"
-	RemovedAnnotations      = "RemovedAnnotations"
-	UpdatedAnnotationProps  = "UpdatedAnnotationProps"
+	AddedAnnotation        = "AddedAnnotation"
+	RemovedAnnotations     = "RemovedAnnotations"
+	UpdatedAnnotationProps = "UpdatedAnnotationProps"
 )
 
 type CreatedDocumentPayload struct {
@@ -37,10 +36,9 @@ type DeletedDocumentPayload = commands.EmptyPayload
 
 type InsertedBlocksPayload = InsertBlocksPayload
 type DeletedBlocksPayload = DeleteBlocksPayload
-type ReplacedBlocksPayload = ReplaceBlocksPayload
 type MovedBlocksPayload = MoveBlocksPayload
 type ReplacedContentPayload = ReplaceContentPayload
-type UpdatedBlockPropsPayload = UpdateBlockPropsPayload
+type UpdatedBlockPayload = UpdateBlockPayload
 
 type AddedDocumentTagsPayload = AddDocumentTagsPayload
 type RemovedDocumentTagsPayload = RemoveDocumentTagsPayload

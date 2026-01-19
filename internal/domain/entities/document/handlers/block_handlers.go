@@ -13,37 +13,29 @@ func NewBlockRouter(store *registry.Store) dispatch.CommandRouter {
 	return dispatch.LimitOnEntity(document.EntityName,
 		withBlockValidation[document.InsertBlocksPayload](document.InsertBlocks, document.InsertedBlocks, assignAndGetBlocksFromInsert),
 		dispatch.ToUpdateEntityEvent[document.DeleteBlocksPayload, document.DeletedBlocksPayload](document.DeleteBlocks, document.DeletedBlocks),
-		withBlockValidation[document.ReplaceBlocksPayload](document.ReplaceBlocks, document.ReplacedBlocks, assignAndGetBlocksFromReplace),
 		dispatch.ToUpdateEntityEvent[document.MoveBlocksPayload, document.MovedBlocksPayload](document.MoveBlocks, document.MovedBlocks),
 		withBlockValidation[document.ReplaceContentPayload](document.ReplaceContent, document.ReplacedContent, assignAndGetBlocksFromContent),
-		registry.ValidateDomain(store, validateUpdateBlockProps,
-			dispatch.ToUpdateEntityEvent[document.UpdateBlockPropsPayload, document.UpdatedBlockPropsPayload](document.UpdateBlockProps, document.UpdatedBlockProps),
+		registry.ValidateDomain(store, validateUpdateBlock,
+			dispatch.ToUpdateEntityEvent[document.UpdateBlockPayload, document.UpdatedBlockPayload](document.UpdateBlock, document.UpdatedBlock),
 		),
 	)
 }
 
-func validateUpdateBlockProps(proj project.Project, payload document.UpdateBlockPropsPayload, msg *commands.AnyMessage) error {
+func validateUpdateBlock(proj project.Project, payload document.UpdateBlockPayload, msg *commands.AnyMessage) error {
 	doc, exists := proj.GetDocument(msg.AggregateID)
 	if !exists {
 		return utils.FieldError("aggregate_id", "document not found")
 	}
 
 	tree := document.ToBlockTree(doc.DocumentData)
-	for _, blockID := range payload.BlockIDs {
-		if _, found := document.FindBlock(tree, blockID); !found {
-			return utils.FieldError("block_ids", "block not found: "+blockID)
-		}
+	if _, found := document.FindBlock(tree, payload.BlockID); !found {
+		return utils.FieldError("block_id", "block not found: "+payload.BlockID)
 	}
 
 	return nil
 }
 
 func assignAndGetBlocksFromInsert(p *document.InsertBlocksPayload) []document.Block {
-	p.Blocks = document.AssignBlockIDs(p.Blocks)
-	return p.Blocks
-}
-
-func assignAndGetBlocksFromReplace(p *document.ReplaceBlocksPayload) []document.Block {
 	p.Blocks = document.AssignBlockIDs(p.Blocks)
 	return p.Blocks
 }

@@ -9,10 +9,9 @@ import (
 var BlockReducer = projection.IfExists(
 	projection.For(document.InsertedBlocks, insertedBlocksReducer),
 	projection.For(document.DeletedBlocks, deletedBlocksReducer),
-	projection.For(document.ReplacedBlocks, replacedBlocksReducer),
 	projection.For(document.MovedBlocks, movedBlocksReducer),
 	projection.For(document.ReplacedContent, replacedContentReducer),
-	projection.For(document.UpdatedBlockProps, updatedBlockPropsReducer),
+	projection.For(document.UpdatedBlock, updatedBlockReducer),
 )
 
 func toBlockTree(d *Document) document.BlockTree {
@@ -45,12 +44,6 @@ func deletedBlocksReducer(current *Document, _ *commands.AnyMessage, payload *do
 	return applyBlockTree(current, tree)
 }
 
-func replacedBlocksReducer(current *Document, _ *commands.AnyMessage, payload *document.ReplacedBlocksPayload) *Document {
-	tree := toBlockTree(current)
-	tree = document.ReplaceBlocksByID(tree, payload.BlockIDs, payload.Blocks)
-	return applyBlockTree(current, tree)
-}
-
 func movedBlocksReducer(current *Document, _ *commands.AnyMessage, payload *document.MovedBlocksPayload) *Document {
 	tree := toBlockTree(current)
 	tree = document.MoveBlocksAfter(tree, payload.BlockIDs, payload.Position)
@@ -62,8 +55,8 @@ func replacedContentReducer(current *Document, _ *commands.AnyMessage, payload *
 	return applyBlockTree(current, tree)
 }
 
-func updatedBlockPropsReducer(current *Document, _ *commands.AnyMessage, payload *document.UpdatedBlockPropsPayload) *Document {
+func updatedBlockReducer(current *Document, _ *commands.AnyMessage, payload *document.UpdatedBlockPayload) *Document {
 	tree := toBlockTree(current)
-	tree = document.UpdateBlocksProps(tree, payload.BlockIDs, payload.Props)
+	tree = document.ApplyBlockUpdate(tree, payload)
 	return applyBlockTree(current, tree)
 }

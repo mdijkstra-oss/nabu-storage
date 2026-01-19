@@ -390,44 +390,31 @@ func ExtractBlocksByID(tree BlockTree, ids []string) []Block {
 	return result
 }
 
-func ReplaceBlocksByID(tree BlockTree, ids []string, newBlocks []Block) BlockTree {
-	if len(ids) == 0 || len(newBlocks) == 0 {
-		return tree
-	}
-
-	firstOld, ok := tree.Get(ids[0])
+func ApplyBlockUpdate(tree BlockTree, update *UpdateBlockPayload) BlockTree {
+	block, ok := tree.Get(update.BlockID)
 	if !ok {
 		return tree
 	}
 
-	position := firstOld.PrevID
-	if position == "" && firstOld.ParentID != "" {
-		position = "head:" + firstOld.ParentID
-	} else if position == "" {
-		position = PositionHead
+	if update.Type != nil {
+		block.Type = *update.Type
 	}
-
-	tree = DeleteBlocksByID(tree, ids)
-	tree, _ = InsertBlocksAfter(tree, position, newBlocks)
-	return tree
-}
-
-func UpdateBlocksProps(tree BlockTree, ids []string, props BlockPropsUpdate) BlockTree {
-	for _, id := range ids {
-		if block, ok := tree.Get(id); ok {
-			if props.BackgroundColor != nil {
-				block.Props.BackgroundColor = *props.BackgroundColor
-			}
-			if props.Level != nil {
-				block.Props.Level = *props.Level
-			}
-			if props.Checked != nil {
-				block.Props.Checked = props.Checked
-			}
-			tree = tree.set(block)
+	if update.Props != nil {
+		if update.Props.BackgroundColor != nil {
+			block.Props.BackgroundColor = *update.Props.BackgroundColor
+		}
+		if update.Props.Level != nil {
+			block.Props.Level = *update.Props.Level
+		}
+		if update.Props.Checked != nil {
+			block.Props.Checked = update.Props.Checked
 		}
 	}
-	return tree
+	if update.Content != nil {
+		block.Content = update.Content
+	}
+
+	return tree.set(block)
 }
 
 func ToArray(tree BlockTree) []Block {

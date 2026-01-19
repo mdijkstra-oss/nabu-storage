@@ -288,11 +288,6 @@ func TestExtractBlocksByID(t *testing.T) {
 	th.AssertEqual(t, len(result), 2, "count")
 }
 
-func TestReplaceBlocksByID(t *testing.T) {
-	result := ReplaceBlocksByID(tree(block("a"), block("b"), block("c")), []string{"b"}, []Block{block("x"), block("y")})
-	th.AssertEqual(t, orderedIDs(result), []string{"a", "x", "y", "c"}, "ids")
-}
-
 func TestFindBlock(t *testing.T) {
 	deepTree := treeWithChild("a", "a1")
 	a1, _ := deepTree.Get("a1")
@@ -312,56 +307,91 @@ func TestFindBlock(t *testing.T) {
 	})
 }
 
-func TestUpdateBlocksProps(t *testing.T) {
-	checked, unchecked := true, false
+func TestApplyBlockUpdate(t *testing.T) {
+	heading := BlockTypeHeading
+	paragraph := BlockTypeParagraph
 	level2 := 2
+	green := "green"
+	checked := true
 
 	tests := []struct {
-		name  string
-		tree  BlockTree
-		ids   []string
-		props BlockPropsUpdate
-		check func(t *testing.T, result BlockTree)
+		name   string
+		tree   BlockTree
+		update *UpdateBlockPayload
+		check  func(t *testing.T, result BlockTree)
 	}{
 		{
-			"toggle checked",
-			tree(
-				Block{ID: "a", Type: BlockTypeCheckList, Props: BlockProps{CheckListProps: CheckListProps{Checked: &checked}}},
-				Block{ID: "b", Type: BlockTypeCheckList},
-				Block{ID: "c", Type: BlockTypeParagraph},
-			),
-			[]string{"a", "b"},
-			BlockPropsUpdate{Checked: &unchecked},
+			"block not found",
+			tree(block("a")),
+			&UpdateBlockPayload{BlockID: "z", Type: &heading},
 			func(t *testing.T, result BlockTree) {
-				a, _ := result.Get("a")
-				b, _ := result.Get("b")
-				c, _ := result.Get("c")
-				th.AssertEqual(t, *a.Props.Checked, false, "a.checked")
-				th.AssertEqual(t, *b.Props.Checked, false, "b.checked")
-				th.AssertEqual(t, c.Props.Checked, (*bool)(nil), "c.checked")
+				th.AssertEqual(t, orderedIDs(result), []string{"a"}, "ids unchanged")
 			},
 		},
 		{
-			"nested heading level",
-			func() BlockTree {
-				tr := treeWithChild("a", "a1")
-				a1, _ := tr.Get("a1")
-				a1.Type = BlockTypeHeading
-				a1.Props = BlockProps{HeadingProps: HeadingProps{Level: 1}}
-				return tr.set(a1)
-			}(),
-			[]string{"a1"},
-			BlockPropsUpdate{Level: &level2},
+			"update type only",
+			tree(Block{ID: "a", Type: BlockTypeParagraph}),
+			&UpdateBlockPayload{BlockID: "a", Type: &heading},
 			func(t *testing.T, result BlockTree) {
-				a1, _ := result.Get("a1")
-				th.AssertEqual(t, a1.Props.Level, 2, "level")
+				a, _ := result.Get("a")
+				th.AssertEqual(t, a.Type, BlockTypeHeading, "type")
+			},
+		},
+		{
+			"update props only",
+			tree(Block{ID: "a", Type: BlockTypeHeading, Props: BlockProps{HeadingProps: HeadingProps{Level: 1}}}),
+			&UpdateBlockPayload{BlockID: "a", Props: &BlockPropsUpdate{Level: &level2, BackgroundColor: &green}},
+			func(t *testing.T, result BlockTree) {
+				a, _ := result.Get("a")
+				th.AssertEqual(t, a.Props.Level, 2, "level")
+				th.AssertEqual(t, a.Props.BackgroundColor, "green", "background_color")
+			},
+		},
+		{
+			"update content only",
+			tree(Block{ID: "a", Type: BlockTypeParagraph, Content: []InlineContent{{Type: InlineTypeText, Text: "old"}}}),
+			&UpdateBlockPayload{BlockID: "a", Content: []InlineContent{{Type: InlineTypeText, Text: "new"}}},
+			func(t *testing.T, result BlockTree) {
+				a, _ := result.Get("a")
+				th.AssertEqual(t, a.Content[0].Text, "new", "content")
+			},
+		},
+		{
+			"update multiple fields",
+			tree(Block{ID: "a", Type: BlockTypeParagraph, Content: []InlineContent{{Type: InlineTypeText, Text: "old"}}}),
+			&UpdateBlockPayload{BlockID: "a", Type: &heading, Props: &BlockPropsUpdate{Level: &level2}, Content: []InlineContent{{Type: InlineTypeText, Text: "new"}}},
+			func(t *testing.T, result BlockTree) {
+				a, _ := result.Get("a")
+				th.AssertEqual(t, a.Type, BlockTypeHeading, "type")
+				th.AssertEqual(t, a.Props.Level, 2, "level")
+				th.AssertEqual(t, a.Content[0].Text, "new", "content")
+			},
+		},
+		{
+			"update checked prop",
+			tree(Block{ID: "a", Type: BlockTypeCheckList}),
+			&UpdateBlockPayload{BlockID: "a", Props: &BlockPropsUpdate{Checked: &checked}},
+			func(t *testing.T, result BlockTree) {
+				a, _ := result.Get("a")
+				th.AssertEqual(t, *a.Props.Checked, true, "checked")
+			},
+		},
+		{
+			"preserves unset fields",
+			tree(Block{ID: "a", Type: BlockTypeHeading, Props: BlockProps{CommonBlockProps: CommonBlockProps{BackgroundColor: "blue"}, HeadingProps: HeadingProps{Level: 3}}}),
+			&UpdateBlockPayload{BlockID: "a", Type: &paragraph},
+			func(t *testing.T, result BlockTree) {
+				a, _ := result.Get("a")
+				th.AssertEqual(t, a.Type, BlockTypeParagraph, "type changed")
+				th.AssertEqual(t, a.Props.Level, 3, "level preserved")
+				th.AssertEqual(t, a.Props.BackgroundColor, "blue", "background preserved")
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := UpdateBlocksProps(tt.tree, tt.ids, tt.props)
+			result := ApplyBlockUpdate(tt.tree, tt.update)
 			tt.check(t, result)
 		})
 	}
