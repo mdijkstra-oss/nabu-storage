@@ -8,6 +8,11 @@ import (
 	"sync"
 )
 
+var replayMode bool
+
+func SetReplayMode(v bool) { replayMode = v }
+func IsReplayMode() bool   { return replayMode }
+
 type Store[S any] struct {
 	mu      sync.RWMutex
 	state   *S

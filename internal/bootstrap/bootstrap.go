@@ -20,15 +20,30 @@ func SetupLogger(level slog.Level) {
 	slog.SetDefault(logger)
 }
 
-func SetupRegistry(publisher *dispatch.InMemoryPublisher, activeChecker patches.ActiveProjectChecker) *registry.Store {
+func SetupRegistryForReplay(publisher *dispatch.InMemoryPublisher) (*registry.Store, func()) {
 	store := registry.NewStore()
-
-	setupRegistryWithPatching(publisher, store, activeChecker)
-
-	return store
+	unsubscribe := subscribeReplayApplier(publisher, store)
+	return store, unsubscribe
 }
 
-func setupRegistryWithPatching(
+func SetupRegistryPatching(publisher *dispatch.InMemoryPublisher, store *registry.Store, activeChecker patches.ActiveProjectChecker) {
+	subscribePatchEmitter(publisher, store, activeChecker)
+}
+
+func subscribeReplayApplier(publisher *dispatch.InMemoryPublisher, store *registry.Store) func() {
+	return publisher.Subscribe(dispatch.LimitOnType(commands.DomainEvent, func(message *commands.AnyMessage, _ dispatch.PublishFunc) (*commands.AnyMessage, error) {
+		projectID := projection.Read(store, func(r *registry.Registry) string {
+			return registry.ResolveProjectID(r, message)
+		})
+		if projectID == "" {
+			return nil, fmt.Errorf("required project ID for any domain event. %+v", message)
+		}
+		projection.Apply(store, message)
+		return nil, nil
+	}))
+}
+
+func subscribePatchEmitter(
 	publisher *dispatch.InMemoryPublisher,
 	store *registry.Store,
 	activeChecker patches.ActiveProjectChecker,

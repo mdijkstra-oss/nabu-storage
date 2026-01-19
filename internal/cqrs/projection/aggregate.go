@@ -28,10 +28,15 @@ func ApplyChildReducerToMap[Parent Entity, Child Entity](
 
 		newEntity := childReducer(entityPtr, event)
 
-		// Deep copy map to avoid shared state between before/after snapshots.
-		// Bootstrap captures state before and after event application for patch generation.
-		// If we share references, both snapshots point to same data = null patches.
-		newMap := utils.DeepCopyMap(entityMap)
+		var newMap map[string]Child
+		if IsReplayMode() {
+			newMap = entityMap
+		} else {
+			// Deep copy map to avoid shared state between before/after snapshots.
+			// Bootstrap captures state before and after event application for patch generation.
+			// If we share references, both snapshots point to same data = null patches.
+			newMap = utils.DeepCopyMap(entityMap)
+		}
 
 		if newEntity == nil {
 			delete(newMap, entityID)

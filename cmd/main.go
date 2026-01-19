@@ -8,6 +8,7 @@ import (
 	"hermes-relay/internal/cqrs/commands"
 	"hermes-relay/internal/cqrs/dispatch"
 	"hermes-relay/internal/cqrs/persistence"
+	"hermes-relay/internal/cqrs/projection"
 	"hermes-relay/internal/handlers"
 	"hermes-relay/internal/handlers/http/websocket"
 	"hermes-relay/internal/lib/utils"
@@ -23,13 +24,16 @@ func main() {
 	var publisher = dispatch.NewInMemoryPublisher()
 	hub := websocket.NewHub()
 
-	registry := bootstrap.SetupRegistry(publisher, hub)
+	registry, unsubscribeReplay := bootstrap.SetupRegistryForReplay(publisher)
 
-	// All except views / projections must be after replay ⚠️
 	slog.Info("Initializing command persistence", "dir", cfg.PersistenceDir)
 	disk := persistence.NewDiskPersistence(cfg.PersistenceDir)
+	projection.SetReplayMode(true)
 	utils.MustNotError(disk.ReplayAllEvents(publisher))
+	projection.SetReplayMode(false)
+	unsubscribeReplay()
 
+	bootstrap.SetupRegistryPatching(publisher, registry, hub)
 	bootstrap.SetupCommandHandlers(publisher, registry)
 
 	publisher.Subscribe(dispatch.LimitOnType(commands.DomainEvent, dispatch.ReadOnlyRoutes(disk.Apply())))

@@ -19,6 +19,10 @@ func WithImmutabilityCheck[T Entity](reducer Reducer[T]) Reducer[T] {
 	return func(current *T, event *commands.AnyMessage) *T {
 		result := reducer(current, event)
 
+		if IsReplayMode() {
+			return result
+		}
+
 		if current != nil && result != nil && current != result {
 			if hasSharedState(current, result) {
 				panic(fmt.Sprintf(
