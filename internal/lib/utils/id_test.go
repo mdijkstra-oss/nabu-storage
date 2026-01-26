@@ -1,107 +1,71 @@
 package utils
 
-import (
-	"testing"
-)
+import "testing"
 
-func TestValidPrefixedID(t *testing.T) {
-	type input struct {
-		prefix string
-		id     string
+func TestValidID(t *testing.T) {
+	tests := []struct {
+		Name     string
+		Input    string
+		Expected bool
+	}{
+		{Name: "valid uuid lowercase", Input: "550e8400-e29b-41d4-a716-446655440000", Expected: true},
+		{Name: "valid uuid uppercase", Input: "550E8400-E29B-41D4-A716-446655440000", Expected: true},
+		{Name: "invalid format", Input: "not-a-uuid", Expected: false},
+		{Name: "empty string", Input: "", Expected: false},
+		{Name: "uuid without dashes", Input: "550e8400e29b41d4a716446655440000", Expected: true},
 	}
-	cases := map[input]bool{
-		{"project", "project_550e8400-e29b-41d4-a716-446655440000"}:       true,
-		{"project", "document_550e8400-e29b-41d4-a716-446655440000"}:      false,
-		{"project", "550e8400-e29b-41d4-a716-446655440000"}:               false,
-		{"project", "project_not-a-uuid"}:                                 false,
-		{"project", ""}:                                                   false,
-		{"project", "project_"}:                                           false,
-		{"project", "proj_ect_550e8400-e29b-41d4-a716-446655440000"}:      false,
-		{"annotation", "annotation_550e8400-e29b-41d4-a716-446655440000"}: true,
-		{"annotation", "code_550e8400-e29b-41d4-a716-446655440000"}:       false,
-	}
-	for in, expected := range cases {
-		if got := ValidPrefixedID(in.prefix, in.id); got != expected {
-			t.Errorf("ValidPrefixedID(%q, %q) = %v, want %v", in.prefix, in.id, got, expected)
-		}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			got := ValidID(tt.Input)
+			if got != tt.Expected {
+				t.Errorf("ValidID(%q) = %v, want %v", tt.Input, got, tt.Expected)
+			}
+		})
 	}
 }
 
-func TestValidateID(t *testing.T) {
-	type input struct {
-		prefix string
-		id     string
-	}
-	cases := map[input]bool{
-		{"project", "project_550e8400-e29b-41d4-a716-446655440000"}:  true,
-		{"project", "550e8400-e29b-41d4-a716-446655440000"}:          true,
-		{"project", "document_550e8400-e29b-41d4-a716-446655440000"}: false,
-		{"project", "not-a-uuid"}:                                    false,
-		{"project", ""}:                                              false,
-		{"project", "project_"}:                                      false,
-	}
-	for in, expected := range cases {
-		if got := ValidateID(in.prefix, in.id); got != expected {
-			t.Errorf("ValidateID(%q, %q) = %v, want %v", in.prefix, in.id, got, expected)
-		}
-	}
-}
+func TestValidFilePath(t *testing.T) {
+	tests := []struct {
+		Name     string
+		Input    string
+		Expected bool
+	}{
+		{Name: "simple filename", Input: "notes.md", Expected: true},
+		{Name: "filename with dash", Input: "my-file.txt", Expected: true},
+		{Name: "filename with underscore", Input: "my_file.txt", Expected: true},
+		{Name: "uppercase", Input: "README.MD", Expected: true},
+		{Name: "numbers", Input: "file123.txt", Expected: true},
+		{Name: "empty", Input: "", Expected: false},
+		{Name: "parent traversal", Input: "../etc/passwd", Expected: false},
+		{Name: "hidden traversal", Input: "..secret", Expected: false},
+		{Name: "forward slash", Input: "foo/bar.md", Expected: false},
+		{Name: "backslash", Input: "foo\\bar.md", Expected: false},
+		{Name: "hidden file", Input: ".gitignore", Expected: false},
+		{Name: "just dots", Input: "..", Expected: false},
+		{Name: "current dir", Input: ".", Expected: false},
 
-func TestNormalizeID(t *testing.T) {
-	type input struct {
-		prefix string
-		id     string
+		{Name: "fullwidth slash", Input: "foo／bar.md", Expected: false},
+		{Name: "fullwidth backslash", Input: "foo＼bar.md", Expected: false},
+		{Name: "fullwidth period traversal", Input: "．．／etc", Expected: false},
+		{Name: "division slash", Input: "foo∕bar.md", Expected: false},
+		{Name: "fraction slash", Input: "foo⁄bar.md", Expected: false},
+		{Name: "null byte", Input: "file\x00.txt", Expected: false},
+		{Name: "unicode dot", Input: "．secret", Expected: false},
+		{Name: "cyrillic lookalike", Input: "tеst.md", Expected: false},
+		{Name: "zero width char", Input: "test\u200b.md", Expected: false},
+		{Name: "rtl override", Input: "test\u202e.md", Expected: false},
+		{Name: "space", Input: "my file.txt", Expected: false},
+		{Name: "newline", Input: "file\n.txt", Expected: false},
+		{Name: "tab", Input: "file\t.txt", Expected: false},
 	}
-	cases := map[input]string{
-		{"project", "550e8400-e29b-41d4-a716-446655440000"}:          "project_550e8400-e29b-41d4-a716-446655440000",
-		{"project", "project_550e8400-e29b-41d4-a716-446655440000"}:  "project_550e8400-e29b-41d4-a716-446655440000",
-		{"project", "document_550e8400-e29b-41d4-a716-446655440000"}: "document_550e8400-e29b-41d4-a716-446655440000",
-		{"project", ""}:         "",
-		{"project", "not-uuid"}: "not-uuid",
-	}
-	for in, expected := range cases {
-		if got := NormalizeID(in.prefix, in.id); got != expected {
-			t.Errorf("NormalizeID(%q, %q) = %q, want %q", in.prefix, in.id, got, expected)
-		}
-	}
-}
 
-func TestNormalizeAggregateID(t *testing.T) {
-	type input struct {
-		aggregateType string
-		id            string
-	}
-	cases := map[input]string{
-		{"Project", "550e8400-e29b-41d4-a716-446655440000"}:         "project_550e8400-e29b-41d4-a716-446655440000",
-		{"Document", "550e8400-e29b-41d4-a716-446655440000"}:        "document_550e8400-e29b-41d4-a716-446655440000",
-		{"Annotation", "550e8400-e29b-41d4-a716-446655440000"}:      "annotation_550e8400-e29b-41d4-a716-446655440000",
-		{"Code", "550e8400-e29b-41d4-a716-446655440000"}:            "code_550e8400-e29b-41d4-a716-446655440000",
-		{"Unknown", "550e8400-e29b-41d4-a716-446655440000"}:         "550e8400-e29b-41d4-a716-446655440000",
-		{"Project", "project_550e8400-e29b-41d4-a716-446655440000"}: "project_550e8400-e29b-41d4-a716-446655440000",
-	}
-	for in, expected := range cases {
-		if got := NormalizeAggregateID(in.aggregateType, in.id); got != expected {
-			t.Errorf("NormalizeAggregateID(%q, %q) = %q, want %q", in.aggregateType, in.id, got, expected)
-		}
-	}
-}
-
-func TestDeterministicBlockID(t *testing.T) {
-	id1 := DeterministicBlockID("doc_123", 0)
-	id2 := DeterministicBlockID("doc_123", 0)
-	id3 := DeterministicBlockID("doc_123", 1)
-	id4 := DeterministicBlockID("doc_456", 0)
-
-	if id1 != id2 {
-		t.Errorf("same input should produce same output: %q != %q", id1, id2)
-	}
-	if id1 == id3 {
-		t.Errorf("different index should produce different output")
-	}
-	if id1 == id4 {
-		t.Errorf("different doc should produce different output")
-	}
-	if id1[:6] != "block_" {
-		t.Errorf("should have block_ prefix, got %q", id1[:6])
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			got := ValidFilePath(tt.Input)
+			if got != tt.Expected {
+				t.Errorf("ValidFilePath(%q) = %v, want %v", tt.Input, got, tt.Expected)
+			}
+		})
 	}
 }

@@ -1,62 +1,10 @@
 package utils
 
 import (
-	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
-	"strings"
 )
-
-var entityPrefixes = map[string]string{
-	"Project":    "project",
-	"Document":   "document",
-	"Annotation": "annotation",
-	"Code":       "code",
-	"Block":      "block",
-}
-
-var blockNamespace = uuid.MustParse("6ba7b810-9dad-11d1-80b4-00c04fd430c8")
-
-func NewID() string {
-	return uuid.New().String()
-}
-
-func DeterministicBlockID(documentID string, index int) string {
-	name := fmt.Sprintf("%s:block:%d", documentID, index)
-	return "block_" + uuid.NewSHA1(blockNamespace, []byte(name)).String()
-}
-
-func NewPrefixedID(prefix string) string {
-	return prefix + "_" + uuid.New().String()
-}
-
-func NewProjectID() string {
-	return NewPrefixedID("project")
-}
-
-func NewDocumentID() string {
-	return NewPrefixedID("document")
-}
-
-func NewAnnotationID() string {
-	return NewPrefixedID("annotation")
-}
-
-func NewCodeID() string {
-	return NewPrefixedID("code")
-}
-
-func NewBlockID() string {
-	return NewPrefixedID("block")
-}
-
-func NewAggregateID(aggregateType string) string {
-	prefix, ok := entityPrefixes[aggregateType]
-	if !ok {
-		panic("unknown aggregate type: " + aggregateType)
-	}
-	return NewPrefixedID(prefix)
-}
 
 func ValidID(id string) bool {
 	if id == "" {
@@ -66,97 +14,33 @@ func ValidID(id string) bool {
 	return err == nil
 }
 
-func ValidPrefixedID(prefix, id string) bool {
-	if id == "" {
+func ValidFilePath(path string) bool {
+	if path == "" {
 		return false
 	}
-	expectedPrefix := prefix + "_"
-	if !strings.HasPrefix(id, expectedPrefix) {
+	if strings.HasPrefix(path, ".") {
 		return false
 	}
-	uuidPart := strings.TrimPrefix(id, expectedPrefix)
-	_, err := uuid.Parse(uuidPart)
-	return err == nil
+	if strings.Contains(path, "..") {
+		return false
+	}
+	for _, r := range path {
+		if !isSafeFilenameChar(r) {
+			return false
+		}
+	}
+	return true
 }
 
-func ValidateID(prefix, id string) bool {
-	if id == "" {
-		return false
-	}
-	if ValidID(id) {
+func isSafeFilenameChar(r rune) bool {
+	if r >= 'a' && r <= 'z' {
 		return true
 	}
-	return ValidPrefixedID(prefix, id)
-}
-
-func NormalizeID(prefix, id string) string {
-	if id == "" {
-		return ""
-	}
-	if ValidID(id) {
-		return prefix + "_" + id
-	}
-	return id
-}
-
-func NormalizeAggregateID(aggregateType, id string) string {
-	prefix, ok := entityPrefixes[aggregateType]
-	if !ok {
-		return id
-	}
-	return NormalizeID(prefix, id)
-}
-
-func ValidAggregateID(aggregateType, id string) bool {
-	prefix, ok := entityPrefixes[aggregateType]
-	if !ok {
-		return ValidID(id)
-	}
-	return ValidateID(prefix, id)
-}
-
-func ValidProjectID(id string) bool {
-	return ValidateID("project", id)
-}
-
-func ValidDocumentID(id string) bool {
-	return ValidateID("document", id)
-}
-
-func ValidAnnotationID(id string) bool {
-	return ValidateID("annotation", id)
-}
-
-func ValidCodeID(id string) bool {
-	return ValidateID("code", id)
-}
-
-func ValidBlockID(id string) bool {
-	return ValidPrefixedID("block", id)
-}
-
-func ValidBlockPosition(position string) bool {
-	if position == "head" || position == "tail" {
+	if r >= 'A' && r <= 'Z' {
 		return true
 	}
-	if strings.HasPrefix(position, "head:") {
-		return ValidBlockID(strings.TrimPrefix(position, "head:"))
+	if r >= '0' && r <= '9' {
+		return true
 	}
-	if strings.HasPrefix(position, "tail:") {
-		return ValidBlockID(strings.TrimPrefix(position, "tail:"))
-	}
-	return ValidBlockID(position)
-}
-
-func ParseBlockPosition(position string) (op string, parentID string) {
-	if position == "head" || position == "tail" {
-		return position, ""
-	}
-	if strings.HasPrefix(position, "head:") {
-		return "head", strings.TrimPrefix(position, "head:")
-	}
-	if strings.HasPrefix(position, "tail:") {
-		return "tail", strings.TrimPrefix(position, "tail:")
-	}
-	return "after", position
+	return r == '-' || r == '_' || r == '.'
 }

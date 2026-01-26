@@ -1,33 +1,75 @@
 package http
 
 import (
-	"hermes-relay/internal/cqrs/dispatch"
-	"io"
+	"encoding/json"
 	"log/slog"
 	"net/http"
+
+	"hermes-relay/internal/domain"
+	"hermes-relay/internal/lib/utils"
+
+	"github.com/go-chi/chi/v5"
 )
 
-func CommandHandler(publish dispatch.PublishFunc) http.HandlerFunc {
-	return httpHandler(ProcessCommand, publish)
+type StatusResponse struct {
+	Status string `json:"status"`
 }
 
-//func EventHandler(publish cqrs.PublishFunc) http.HandlerFunc {
-//	return httpHandler(ProcessEvent, publish)
-//}
+type ErrorResponse struct {
+	Error string `json:"error"`
+}
 
-func httpHandler(processor func(Request, dispatch.PublishFunc) Response, publish dispatch.PublishFunc) http.HandlerFunc {
+func CommandHandler(baseDir string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body, err := io.ReadAll(r.Body)
-		if err != nil {
-			slog.Error("failed to read request body", "error", err)
-			WriteResponse(w, errorOutput(http.StatusInternalServerError, err))
+		projectID := chi.URLParam(r, "projectId")
+		if !utils.ValidID(projectID) {
+			writeError(w, http.StatusBadRequest, "invalid projectId")
 			return
 		}
 
-		response := processor(Request{Body: body}, publish)
-		if response.StatusCode >= 300 {
-			slog.Error("error response", "status", response.StatusCode, "request", string(body), "response", string(response.Body))
+		cmd, err := decodeCommand(r)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid JSON: "+err.Error())
+			return
 		}
-		WriteResponse(w, response)
+
+		if err := domain.Execute(cmd, projectID, baseDir); err != nil {
+			writeTypedError(w, err)
+			return
+		}
+
+		writeJSON(w, http.StatusOK, StatusResponse{Status: "ok"})
+	}
+}
+
+func decodeCommand(r *http.Request) (*domain.Command, error) {
+	var cmd domain.Command
+	if err := json.NewDecoder(r.Body).Decode(&cmd); err != nil {
+		return nil, err
+	}
+	return &cmd, nil
+}
+
+func writeJSON(w http.ResponseWriter, status int, data any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	utils.ShouldWork(json.NewEncoder(w).Encode(data))
+}
+
+func writeError(w http.ResponseWriter, status int, message string) {
+	writeJSON(w, status, ErrorResponse{Error: message})
+}
+
+func writeTypedError(w http.ResponseWriter, err error) {
+	switch e := err.(type) {
+	case *utils.ValidationError:
+		writeJSON(w, http.StatusBadRequest, e)
+	case *utils.NotFoundError:
+		writeJSON(w, http.StatusNotFound, e)
+	case *utils.ConflictError:
+		writeJSON(w, http.StatusConflict, e)
+	default:
+		slog.Error("internal error", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal error")
 	}
 }
