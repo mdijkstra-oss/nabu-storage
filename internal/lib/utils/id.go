@@ -42,5 +42,9 @@ func isSafeFilenameChar(r rune) bool {
 	if r >= '0' && r <= '9' {
 		return true
 	}
-	return r == '-' || r == '_' || r == '.'
+	switch r {
+	case '-', '_', '.', ' ', '(', ')', '\'', ',':
+		return true
+	}
+	return false
 }

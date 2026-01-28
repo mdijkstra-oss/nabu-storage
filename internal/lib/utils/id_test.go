@@ -55,7 +55,10 @@ func TestValidFilePath(t *testing.T) {
 		{Name: "cyrillic lookalike", Input: "tеst.md", Expected: false},
 		{Name: "zero width char", Input: "test\u200b.md", Expected: false},
 		{Name: "rtl override", Input: "test\u202e.md", Expected: false},
-		{Name: "space", Input: "my file.txt", Expected: false},
+		{Name: "space", Input: "my file.txt", Expected: true},
+		{Name: "parentheses", Input: "Document (1).md", Expected: true},
+		{Name: "apostrophe", Input: "John's notes.md", Expected: true},
+		{Name: "comma", Input: "Jan 1, 2020.md", Expected: true},
 		{Name: "newline", Input: "file\n.txt", Expected: false},
 		{Name: "tab", Input: "file\t.txt", Expected: false},
 	}
