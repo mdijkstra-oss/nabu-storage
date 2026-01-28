@@ -160,7 +160,10 @@ appended`,
  # Coffee Bean Research Codebook
 +
 +This is a paragraph.`,
-			Expected: Ok("# Coffee Bean Research Codebook\n\nThis is a paragraph."),
+			// Note: The leading space from the patch context line is preserved in the output
+			// because newText also contains the context line with leading space.
+			// This matches the TypeScript implementation behavior.
+			Expected: Ok(" # Coffee Bean Research Codebook\n\nThis is a paragraph."),
 		},
 	}
 

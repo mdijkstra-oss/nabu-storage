@@ -1,6 +1,9 @@
 package diff
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
 
 type Hunk struct {
 	OldText string
@@ -136,31 +139,43 @@ func parseContentLine(s *parseState, line string) {
 	}
 }
 
-func trimLines(text string) string {
-	lines := strings.Split(text, "\n")
-	trimmed := make([]string, len(lines))
-	for i, line := range lines {
-		trimmed[i] = strings.TrimSpace(line)
-	}
-	return strings.Join(trimmed, "\n")
+const contextLines = 3
+
+func countLines(content string) int {
+	return len(strings.Split(content, "\n"))
 }
 
-func findWithTrimmedMatch(content, oldText string) string {
-	trimmedOld := trimLines(oldText)
-	contentLines := strings.Split(content, "\n")
-	oldLines := strings.Split(trimmedOld, "\n")
-
-	for i := 0; i <= len(contentLines)-len(oldLines); i++ {
-		slice := contentLines[i : i+len(oldLines)]
-		trimmedSlice := make([]string, len(slice))
-		for j, l := range slice {
-			trimmedSlice[j] = strings.TrimSpace(l)
-		}
-		if strings.Join(trimmedSlice, "\n") == trimmedOld {
-			return strings.Join(slice, "\n")
-		}
+func expandMatch(match Match, n, totalLines int) Match {
+	start := match.Start - n
+	if start < 0 {
+		start = 0
 	}
-	return ""
+	end := match.End + n
+	if end > totalLines-1 {
+		end = totalLines - 1
+	}
+	return Match{Start: start, End: end, Fuzzy: match.Fuzzy}
+}
+
+func formatAmbiguousError(content string, matches []Match) string {
+	total := countLines(content)
+	var parts []string
+	parts = append(parts, fmt.Sprintf("patch ambiguous: %d matches found", len(matches)))
+	parts = append(parts, "")
+
+	for i, m := range matches {
+		exp := expandMatch(m, contextLines, total)
+		text := GetMatchedText(content, exp)
+		parts = append(parts, fmt.Sprintf("Match %d:", i+1))
+		parts = append(parts, "───")
+		parts = append(parts, text)
+		parts = append(parts, "───")
+	}
+
+	parts = append(parts, "")
+	parts = append(parts, "Include more surrounding lines to disambiguate. If none look right, verify you're targeting the correct location.")
+
+	return strings.Join(parts, "\n")
 }
 
 func applyHunk(content string, hunk Hunk) Result {
@@ -175,20 +190,22 @@ func applyHunk(content string, hunk Hunk) Result {
 		return Ok(content + newText)
 	}
 
-	if strings.Contains(content, oldText) {
-		return Ok(strings.Replace(content, oldText, newText, 1))
+	matches := FindMatches(content, oldText)
+
+	if len(matches) == 0 {
+		preview := oldText
+		if len(preview) > 50 {
+			preview = preview[:50] + "..."
+		}
+		return Fail("patch context not found: \"" + preview + "\"")
 	}
 
-	actualMatch := findWithTrimmedMatch(content, oldText)
-	if actualMatch != "" {
-		return Ok(strings.Replace(content, actualMatch, trimLines(newText), 1))
+	if len(matches) > 1 {
+		return Fail(formatAmbiguousError(content, matches))
 	}
 
-	preview := oldText
-	if len(preview) > 50 {
-		preview = preview[:50] + "..."
-	}
-	return Fail("patch context not found: \"" + preview + "\"")
+	matchedText := GetMatchedText(content, matches[0])
+	return Ok(strings.Replace(content, matchedText, newText, 1))
 }
 
 func Apply(content, patch string) Result {
