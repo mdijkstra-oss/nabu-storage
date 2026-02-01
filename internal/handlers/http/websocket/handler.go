@@ -1,6 +1,7 @@
 package websocket
 
 import (
+	"encoding/json"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -29,7 +30,13 @@ func writeJSON(w *connWriter, v any) error {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	utils.ShouldWork(w.conn.SetWriteDeadline(time.Now().Add(writeWait)))
-	return w.conn.WriteJSON(v)
+
+	data, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	data = append(data, '\n')
+	return w.conn.WriteMessage(websocket.TextMessage, data)
 }
 
 func writePing(w *connWriter) error {
