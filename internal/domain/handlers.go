@@ -45,17 +45,23 @@ func HandleRenameFile(cmd *Command, projectID, baseDir string) error {
 	if err := requireValidPath(cmd); err != nil {
 		return err
 	}
-	newPath := cmd.Diff
-	if !utils.ValidFilePath(newPath) {
-		return utils.FieldError("diff", "invalid new path")
+	if !utils.ValidFilePath(cmd.NewPath) {
+		return utils.FieldError("newPath", "invalid new path")
 	}
 	if !files.Exists(baseDir, projectID, cmd.Path) {
 		return &utils.NotFoundError{Message: "file not found: " + cmd.Path}
 	}
-	if files.Exists(baseDir, projectID, newPath) {
-		return utils.FieldError("diff", "file already exists")
+	if files.Exists(baseDir, projectID, cmd.NewPath) {
+		return utils.FieldError("newPath", "file already exists")
 	}
-	return files.Rename(baseDir, projectID, cmd.Path, newPath)
+	return files.Rename(baseDir, projectID, cmd.Path, cmd.NewPath)
+}
+
+func HandleWriteFile(cmd *Command, projectID, baseDir string) error {
+	if err := requireValidPath(cmd); err != nil {
+		return err
+	}
+	return files.Write(baseDir, projectID, cmd.Path, cmd.Content)
 }
 
 func HandleCommit(cmd *Command, projectID, baseDir string) error {
@@ -66,6 +72,7 @@ func HandleCommit(cmd *Command, projectID, baseDir string) error {
 var Handlers = map[Action]func(*Command, string, string) error{
 	CreateFile: HandleCreateFile,
 	UpdateFile: HandleUpdateFile,
+	WriteFile:  HandleWriteFile,
 	DeleteFile: HandleDeleteFile,
 	RenameFile: HandleRenameFile,
 	Commit:     HandleCommit,

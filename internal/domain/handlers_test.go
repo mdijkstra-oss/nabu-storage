@@ -104,9 +104,9 @@ func TestExecute(t *testing.T) {
 				_ = files.Write(baseDir, projectID, "oldname.md", "content")
 			},
 			Command: Command{
-				Action: RenameFile,
-				Path:   "oldname.md",
-				Diff:   "newname.md",
+				Action:  RenameFile,
+				Path:    "oldname.md",
+				NewPath: "newname.md",
 			},
 			Verify: func(t *testing.T) {
 				th.AssertEqual(t, files.Exists(baseDir, projectID, "oldname.md"), false, "old gone")
@@ -119,9 +119,9 @@ func TestExecute(t *testing.T) {
 			Name:  "RenameFile fails if source not found",
 			Setup: func() {},
 			Command: Command{
-				Action: RenameFile,
-				Path:   "notexist.md",
-				Diff:   "new.md",
+				Action:  RenameFile,
+				Path:    "notexist.md",
+				NewPath: "new.md",
 			},
 			ExpectErr: "not found",
 		},
@@ -132,9 +132,9 @@ func TestExecute(t *testing.T) {
 				_ = files.Write(baseDir, projectID, "dest.md", "dst")
 			},
 			Command: Command{
-				Action: RenameFile,
-				Path:   "source.md",
-				Diff:   "dest.md",
+				Action:  RenameFile,
+				Path:    "source.md",
+				NewPath: "dest.md",
 			},
 			ExpectErr: "already exists",
 		},
@@ -144,9 +144,9 @@ func TestExecute(t *testing.T) {
 				_ = files.Write(baseDir, projectID, "valid.md", "x")
 			},
 			Command: Command{
-				Action: RenameFile,
-				Path:   "valid.md",
-				Diff:   "../evil.md",
+				Action:  RenameFile,
+				Path:    "valid.md",
+				NewPath: "../evil.md",
 			},
 			ExpectErr: "invalid new path",
 		},
@@ -281,9 +281,9 @@ func TestPathTraversalPreventionRename(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
 			err := Execute(&Command{
-				Action: RenameFile,
-				Path:   tt.Path,
-				Diff:   tt.NewPath,
+				Action:  RenameFile,
+				Path:    tt.Path,
+				NewPath: tt.NewPath,
 			}, projectID, baseDir)
 
 			th.AssertError(t, err, tt.ErrMsg, "should reject")
