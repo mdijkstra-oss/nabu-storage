@@ -8,18 +8,18 @@ import (
 )
 
 type Config struct {
-	Port           string
-	LogLevel       slog.Level
-	PersistenceDir string
-	CorsOrigins    []string
+	Port        string
+	LogLevel    slog.Level
+	ProjectsDir string
+	CorsOrigins []string
 }
 
 func Load() Config {
 	return Config{
-		Port:           getEnv("PORT", "8080"),
-		LogLevel:       parseLogLevel(getEnv("LOG_LEVEL", "info")),
-		PersistenceDir: getPersistenceDir(),
-		CorsOrigins:    parseCorsOrigins(getEnv("CORS_ORIGINS", "*")),
+		Port:        getEnv("PORT", "8080"),
+		LogLevel:    parseLogLevel(getEnv("LOG_LEVEL", "info")),
+		ProjectsDir: getProjectsDir(),
+		CorsOrigins: parseCorsOrigins(getEnv("CORS_ORIGINS", "*")),
 	}
 }
 
@@ -45,7 +45,7 @@ func parseLogLevel(level string) slog.Level {
 	}
 }
 
-func getPersistenceDir() string {
+func getProjectsDir() string {
 	if dir := os.Getenv("PERSISTENCE_DIR"); dir != "" {
 		return dir
 	}
@@ -53,9 +53,9 @@ func getPersistenceDir() string {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		slog.Warn("failed to get user home directory, using relative path", "error", err)
-		return "persistence-data"
+		return "projects"
 	}
-	return filepath.Join(home, "Documents", "hermes-persistence")
+	return filepath.Join(home, "Documents", "nabu-persistence")
 }
 
 func parseCorsOrigins(origins string) []string {

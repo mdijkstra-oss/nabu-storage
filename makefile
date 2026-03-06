@@ -17,9 +17,9 @@ start:
 start-prod:
 	@set -a && . ./.prod.env && set +a && go run cmd/main.go
 
-.PHONY: sample
-sample:
-	@set -a && . ./.env && export PERSISTENCE_DIR=./sample-data && go run cmd/main.go
+.PHONY: nabu
+nabu:
+	@set -a && . ./.env && export PERSISTENCE_DIR=$(HOME)/Documents/nabu-persistence && go run cmd/main.go
 
 .PHONY: dev
 dev:
@@ -49,6 +49,6 @@ coverage-all:
 
 .PHONY: submit
 submit:
-	@curl -X POST http://localhost:$(PORT)/commands \
+	@curl -X POST http://localhost:$(PORT)/commands/$(PROJECT_ID) \
 		-H "Content-Type: application/json" \
 		-d '$(JSON)'
