@@ -139,6 +139,8 @@ func sendInitialFiles(writer *connWriter, projectID, baseDir string) {
 
 func sendInitialFilesWork(writer *connWriter, projectID, baseDir string) func() {
 	return func() {
+		files.SeedRequiredFiles(baseDir, projectID)
+
 		fileNames, err := files.List(baseDir, projectID)
 		if err != nil {
 			slog.Error("failed to list files", "projectID", projectID, "error", err)

@@ -168,6 +168,62 @@ func TestList(t *testing.T) {
 	}
 }
 
+func TestSeedRequiredFiles(t *testing.T) {
+	tests := []struct {
+		Name          string
+		ExistingFiles map[string]string
+		ExpectSeeded  []string
+		ExpectKept    map[string]string
+	}{
+		{
+			Name:          "seeds all missing files",
+			ExistingFiles: map[string]string{},
+			ExpectSeeded:  []string{"preferences.md", "settings.hidden.md"},
+		},
+		{
+			Name:          "skips existing files",
+			ExistingFiles: map[string]string{"preferences.md": "# My Prefs"},
+			ExpectSeeded:  []string{"settings.hidden.md"},
+			ExpectKept:    map[string]string{"preferences.md": "# My Prefs"},
+		},
+		{
+			Name: "seeds nothing when all exist",
+			ExistingFiles: map[string]string{
+				"preferences.md":     "# Custom",
+				"settings.hidden.md": "# Custom Settings",
+			},
+			ExpectSeeded: []string{},
+			ExpectKept: map[string]string{
+				"preferences.md":     "# Custom",
+				"settings.hidden.md": "# Custom Settings",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			baseDir := t.TempDir()
+			projectID := "test-project"
+
+			for path, content := range tt.ExistingFiles {
+				th.AssertError(t, Write(baseDir, projectID, path, content), "", "setup write")
+			}
+
+			SeedRequiredFiles(baseDir, projectID)
+
+			for _, path := range tt.ExpectSeeded {
+				th.AssertEqual(t, Exists(baseDir, projectID, path), true, "seeded "+path)
+			}
+
+			for path, expected := range tt.ExpectKept {
+				content, err := Read(baseDir, projectID, path)
+				th.AssertError(t, err, "", "read "+path)
+				th.AssertEqual(t, content, expected, "preserved "+path)
+			}
+		})
+	}
+}
+
 func TestDelete(t *testing.T) {
 	tests := []struct {
 		Name       string
