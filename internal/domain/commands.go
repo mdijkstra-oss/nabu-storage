@@ -9,12 +9,14 @@ const (
 	DeleteFile Action = "DeleteFile"
 	RenameFile Action = "RenameFile"
 	Commit     Action = "Commit"
+	SyncMeta   Action = "SyncMeta"
 )
 
 type Command struct {
-	Action  Action `json:"action"`
-	Path    string `json:"path,omitempty"`
-	NewPath string `json:"newPath,omitempty"`
-	Diff    string `json:"diff,omitempty"`
-	Content string `json:"content,omitempty"`
+	Action    Action `json:"action"`
+	Path      string `json:"path,omitempty"`
+	NewPath   string `json:"newPath,omitempty"`
+	Diff      string `json:"diff,omitempty"`
+	Content   string `json:"content,omitempty"`
+	FileCount int    `json:"fileCount,omitempty"`
 }

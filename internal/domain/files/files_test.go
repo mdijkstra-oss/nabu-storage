@@ -224,6 +224,45 @@ func TestSeedRequiredFiles(t *testing.T) {
 	}
 }
 
+func TestSortForInitialSend(t *testing.T) {
+	tests := []struct {
+		Name     string
+		Input    []string
+		Expected []string
+	}{
+		{
+			Name:     "empty list",
+			Input:    []string{},
+			Expected: []string{},
+		},
+		{
+			Name:     "alphabetical order",
+			Input:    []string{"notes.md", "codes.hidden.md", "settings.hidden.md", "journal.md"},
+			Expected: []string{"codes.hidden.md", "journal.md", "notes.md", "settings.hidden.md"},
+		},
+		{
+			Name:     "already sorted",
+			Input:    []string{"a.md", "b.md"},
+			Expected: []string{"a.md", "b.md"},
+		},
+		{
+			Name:     "mixed regular and hidden interleaved",
+			Input:    []string{"tags.hidden.md", "a.md", "settings.hidden.md", "searches.hidden.md"},
+			Expected: []string{"a.md", "searches.hidden.md", "settings.hidden.md", "tags.hidden.md"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			result := SortForInitialSend(tt.Input)
+			th.AssertEqual(t, len(result), len(tt.Expected), "length")
+			for i, name := range tt.Expected {
+				th.AssertEqual(t, result[i], name, "index "+string(rune('0'+i)))
+			}
+		})
+	}
+}
+
 func TestDelete(t *testing.T) {
 	tests := []struct {
 		Name       string

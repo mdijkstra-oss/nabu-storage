@@ -3,6 +3,7 @@ package files
 import (
 	"os"
 	"path/filepath"
+	"sort"
 
 	"hermes-relay/internal/lib/diff"
 	"hermes-relay/internal/lib/utils"
@@ -69,6 +70,13 @@ func List(baseDir, projectID string) ([]string, error) {
 
 func isHidden(name string) bool {
 	return len(name) > 0 && name[0] == '.'
+}
+
+func SortForInitialSend(names []string) []string {
+	sorted := make([]string, len(names))
+	copy(sorted, names)
+	sort.Strings(sorted)
+	return sorted
 }
 
 func Create(baseDir, projectID, path, diffStr string) error {

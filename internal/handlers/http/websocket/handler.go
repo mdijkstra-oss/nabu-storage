@@ -147,7 +147,14 @@ func sendInitialFilesWork(writer *connWriter, projectID, baseDir string) func() 
 			return
 		}
 
-		for _, name := range fileNames {
+		sorted := files.SortForInitialSend(fileNames)
+
+		meta := domain.Command{Action: domain.SyncMeta, FileCount: len(sorted)}
+		if err := writeJSON(writer, meta); err != nil {
+			return
+		}
+
+		for _, name := range sorted {
 			if err := sendFileAsCreate(writer, projectID, baseDir, name); err != nil {
 				return
 			}
