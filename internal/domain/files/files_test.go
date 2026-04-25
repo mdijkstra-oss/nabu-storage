@@ -8,118 +8,6 @@ import (
 	th "hermes-relay/internal/lib/test-helpers"
 )
 
-func TestCreate(t *testing.T) {
-	baseDir := t.TempDir()
-	projectID := "test-project"
-
-	tests := []struct {
-		Name      string
-		Path      string
-		Diff      string
-		Expected  string
-		ExpectErr string
-	}{
-		{
-			Name:     "creates file with content",
-			Path:     "notes.md",
-			Diff:     "@@\n+# Hello\n+World",
-			Expected: "# Hello\nWorld",
-		},
-		{
-			Name:     "creates empty file",
-			Path:     "empty.md",
-			Diff:     "",
-			Expected: "",
-		},
-		{
-			Name:     "creates file with single line",
-			Path:     "single.md",
-			Diff:     "@@\n+# Title",
-			Expected: "# Title",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.Name, func(t *testing.T) {
-			err := Create(baseDir, projectID, tt.Path, tt.Diff)
-			th.AssertError(t, err, tt.ExpectErr, "create error")
-
-			if tt.ExpectErr == "" {
-				content, err := Read(baseDir, projectID, tt.Path)
-				th.AssertError(t, err, "", "read error")
-				th.AssertEqual(t, content, tt.Expected, "content")
-			}
-		})
-	}
-}
-
-func TestUpdate(t *testing.T) {
-	baseDir := t.TempDir()
-	projectID := "test-project"
-
-	setupFile := func(path, content string) {
-		th.AssertError(t, Write(baseDir, projectID, path, content), "", "setup write")
-	}
-
-	tests := []struct {
-		Name      string
-		Setup     func()
-		Path      string
-		Diff      string
-		Expected  string
-		ExpectErr string
-	}{
-		{
-			Name: "updates existing file",
-			Setup: func() {
-				setupFile("test.md", "hello\nworld")
-			},
-			Path:     "test.md",
-			Diff:     "@@\n-hello\n+goodbye\nworld",
-			Expected: "goodbye\nworld",
-		},
-		{
-			Name: "appends to file",
-			Setup: func() {
-				setupFile("append.md", "# Title")
-			},
-			Path:     "append.md",
-			Diff:     "@@\n+\n+New content",
-			Expected: "# Title\n\nNew content",
-		},
-		{
-			Name:      "fails on non-existent file",
-			Setup:     func() {},
-			Path:      "nonexistent.md",
-			Diff:      "@@\n+content",
-			ExpectErr: "not found",
-		},
-		{
-			Name: "fails when context not found",
-			Setup: func() {
-				setupFile("context.md", "actual content")
-			},
-			Path:      "context.md",
-			Diff:      "@@\n-wrong context\n+replacement",
-			ExpectErr: "context not found",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.Name, func(t *testing.T) {
-			tt.Setup()
-			err := Update(baseDir, projectID, tt.Path, tt.Diff)
-			th.AssertError(t, err, tt.ExpectErr, "update error")
-
-			if tt.ExpectErr == "" {
-				content, err := Read(baseDir, projectID, tt.Path)
-				th.AssertError(t, err, "", "read error")
-				th.AssertEqual(t, content, tt.Expected, "content")
-			}
-		})
-	}
-}
-
 func TestList(t *testing.T) {
 	tests := []struct {
 		Name          string
@@ -265,10 +153,10 @@ func TestSortForInitialSend(t *testing.T) {
 
 func TestDelete(t *testing.T) {
 	tests := []struct {
-		Name       string
-		SetupFile  bool
-		ExpectErr  string
-		FileGone   bool
+		Name      string
+		SetupFile bool
+		ExpectErr string
+		FileGone  bool
 	}{
 		{
 			Name:      "deletes existing file",

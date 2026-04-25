@@ -14,21 +14,11 @@ func requireValidPath(cmd *Command) error {
 	return nil
 }
 
-func HandleCreateFile(cmd *Command, projectID, baseDir string) error {
+func HandleWriteFile(cmd *Command, projectID, baseDir string) error {
 	if err := requireValidPath(cmd); err != nil {
 		return err
 	}
-	if files.Exists(baseDir, projectID, cmd.Path) {
-		return utils.FieldError("path", "file already exists")
-	}
-	return files.Create(baseDir, projectID, cmd.Path, cmd.Diff)
-}
-
-func HandleUpdateFile(cmd *Command, projectID, baseDir string) error {
-	if err := requireValidPath(cmd); err != nil {
-		return err
-	}
-	return files.Update(baseDir, projectID, cmd.Path, cmd.Diff)
+	return files.Write(baseDir, projectID, cmd.Path, cmd.Content)
 }
 
 func HandleDeleteFile(cmd *Command, projectID, baseDir string) error {
@@ -57,21 +47,12 @@ func HandleRenameFile(cmd *Command, projectID, baseDir string) error {
 	return files.Rename(baseDir, projectID, cmd.Path, cmd.NewPath)
 }
 
-func HandleWriteFile(cmd *Command, projectID, baseDir string) error {
-	if err := requireValidPath(cmd); err != nil {
-		return err
-	}
-	return files.Write(baseDir, projectID, cmd.Path, cmd.Content)
-}
-
 func HandleCommit(cmd *Command, projectID, baseDir string) error {
 	slog.Info("commit called", "projectId", projectID)
 	return nil
 }
 
 var Handlers = map[Action]func(*Command, string, string) error{
-	CreateFile: HandleCreateFile,
-	UpdateFile: HandleUpdateFile,
 	WriteFile:  HandleWriteFile,
 	DeleteFile: HandleDeleteFile,
 	RenameFile: HandleRenameFile,

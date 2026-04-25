@@ -3,8 +3,6 @@ package domain
 type Action string
 
 const (
-	CreateFile Action = "CreateFile"
-	UpdateFile Action = "UpdateFile"
 	WriteFile  Action = "WriteFile"
 	DeleteFile Action = "DeleteFile"
 	RenameFile Action = "RenameFile"
@@ -16,7 +14,6 @@ type Command struct {
 	Action    Action `json:"action"`
 	Path      string `json:"path,omitempty"`
 	NewPath   string `json:"newPath,omitempty"`
-	Diff      string `json:"diff,omitempty"`
 	Content   string `json:"content,omitempty"`
 	FileCount int    `json:"fileCount,omitempty"`
 }

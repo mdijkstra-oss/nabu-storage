@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
-	"strings"
 	"sync"
 	"time"
 
@@ -170,9 +169,9 @@ func sendFileAsCreate(writer *connWriter, projectID, baseDir, name string) error
 	}
 
 	cmd := domain.Command{
-		Action: domain.CreateFile,
-		Path:   name,
-		Diff:   toCreateDiff(content),
+		Action:  domain.WriteFile,
+		Path:    name,
+		Content: content,
 	}
 
 	if err := writeJSON(writer, cmd); err != nil {
@@ -180,22 +179,5 @@ func sendFileAsCreate(writer *connWriter, projectID, baseDir, name string) error
 		return err
 	}
 	return nil
-}
-
-func toCreateDiff(content string) string {
-	if content == "" {
-		return ""
-	}
-	lines := strings.Split(content, "\n")
-	var result strings.Builder
-	result.WriteString("@@\n")
-	for i, line := range lines {
-		result.WriteString("+")
-		result.WriteString(line)
-		if i < len(lines)-1 {
-			result.WriteString("\n")
-		}
-	}
-	return result.String()
 }
 

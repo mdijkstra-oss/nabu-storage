@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"sort"
 
-	"hermes-relay/internal/lib/diff"
 	"hermes-relay/internal/lib/utils"
 )
 
@@ -77,29 +76,4 @@ func SortForInitialSend(names []string) []string {
 	copy(sorted, names)
 	sort.Strings(sorted)
 	return sorted
-}
-
-func Create(baseDir, projectID, path, diffStr string) error {
-	result := diff.Apply("", diffStr)
-	if !result.OK {
-		return utils.FieldError("diff", result.Error)
-	}
-	return Write(baseDir, projectID, path, result.Content)
-}
-
-func Update(baseDir, projectID, path, diffStr string) error {
-	content, err := Read(baseDir, projectID, path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return &utils.NotFoundError{Message: "file not found: " + path}
-		}
-		return err
-	}
-
-	result := diff.Apply(content, diffStr)
-	if !result.OK {
-		return utils.FieldError("diff", result.Error)
-	}
-
-	return Write(baseDir, projectID, path, result.Content)
 }

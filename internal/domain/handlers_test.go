@@ -21,12 +21,12 @@ func TestExecute(t *testing.T) {
 		Verify    func(t *testing.T)
 	}{
 		{
-			Name:  "CreateFile succeeds",
+			Name:  "WriteFile succeeds",
 			Setup: func() {},
 			Command: Command{
-				Action: CreateFile,
-				Path:   "new.md",
-				Diff:   "@@\n+# Hello",
+				Action:  WriteFile,
+				Path:    "new.md",
+				Content: "# Hello",
 			},
 			Verify: func(t *testing.T) {
 				content, _ := files.Read(baseDir, projectID, "new.md")
@@ -34,47 +34,23 @@ func TestExecute(t *testing.T) {
 			},
 		},
 		{
-			Name: "CreateFile fails if exists",
-			Setup: func() {
-				_ = files.Write(baseDir, projectID, "exists.md", "content")
-			},
+			Name:  "WriteFile overwrites existing",
+			Setup: func() { _ = files.Write(baseDir, projectID, "overwrite.md", "old") },
 			Command: Command{
-				Action: CreateFile,
-				Path:   "exists.md",
-				Diff:   "@@\n+new",
-			},
-			ExpectErr: "already exists",
-		},
-		{
-			Name:      "CreateFile fails without path",
-			Setup:     func() {},
-			Command:   Command{Action: CreateFile, Diff: "@@\n+x"},
-			ExpectErr: "path",
-		},
-		{
-			Name: "UpdateFile succeeds",
-			Setup: func() {
-				_ = files.Write(baseDir, projectID, "update.md", "old")
-			},
-			Command: Command{
-				Action: UpdateFile,
-				Path:   "update.md",
-				Diff:   "@@\n-old\n+new",
+				Action:  WriteFile,
+				Path:    "overwrite.md",
+				Content: "new",
 			},
 			Verify: func(t *testing.T) {
-				content, _ := files.Read(baseDir, projectID, "update.md")
+				content, _ := files.Read(baseDir, projectID, "overwrite.md")
 				th.AssertEqual(t, content, "new", "content")
 			},
 		},
 		{
-			Name:  "UpdateFile fails if not found",
-			Setup: func() {},
-			Command: Command{
-				Action: UpdateFile,
-				Path:   "missing.md",
-				Diff:   "@@\n+x",
-			},
-			ExpectErr: "not found",
+			Name:      "WriteFile fails without path",
+			Setup:     func() {},
+			Command:   Command{Action: WriteFile, Content: "x"},
+			ExpectErr: "path",
 		},
 		{
 			Name: "DeleteFile succeeds",
@@ -201,9 +177,9 @@ func TestPathTraversalPrevention(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
 			err := Execute(&Command{
-				Action: CreateFile,
-				Path:   tt.Path,
-				Diff:   "@@\n+malicious content",
+				Action:  WriteFile,
+				Path:    tt.Path,
+				Content: "malicious content",
 			}, projectID, baseDir)
 
 			th.AssertError(t, err, "invalid path", "should reject")
@@ -230,9 +206,9 @@ func TestPathTraversalPreventionUpdate(t *testing.T) {
 	_ = os.WriteFile(targetFile, []byte("original"), 0644)
 
 	err := Execute(&Command{
-		Action: UpdateFile,
-		Path:   "../target.txt",
-		Diff:   "@@\n-original\n+hacked",
+		Action:  WriteFile,
+		Path:    "../target.txt",
+		Content: "hacked",
 	}, projectID, baseDir)
 
 	th.AssertError(t, err, "invalid path", "should reject traversal")
