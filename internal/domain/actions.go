@@ -54,7 +54,7 @@ var actionHandlers = map[Action]func(*Command, string, string) error{
 func Execute(cmd *Command, projectID, baseDir string) error {
 	handler, ok := actionHandlers[cmd.Action]
 	if !ok {
-		panic("unknown action: " + string(cmd.Action))
+		return utils.FieldError("action", "unknown action: "+string(cmd.Action))
 	}
 	return handler(cmd, projectID, baseDir)
 }

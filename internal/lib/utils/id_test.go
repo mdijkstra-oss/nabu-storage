@@ -2,24 +2,29 @@ package utils
 
 import "testing"
 
-func TestValidID(t *testing.T) {
+func TestCanonicalID(t *testing.T) {
+	const canonical = "550e8400-e29b-41d4-a716-446655440000"
+
 	tests := []struct {
-		Name     string
-		Input    string
-		Expected bool
+		Name       string
+		Input      string
+		ExpectedID string
+		ExpectedOK bool
 	}{
-		{Name: "valid uuid lowercase", Input: "550e8400-e29b-41d4-a716-446655440000", Expected: true},
-		{Name: "valid uuid uppercase", Input: "550E8400-E29B-41D4-A716-446655440000", Expected: true},
-		{Name: "invalid format", Input: "not-a-uuid", Expected: false},
-		{Name: "empty string", Input: "", Expected: false},
-		{Name: "uuid without dashes", Input: "550e8400e29b41d4a716446655440000", Expected: true},
+		{Name: "canonical form", Input: canonical, ExpectedID: canonical, ExpectedOK: true},
+		{Name: "uppercase", Input: "550E8400-E29B-41D4-A716-446655440000", ExpectedID: canonical, ExpectedOK: true},
+		{Name: "without dashes", Input: "550e8400e29b41d4a716446655440000", ExpectedID: canonical, ExpectedOK: true},
+		{Name: "braced", Input: "{550e8400-e29b-41d4-a716-446655440000}", ExpectedID: canonical, ExpectedOK: true},
+		{Name: "urn prefixed", Input: "urn:uuid:550e8400-e29b-41d4-a716-446655440000", ExpectedID: canonical, ExpectedOK: true},
+		{Name: "invalid format", Input: "not-a-uuid", ExpectedID: "", ExpectedOK: false},
+		{Name: "empty string", Input: "", ExpectedID: "", ExpectedOK: false},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
-			got := ValidID(tt.Input)
-			if got != tt.Expected {
-				t.Errorf("ValidID(%q) = %v, want %v", tt.Input, got, tt.Expected)
+			gotID, gotOK := CanonicalID(tt.Input)
+			if gotID != tt.ExpectedID || gotOK != tt.ExpectedOK {
+				t.Errorf("CanonicalID(%q) = (%q, %v), want (%q, %v)", tt.Input, gotID, gotOK, tt.ExpectedID, tt.ExpectedOK)
 			}
 		})
 	}

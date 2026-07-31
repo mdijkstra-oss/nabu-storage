@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 
@@ -21,15 +22,15 @@ type ErrorResponse struct {
 
 func CommandHandler(baseDir string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		projectID := chi.URLParam(r, "projectId")
-		if !utils.ValidID(projectID) {
+		projectID, ok := utils.CanonicalID(chi.URLParam(r, "projectId"))
+		if !ok {
 			writeError(w, http.StatusBadRequest, "invalid projectId")
 			return
 		}
 
 		cmd, err := decodeCommand(r)
 		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid JSON: "+err.Error())
+			writeDecodeError(w, err)
 			return
 		}
 
@@ -58,6 +59,15 @@ func writeJSON(w http.ResponseWriter, status int, data any) {
 
 func writeError(w http.ResponseWriter, status int, message string) {
 	writeJSON(w, status, ErrorResponse{Error: message})
+}
+
+func writeDecodeError(w http.ResponseWriter, err error) {
+	var tooLarge *http.MaxBytesError
+	if errors.As(err, &tooLarge) {
+		writeError(w, http.StatusRequestEntityTooLarge, "request body too large")
+		return
+	}
+	writeError(w, http.StatusBadRequest, "invalid JSON: "+err.Error())
 }
 
 func writeTypedError(w http.ResponseWriter, err error) {

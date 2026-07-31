@@ -55,8 +55,8 @@ func Handler(baseDir string) http.HandlerFunc {
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		projectID := chi.URLParam(r, "projectId")
-		if !utils.ValidID(projectID) {
+		projectID, ok := utils.CanonicalID(chi.URLParam(r, "projectId"))
+		if !ok {
 			http.Error(w, "invalid projectId", http.StatusBadRequest)
 			return
 		}
@@ -137,43 +137,40 @@ func sendInitialFilesWork(writer *connWriter, projectID, baseDir string) func() 
 	return func() {
 		files.SeedRequiredFiles(baseDir, projectID)
 
-		fileNames, err := files.List(baseDir, projectID)
+		names, err := files.List(baseDir, projectID)
 		if err != nil {
 			slog.Error("failed to list files", "projectID", projectID, "error", err)
 			return
 		}
 
-		sorted := files.SortForInitialSend(fileNames)
+		commands := readableFileCommands(baseDir, projectID, names)
 
-		meta := domain.Command{Action: domain.SyncMeta, FileCount: len(sorted)}
-		if err := writeJSON(writer, meta); err != nil {
+		if err := writeJSON(writer, domain.NewSyncMetaFrame(len(commands))); err != nil {
 			return
 		}
 
-		for _, name := range sorted {
-			if err := sendFileAsCreate(writer, projectID, baseDir, name); err != nil {
+		for _, cmd := range commands {
+			if err := writeJSON(writer, cmd); err != nil {
+				slog.Warn("failed to send initial file", "projectID", projectID, "file", cmd.Path, "error", err)
 				return
 			}
 		}
 	}
 }
 
-func sendFileAsCreate(writer *connWriter, projectID, baseDir, name string) error {
-	content, err := files.Read(baseDir, projectID, name)
-	if err != nil {
-		slog.Warn("failed to read file for initial send", "projectID", projectID, "file", name, "error", err)
-		return nil
+func readableFileCommands(baseDir, projectID string, names []string) []domain.Command {
+	commands := make([]domain.Command, 0, len(names))
+	for _, name := range names {
+		content, err := files.Read(baseDir, projectID, name)
+		if err != nil {
+			slog.Warn("failed to read file for initial send", "projectID", projectID, "file", name, "error", err)
+			continue
+		}
+		commands = append(commands, domain.Command{
+			Action:  domain.WriteFile,
+			Path:    name,
+			Content: content,
+		})
 	}
-
-	cmd := domain.Command{
-		Action:  domain.WriteFile,
-		Path:    name,
-		Content: content,
-	}
-
-	if err := writeJSON(writer, cmd); err != nil {
-		slog.Warn("failed to send initial file", "projectID", projectID, "file", name, "error", err)
-		return err
-	}
-	return nil
+	return commands
 }

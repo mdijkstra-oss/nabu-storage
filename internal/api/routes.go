@@ -19,7 +19,10 @@ func SetupRoutes(r chi.Router, baseDir string, corsOrigins []string) {
 	r.Use(middleware.StripSlashes)
 	r.Use(buildCorsHandler(corsOrigins))
 
-	r.With(DecompressGzip).Post("/commands/{projectId}", CommandHandler(baseDir))
+	r.With(
+		LimitRequestBody(maxRequestBytes),
+		DecompressGzip(maxDecompressedBytes),
+	).Post("/commands/{projectId}", CommandHandler(baseDir))
 	r.Get("/ws/{projectId}", websocket.Handler(baseDir))
 
 	utils.MustNotError(chi.Walk(r, logRoute))

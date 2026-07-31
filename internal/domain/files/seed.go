@@ -3,7 +3,7 @@ package files
 import (
 	"embed"
 	"log/slog"
-	"path/filepath"
+	"path"
 )
 
 //go:embed templates/*.md
@@ -22,7 +22,7 @@ var requiredFiles = func() []requiredFile {
 
 	result := make([]requiredFile, 0, len(entries))
 	for _, e := range entries {
-		content, err := templates.ReadFile(filepath.Join("templates", e.Name()))
+		content, err := templates.ReadFile(path.Join("templates", e.Name()))
 		if err != nil {
 			panic("failed to read embedded template " + e.Name() + ": " + err.Error())
 		}
@@ -32,6 +32,10 @@ var requiredFiles = func() []requiredFile {
 }()
 
 func SeedRequiredFiles(baseDir, projectID string) {
+	if !ProjectExists(baseDir, projectID) {
+		return
+	}
+
 	for _, rf := range requiredFiles {
 		if Exists(baseDir, projectID, rf.path) {
 			continue

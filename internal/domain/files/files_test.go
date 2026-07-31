@@ -59,23 +59,28 @@ func TestList(t *testing.T) {
 func TestSeedRequiredFiles(t *testing.T) {
 	tests := []struct {
 		Name          string
+		CreateProject bool
 		ExistingFiles map[string]string
 		ExpectSeeded  []string
+		ExpectMissing []string
 		ExpectKept    map[string]string
 	}{
 		{
 			Name:          "seeds all missing files",
+			CreateProject: true,
 			ExistingFiles: map[string]string{},
 			ExpectSeeded:  []string{"preferences.md", "settings.hidden.md"},
 		},
 		{
 			Name:          "skips existing files",
+			CreateProject: true,
 			ExistingFiles: map[string]string{"preferences.md": "# My Prefs"},
 			ExpectSeeded:  []string{"settings.hidden.md"},
 			ExpectKept:    map[string]string{"preferences.md": "# My Prefs"},
 		},
 		{
-			Name: "seeds nothing when all exist",
+			Name:          "seeds nothing when all exist",
+			CreateProject: true,
 			ExistingFiles: map[string]string{
 				"preferences.md":     "# Custom",
 				"settings.hidden.md": "# Custom Settings",
@@ -86,6 +91,12 @@ func TestSeedRequiredFiles(t *testing.T) {
 				"settings.hidden.md": "# Custom Settings",
 			},
 		},
+		{
+			Name:          "creates nothing for an unknown project",
+			CreateProject: false,
+			ExistingFiles: map[string]string{},
+			ExpectMissing: []string{"preferences.md", "settings.hidden.md"},
+		},
 	}
 
 	for _, tt := range tests {
@@ -93,14 +104,24 @@ func TestSeedRequiredFiles(t *testing.T) {
 			baseDir := t.TempDir()
 			projectID := "test-project"
 
+			if tt.CreateProject {
+				th.AssertError(t, EnsureProjectDir(baseDir, projectID), "", "setup project dir")
+			}
+
 			for path, content := range tt.ExistingFiles {
 				th.AssertError(t, Write(baseDir, projectID, path, content), "", "setup write")
 			}
 
 			SeedRequiredFiles(baseDir, projectID)
 
+			th.AssertEqual(t, ProjectExists(baseDir, projectID), tt.CreateProject, "project directory")
+
 			for _, path := range tt.ExpectSeeded {
 				th.AssertEqual(t, Exists(baseDir, projectID, path), true, "seeded "+path)
+			}
+
+			for _, path := range tt.ExpectMissing {
+				th.AssertEqual(t, Exists(baseDir, projectID, path), false, "not seeded "+path)
 			}
 
 			for path, expected := range tt.ExpectKept {
@@ -112,43 +133,17 @@ func TestSeedRequiredFiles(t *testing.T) {
 	}
 }
 
-func TestSortForInitialSend(t *testing.T) {
-	tests := []struct {
-		Name     string
-		Input    []string
-		Expected []string
-	}{
-		{
-			Name:     "empty list",
-			Input:    []string{},
-			Expected: []string{},
-		},
-		{
-			Name:     "alphabetical order",
-			Input:    []string{"notes.md", "codes.hidden.md", "settings.hidden.md", "journal.md"},
-			Expected: []string{"codes.hidden.md", "journal.md", "notes.md", "settings.hidden.md"},
-		},
-		{
-			Name:     "already sorted",
-			Input:    []string{"a.md", "b.md"},
-			Expected: []string{"a.md", "b.md"},
-		},
-		{
-			Name:     "mixed regular and hidden interleaved",
-			Input:    []string{"tags.hidden.md", "a.md", "settings.hidden.md", "searches.hidden.md"},
-			Expected: []string{"a.md", "searches.hidden.md", "settings.hidden.md", "tags.hidden.md"},
-		},
+func TestListReturnsSortedNames(t *testing.T) {
+	baseDir := t.TempDir()
+	projectID := "test-project"
+
+	for _, name := range []string{"notes.md", "a.md", "settings.hidden.md", "journal.md"} {
+		th.AssertError(t, Write(baseDir, projectID, name, ""), "", "setup write")
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.Name, func(t *testing.T) {
-			result := SortForInitialSend(tt.Input)
-			th.AssertEqual(t, len(result), len(tt.Expected), "length")
-			for i, name := range tt.Expected {
-				th.AssertEqual(t, result[i], name, "index "+string(rune('0'+i)))
-			}
-		})
-	}
+	names, err := List(baseDir, projectID)
+	th.AssertError(t, err, "", "list error")
+	th.AssertEqual(t, names, []string{"a.md", "journal.md", "notes.md", "settings.hidden.md"}, "sorted names")
 }
 
 func TestDelete(t *testing.T) {

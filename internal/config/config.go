@@ -45,17 +45,32 @@ func parseLogLevel(level string) slog.Level {
 	}
 }
 
-func getProjectsDir() string {
-	if dir := os.Getenv("PERSISTENCE_DIR"); dir != "" {
-		return dir
-	}
+const (
+	defaultProjectsDir  = "~/Documents/nabu-persistence"
+	fallbackProjectsDir = "projects"
+)
 
+func getProjectsDir() string {
+	return expandHome(getEnv("PERSISTENCE_DIR", defaultProjectsDir), userHome())
+}
+
+func userHome() string {
 	home, err := os.UserHomeDir()
 	if err != nil {
-		slog.Warn("failed to get user home directory, using relative path", "error", err)
-		return "projects"
+		slog.Warn("failed to get user home directory", "error", err)
+		return ""
 	}
-	return filepath.Join(home, "Documents", "nabu-persistence")
+	return home
+}
+
+func expandHome(path, home string) string {
+	if path != "~" && !strings.HasPrefix(path, "~/") {
+		return path
+	}
+	if home == "" {
+		return fallbackProjectsDir
+	}
+	return filepath.Join(home, strings.TrimPrefix(path, "~"))
 }
 
 func parseCorsOrigins(origins string) []string {

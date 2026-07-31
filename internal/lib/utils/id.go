@@ -6,12 +6,12 @@ import (
 	"github.com/google/uuid"
 )
 
-func ValidID(id string) bool {
-	if id == "" {
-		return false
+func CanonicalID(id string) (string, bool) {
+	parsed, err := uuid.Parse(id)
+	if err != nil {
+		return "", false
 	}
-	_, err := uuid.Parse(id)
-	return err == nil
+	return parsed.String(), true
 }
 
 func ValidFilePath(path string) bool {

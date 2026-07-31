@@ -10,7 +10,6 @@ setup:
 	go install github.com/evilmartians/lefthook@latest
 	lefthook install
 	go install gotest.tools/gotestsum@latest
-	go install github.com/watchexec/watchexec@latest
 	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2
 
 .PHONY: start
@@ -19,7 +18,8 @@ start:
 
 .PHONY: start-prod
 start-prod:
-	@set -a && [ -f .prod.env ] && . ./.prod.env; set +a; go run cmd/main.go
+	@if [ ! -f .prod.env ]; then echo ".prod.env is missing: create it before running start-prod"; exit 1; fi
+	@set -a && . ./.prod.env && set +a && go run cmd/main.go
 
 .PHONY: nabu
 nabu:

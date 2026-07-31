@@ -29,6 +29,8 @@ main
 
 # Local config
 CLAUDE.md
-.claude/settings.local.json
+CLAUDE.local.md
+AGENTS.md
+.claude/
 .env
 .prod.env

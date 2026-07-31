@@ -23,7 +23,7 @@ make start
 
 ## API
 
-Both endpoints take a `projectId` that must be a UUID. Files live flat in `$PERSISTENCE_DIR/{projectId}/` — no subdirectories.
+Both endpoints take a `projectId` that must be a UUID. Any spelling `uuid.Parse` accepts is normalised to canonical form, so `{A1B2…}` and `urn:uuid:a1b2…` address one project. Files live flat in `$PERSISTENCE_DIR/{projectId}/` — no subdirectories.
 
 **`POST /commands/{projectId}`** applies one command. Accepts `Content-Encoding: gzip`.
 
@@ -31,7 +31,10 @@ Both endpoints take a `projectId` that must be a UUID. Files live flat in `$PERS
 { "action": "WriteFile", "path": "notes.md", "content": "# Notes" }
 ```
 
-The accepted actions are `WriteFile`, `DeleteFile`, and `RenameFile`, the last taking a `newPath`.
+The accepted actions are `WriteFile`, `DeleteFile`, and `RenameFile`, the last taking a `newPath`. Anything else is a 400.
+
+> [!NOTE]
+> Bodies are capped at 8 MiB on the wire and 32 MiB decompressed; either ceiling returns 413.
 
 **`GET /ws/{projectId}`** upgrades and immediately sends the whole project as newline-delimited JSON: a count, then one frame per file in alphabetical order.
 
@@ -41,12 +44,14 @@ The accepted actions are `WriteFile`, `DeleteFile`, and `RenameFile`, the last t
 {"action":"WriteFile","path":"preferences.md","content":"# Preferences\n\n"}
 ```
 
-`preferences.md` and `settings.hidden.md` are seeded from templates on first connect.
+`fileCount` counts the frames that follow, so a file the server cannot read is left out of both.
+
+`preferences.md` and `settings.hidden.md` are seeded from templates when a project directory exists without them. Connecting to a UUID that has never been written to reads nothing and creates nothing.
 
 ## What isn't built
 
 - **Sync is one-directional.** A write over HTTP is not pushed to connected clients. Reconnecting is the only way to pick up another device's changes.
-- **`SyncMeta` is send-only.** The server emits it but has no handler for it, so a client that POSTs one gets a 500.
+- **`SyncMeta` is send-only.** The server emits it but has no handler for it, so a client that POSTs one gets a 400.
 - **Nothing is versioned.** A write overwrites; there is no history and no way back.
 
 ## The idea it was heading toward
@@ -58,10 +63,13 @@ The server would own the repo and generate commits itself, grouping incoming com
 ## Development
 
 ```bash
-make setup   # install lefthook, gotestsum, watchexec, golangci-lint
+make setup   # install lefthook, gotestsum, golangci-lint
 make dev     # rebuild and restart on change
 make test    # or test-race, coverage
 ```
+
+> [!NOTE]
+> `make dev` needs watchexec, which is not a Go package: `brew install watchexec`.
 
 Send a single command against a running server:
 

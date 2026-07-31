@@ -126,6 +126,24 @@ func TestExecute(t *testing.T) {
 			},
 			ExpectErr: "invalid new path",
 		},
+		{
+			Name:      "unknown action is rejected",
+			Setup:     func() {},
+			Command:   Command{Action: "Bogus", Path: "notes.md"},
+			ExpectErr: "unknown action",
+		},
+		{
+			Name:      "missing action is rejected",
+			Setup:     func() {},
+			Command:   Command{Path: "notes.md"},
+			ExpectErr: "unknown action",
+		},
+		{
+			Name:      "SyncMeta is not accepted inbound",
+			Setup:     func() {},
+			Command:   Command{Action: SyncMeta},
+			ExpectErr: "unknown action",
+		},
 	}
 
 	for _, tt := range tests {
@@ -140,27 +158,25 @@ func TestExecute(t *testing.T) {
 	}
 }
 
-func TestExecutePanicsOnUnknownAction(t *testing.T) {
-	defer func() {
-		r := recover()
-		if r == nil {
-			t.Fatal("expected panic for unknown action")
-		}
-	}()
-
-	_ = Execute(&Command{Action: "Unknown"}, "proj", "/tmp")
-}
-
 func TestPathTraversalPrevention(t *testing.T) {
 	baseDir := t.TempDir()
 	projectID := "test-project"
 	outsideFile := filepath.Join(baseDir, "should-not-exist.txt")
+	targetFile := filepath.Join(baseDir, "target.txt")
+	_ = os.WriteFile(targetFile, []byte("original"), 0644)
+
+	expectedEntries := map[string]bool{
+		projectID:              true,
+		"should-not-exist.txt": true,
+		"target.txt":           true,
+	}
 
 	tests := []struct {
 		Name string
 		Path string
 	}{
 		{Name: "parent traversal", Path: "../should-not-exist.txt"},
+		{Name: "parent traversal onto existing file", Path: "../target.txt"},
 		{Name: "nested traversal", Path: "foo/../../../should-not-exist.txt"},
 		{Name: "absolute-like", Path: "/etc/passwd"},
 		{Name: "nested directory", Path: "subdir/file.md"},
@@ -183,33 +199,17 @@ func TestPathTraversalPrevention(t *testing.T) {
 				t.Fatal("file was written outside project directory")
 			}
 
+			content, _ := os.ReadFile(targetFile)
+			th.AssertEqual(t, string(content), "original", "existing file unchanged")
+
 			entries, _ := os.ReadDir(baseDir)
 			for _, e := range entries {
-				if e.Name() != projectID && e.Name() != "should-not-exist.txt" {
+				if !expectedEntries[e.Name()] {
 					t.Fatalf("unexpected file created: %s", e.Name())
 				}
 			}
 		})
 	}
-}
-
-func TestPathTraversalPreventionUpdate(t *testing.T) {
-	baseDir := t.TempDir()
-	projectID := "test-project"
-
-	targetFile := filepath.Join(baseDir, "target.txt")
-	_ = os.WriteFile(targetFile, []byte("original"), 0644)
-
-	err := Execute(&Command{
-		Action:  WriteFile,
-		Path:    "../target.txt",
-		Content: "hacked",
-	}, projectID, baseDir)
-
-	th.AssertError(t, err, "invalid path", "should reject traversal")
-
-	content, _ := os.ReadFile(targetFile)
-	th.AssertEqual(t, string(content), "original", "file should be unchanged")
 }
 
 func TestPathTraversalPreventionDelete(t *testing.T) {

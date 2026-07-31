@@ -3,13 +3,17 @@ package files
 import (
 	"os"
 	"path/filepath"
-	"sort"
 
 	"nabu-storage/internal/lib/utils"
 )
 
 func ProjectDir(baseDir, projectID string) string {
 	return filepath.Join(baseDir, projectID)
+}
+
+func ProjectExists(baseDir, projectID string) bool {
+	info, err := os.Stat(ProjectDir(baseDir, projectID))
+	return err == nil && info.IsDir()
 }
 
 func FilePath(baseDir, projectID, path string) string {
@@ -69,11 +73,4 @@ func List(baseDir, projectID string) ([]string, error) {
 
 func isHidden(name string) bool {
 	return len(name) > 0 && name[0] == '.'
-}
-
-func SortForInitialSend(names []string) []string {
-	sorted := make([]string, len(names))
-	copy(sorted, names)
-	sort.Strings(sorted)
-	return sorted
 }

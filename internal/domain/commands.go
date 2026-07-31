@@ -10,9 +10,17 @@ const (
 )
 
 type Command struct {
+	Action  Action `json:"action"`
+	Path    string `json:"path,omitempty"`
+	NewPath string `json:"newPath,omitempty"`
+	Content string `json:"content,omitempty"`
+}
+
+type SyncMetaFrame struct {
 	Action    Action `json:"action"`
-	Path      string `json:"path,omitempty"`
-	NewPath   string `json:"newPath,omitempty"`
-	Content   string `json:"content,omitempty"`
-	FileCount int    `json:"fileCount,omitempty"`
+	FileCount int    `json:"fileCount"`
+}
+
+func NewSyncMetaFrame(fileCount int) SyncMetaFrame {
+	return SyncMetaFrame{Action: SyncMeta, FileCount: fileCount}
 }
