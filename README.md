@@ -63,6 +63,12 @@ make dev     # rebuild and restart on change
 make test    # or test-race, coverage
 ```
 
+Send a single command against a running server:
+
+```bash
+make submit PROJECT_ID=<uuid> JSON='{"action":"WriteFile","path":"a.md","content":"hi"}'
+```
+
 ## License
 
 AGPL-3.0. Running a modified version as a network service obliges you to offer its source to the people using it.

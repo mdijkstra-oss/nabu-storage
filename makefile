@@ -1,6 +1,10 @@
 -include .env
 export
 
+define require
+@if [ -z "$($(1))" ]; then echo "$(1) is not set: add it to .env or pass $(1)=... "; exit 1; fi
+endef
+
 .PHONY: setup
 setup:
 	go install github.com/evilmartians/lefthook@latest
@@ -15,11 +19,11 @@ start:
 
 .PHONY: start-prod
 start-prod:
-	@set -a && . ./.prod.env && set +a && go run cmd/main.go
+	@set -a && [ -f .prod.env ] && . ./.prod.env; set +a; go run cmd/main.go
 
 .PHONY: nabu
 nabu:
-	@set -a && . ./.env && export PERSISTENCE_DIR=$(HOME)/Documents/nabu-persistence && go run cmd/main.go
+	@PERSISTENCE_DIR=$(HOME)/Documents/nabu-persistence go run cmd/main.go
 
 .PHONY: dev
 dev:
@@ -49,6 +53,8 @@ coverage-all:
 
 .PHONY: submit
 submit:
-	@curl -X POST http://localhost:$(PORT)/commands/$(PROJECT_ID) \
+	$(call require,PROJECT_ID)
+	$(call require,JSON)
+	@curl -X POST http://localhost:$(or $(PORT),8080)/commands/$(PROJECT_ID) \
 		-H "Content-Type: application/json" \
 		-d '$(JSON)'
