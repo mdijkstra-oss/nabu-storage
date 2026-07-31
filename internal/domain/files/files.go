@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"sort"
 
-	"hermes-relay/internal/lib/utils"
+	"nabu-storage/internal/lib/utils"
 )
 
 func ProjectDir(baseDir, projectID string) string {

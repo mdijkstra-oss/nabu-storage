@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"hermes-relay/internal/domain/files"
-	th "hermes-relay/internal/lib/test-helpers"
+	"nabu-storage/internal/domain/files"
+	th "nabu-storage/internal/lib/testutil"
 )
 
 func TestExecute(t *testing.T) {

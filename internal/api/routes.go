@@ -1,16 +1,15 @@
-package handlers
+package api
 
 import (
 	"log/slog"
-	net "net/http"
+	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
-	"hermes-relay/internal/handlers/http"
-	"hermes-relay/internal/handlers/http/websocket"
-	"hermes-relay/internal/lib/utils"
+	"nabu-storage/internal/api/websocket"
+	"nabu-storage/internal/lib/utils"
 )
 
 func SetupRoutes(r chi.Router, baseDir string, corsOrigins []string) {
@@ -20,18 +19,18 @@ func SetupRoutes(r chi.Router, baseDir string, corsOrigins []string) {
 	r.Use(middleware.StripSlashes)
 	r.Use(buildCorsHandler(corsOrigins))
 
-	r.With(http.DecompressGzip).Post("/commands/{projectId}", http.CommandHandler(baseDir))
+	r.With(DecompressGzip).Post("/commands/{projectId}", CommandHandler(baseDir))
 	r.Get("/ws/{projectId}", websocket.Handler(baseDir))
 
 	utils.MustNotError(chi.Walk(r, logRoute))
 }
 
-func logRoute(method, route string, _ net.Handler, _ ...func(net.Handler) net.Handler) error {
+func logRoute(method, route string, _ http.Handler, _ ...func(http.Handler) http.Handler) error {
 	slog.Debug("registered route", "method", method, "route", route)
 	return nil
 }
 
-func buildCorsHandler(allowedOrigins []string) func(net.Handler) net.Handler {
+func buildCorsHandler(allowedOrigins []string) func(http.Handler) http.Handler {
 	if len(allowedOrigins) == 0 {
 		allowedOrigins = []string{"*"}
 	}
@@ -43,8 +42,8 @@ func buildCorsHandler(allowedOrigins []string) func(net.Handler) net.Handler {
 	})
 }
 
-func slogLogger(next net.Handler) net.Handler {
-	return net.HandlerFunc(func(w net.ResponseWriter, r *net.Request) {
+func slogLogger(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
 		start := time.Now()
 

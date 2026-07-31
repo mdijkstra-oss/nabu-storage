@@ -1,12 +1,12 @@
-package http
+package api
 
 import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
 
-	"hermes-relay/internal/domain"
-	"hermes-relay/internal/lib/utils"
+	"nabu-storage/internal/domain"
+	"nabu-storage/internal/lib/utils"
 
 	"github.com/go-chi/chi/v5"
 )

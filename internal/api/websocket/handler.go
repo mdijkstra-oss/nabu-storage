@@ -9,9 +9,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/websocket"
-	"hermes-relay/internal/domain"
-	"hermes-relay/internal/domain/files"
-	"hermes-relay/internal/lib/utils"
+	"nabu-storage/internal/domain"
+	"nabu-storage/internal/domain/files"
+	"nabu-storage/internal/lib/utils"
 )
 
 const (
@@ -177,4 +177,3 @@ func sendFileAsCreate(writer *connWriter, projectID, baseDir, name string) error
 	}
 	return nil
 }
-

@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	th "hermes-relay/internal/lib/test-helpers"
+	th "nabu-storage/internal/lib/testutil"
 )
 
 func TestList(t *testing.T) {

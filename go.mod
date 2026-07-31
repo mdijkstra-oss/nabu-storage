@@ -1,4 +1,4 @@
-module hermes-relay
+module nabu-storage
 
 go 1.25.1
 

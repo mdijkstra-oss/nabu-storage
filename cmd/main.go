@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
-	net "net/http"
+	"net/http"
 	"os"
 
 	"github.com/go-chi/chi/v5"
-	"hermes-relay/internal/config"
-	"hermes-relay/internal/handlers"
+	"nabu-storage/internal/api"
+	"nabu-storage/internal/config"
 )
 
 func main() {
@@ -19,11 +19,11 @@ func main() {
 	slog.Info("Projects directory", "dir", cfg.ProjectsDir)
 
 	r := chi.NewRouter()
-	handlers.SetupRoutes(r, cfg.ProjectsDir, cfg.CorsOrigins)
+	api.SetupRoutes(r, cfg.ProjectsDir, cfg.CorsOrigins)
 
 	addr := fmt.Sprintf(":%s", cfg.Port)
 	slog.Info("Server starting", "port", cfg.Port, "cors_origins", cfg.CorsOrigins)
-	log.Fatal(net.ListenAndServe(addr, r))
+	log.Fatal(http.ListenAndServe(addr, r))
 }
 
 func setupLogger(level slog.Level) {

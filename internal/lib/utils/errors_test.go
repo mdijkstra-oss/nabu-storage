@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"hermes-relay/internal/lib/utils"
+	"nabu-storage/internal/lib/utils"
 )
 
 func TestShouldWork(t *testing.T) {
