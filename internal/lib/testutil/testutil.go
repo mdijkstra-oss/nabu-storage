@@ -41,5 +41,5 @@ func AssertError(t *testing.T, got error, wantMsg string, msg string) {
 
 func isNil(v any) bool {
 	val := reflect.ValueOf(v)
-	return !val.IsValid() || (val.Kind() == reflect.Ptr && val.IsNil())
+	return !val.IsValid() || (val.Kind() == reflect.Pointer && val.IsNil())
 }

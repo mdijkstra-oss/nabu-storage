@@ -3,6 +3,8 @@ package api
 import (
 	"compress/gzip"
 	"net/http"
+
+	"nabu-storage/internal/lib/utils"
 )
 
 func DecompressGzip(next http.Handler) http.Handler {
@@ -17,7 +19,7 @@ func DecompressGzip(next http.Handler) http.Handler {
 			writeError(w, http.StatusBadRequest, "invalid gzip body")
 			return
 		}
-		defer gz.Close()
+		defer func() { utils.ShouldWork(gz.Close()) }()
 
 		r.Body = gz
 		r.Header.Del("Content-Encoding")

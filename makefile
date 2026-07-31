@@ -1,4 +1,4 @@
-include .env
+-include .env
 export
 
 .PHONY: setup
@@ -7,7 +7,7 @@ setup:
 	lefthook install
 	go install gotest.tools/gotestsum@latest
 	go install github.com/watchexec/watchexec@latest
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2
 
 .PHONY: start
 start:
