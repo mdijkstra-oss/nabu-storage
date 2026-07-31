@@ -13,7 +13,7 @@ import (
 	"hermes-relay/internal/lib/utils"
 )
 
-func SetupRoutes(r chi.Router, baseDir string, hub *websocket.Hub, corsOrigins []string) {
+func SetupRoutes(r chi.Router, baseDir string, corsOrigins []string) {
 	r.Use(slogLogger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.RequestID)
@@ -21,7 +21,7 @@ func SetupRoutes(r chi.Router, baseDir string, hub *websocket.Hub, corsOrigins [
 	r.Use(buildCorsHandler(corsOrigins))
 
 	r.With(http.DecompressGzip).Post("/commands/{projectId}", http.CommandHandler(baseDir))
-	r.Get("/ws/{projectId}", websocket.Handler(hub, baseDir))
+	r.Get("/ws/{projectId}", websocket.Handler(baseDir))
 
 	utils.MustNotError(chi.Walk(r, logRoute))
 }

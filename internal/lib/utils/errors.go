@@ -31,14 +31,6 @@ func (e *NotFoundError) Error() string {
 	return e.Message
 }
 
-type ConflictError struct {
-	Message string `json:"message"`
-}
-
-func (e *ConflictError) Error() string {
-	return e.Message
-}
-
 func MustNotError(err error) {
 	if err != nil {
 		panic(err)

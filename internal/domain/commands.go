@@ -6,7 +6,6 @@ const (
 	WriteFile  Action = "WriteFile"
 	DeleteFile Action = "DeleteFile"
 	RenameFile Action = "RenameFile"
-	Commit     Action = "Commit"
 	SyncMeta   Action = "SyncMeta"
 )
 

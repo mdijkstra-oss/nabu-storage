@@ -49,7 +49,7 @@ func allowAllOrigins(*http.Request) bool {
 	return true
 }
 
-func Handler(hub *Hub, baseDir string) http.HandlerFunc {
+func Handler(baseDir string) http.HandlerFunc {
 	upgrader := websocket.Upgrader{
 		CheckOrigin: allowAllOrigins,
 	}
@@ -68,14 +68,11 @@ func Handler(hub *Hub, baseDir string) http.HandlerFunc {
 		}
 		defer func() { utils.ShouldWork(conn.Close()) }()
 
-		handleConnection(conn, projectID, hub, baseDir)
+		handleConnection(conn, projectID, baseDir)
 	}
 }
 
-func handleConnection(conn *websocket.Conn, projectID string, hub *Hub, baseDir string) {
-	Register(hub, projectID, conn)
-	defer Unregister(hub, projectID, conn)
-
+func handleConnection(conn *websocket.Conn, projectID, baseDir string) {
 	writer := &connWriter{conn: conn}
 
 	setupPongHandler(conn)

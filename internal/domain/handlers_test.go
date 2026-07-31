@@ -126,11 +126,6 @@ func TestExecute(t *testing.T) {
 			},
 			ExpectErr: "invalid new path",
 		},
-		{
-			Name:    "Commit succeeds",
-			Setup:   func() {},
-			Command: Command{Action: Commit},
-		},
 	}
 
 	for _, tt := range tests {

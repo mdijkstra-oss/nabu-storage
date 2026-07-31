@@ -1,8 +1,6 @@
 package domain
 
 import (
-	"log/slog"
-
 	"hermes-relay/internal/domain/files"
 	"hermes-relay/internal/lib/utils"
 )
@@ -47,16 +45,10 @@ func HandleRenameFile(cmd *Command, projectID, baseDir string) error {
 	return files.Rename(baseDir, projectID, cmd.Path, cmd.NewPath)
 }
 
-func HandleCommit(cmd *Command, projectID, baseDir string) error {
-	slog.Info("commit called", "projectId", projectID)
-	return nil
-}
-
 var Handlers = map[Action]func(*Command, string, string) error{
 	WriteFile:  HandleWriteFile,
 	DeleteFile: HandleDeleteFile,
 	RenameFile: HandleRenameFile,
-	Commit:     HandleCommit,
 }
 
 func Execute(cmd *Command, projectID, baseDir string) error {

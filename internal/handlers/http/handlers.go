@@ -66,8 +66,6 @@ func writeTypedError(w http.ResponseWriter, err error) {
 		writeJSON(w, http.StatusBadRequest, e)
 	case *utils.NotFoundError:
 		writeJSON(w, http.StatusNotFound, e)
-	case *utils.ConflictError:
-		writeJSON(w, http.StatusConflict, e)
 	default:
 		slog.Error("internal error", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal error")
