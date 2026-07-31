@@ -65,4 +65,4 @@ make test    # or test-race, coverage
 
 ## License
 
-MIT
+AGPL-3.0. Running a modified version as a network service obliges you to offer its source to the people using it.
