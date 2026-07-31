@@ -1,6 +1,10 @@
+# use_stdin skips lefthook's default pty allocation, which sandboxed environments deny.
+# Trade-off: commands see a non-TTY stdout and lose colored output; exit codes are unaffected.
 pre-commit:
   commands:
     lint:
       run: golangci-lint run
+      use_stdin: true
     test:
       run: make test
+      use_stdin: true
