@@ -30,3 +30,5 @@ main
 # Local config
 CLAUDE.md
 .claude/settings.local.json
+.env
+.prod.env
