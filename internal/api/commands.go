@@ -70,12 +70,14 @@ func writeDecodeError(w http.ResponseWriter, err error) {
 	writeError(w, http.StatusBadRequest, "invalid JSON: "+err.Error())
 }
 
+// Every failure leaves by writeError, so a client reads one key to learn what went
+// wrong rather than one key per kind of failure.
 func writeTypedError(w http.ResponseWriter, err error) {
 	switch e := err.(type) {
 	case *utils.ValidationError:
-		writeJSON(w, http.StatusBadRequest, e)
+		writeError(w, http.StatusBadRequest, e.Error())
 	case *utils.NotFoundError:
-		writeJSON(w, http.StatusNotFound, e)
+		writeError(w, http.StatusNotFound, e.Error())
 	default:
 		slog.Error("internal error", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal error")

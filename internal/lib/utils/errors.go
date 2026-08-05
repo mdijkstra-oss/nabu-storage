@@ -3,8 +3,8 @@ package utils
 import "log/slog"
 
 type ValidationError struct {
-	Message string            `json:"message"`
-	Fields  map[string]string `json:"fields,omitempty"`
+	Message string
+	Fields  map[string]string
 }
 
 func (e *ValidationError) Error() string {
@@ -24,7 +24,7 @@ func FieldError(field, message string) *ValidationError {
 }
 
 type NotFoundError struct {
-	Message string `json:"message"`
+	Message string
 }
 
 func (e *NotFoundError) Error() string {
