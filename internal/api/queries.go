@@ -20,6 +20,13 @@ type Page[T any] struct {
 	PageSize int `json:"page_size"`
 }
 
+// Answers for this process only. Whether the persistence directory is usable is
+// settled at startup, and a process that got past that either serves or is gone.
+func HealthHandler(w http.ResponseWriter, _ *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte("ok"))
+}
+
 func ProjectsHandler(baseDir string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		projects, err := domain.ListProjects(baseDir)

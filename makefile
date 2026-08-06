@@ -23,6 +23,7 @@ start-prod:
 
 .PHONY: nabu
 nabu:
+	@mkdir -p $(HOME)/Documents/nabu-persistence
 	@PERSISTENCE_DIR=$(HOME)/Documents/nabu-persistence go run cmd/main.go
 
 .PHONY: dev

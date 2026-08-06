@@ -10,7 +10,7 @@ It exists as scaffolding for a frontend editor — enough of a backend to make t
 ## Running
 
 ```bash
-cp .env.example .env
+cp .env.example .env   # fill in PERSISTENCE_DIR
 make start
 ```
 
@@ -18,8 +18,32 @@ make start
 | --- | --- | --- |
 | `PORT` | `8080` | Listen port |
 | `LOG_LEVEL` | `info` | `debug`, `info`, `warn`, or `error` |
-| `PERSISTENCE_DIR` | `~/Documents/nabu-persistence` | Where project directories are created |
+| `PERSISTENCE_DIR` | none — required | Where project directories are created |
 | `CORS_ORIGINS` | `*` | Comma-separated allowed origins |
+
+`PERSISTENCE_DIR` must name a directory that already exists and accepts a write, by absolute path — a leading `~` is expanded, anything else relative is refused. The check runs at startup and the server exits when it fails, naming what it rejected:
+
+```text
+{"time":"…","level":"ERROR","msg":"configuration rejected","error":"PERSISTENCE_DIR \"/srv/nabu\": directory does not exist"}
+```
+
+A server that started against a path that was not there would answer every read with an empty project and drop every write, and would do it quietly.
+
+### Docker
+
+```bash
+docker compose up
+```
+
+That publishes `8080` on loopback and keeps the projects in a named volume. `STORAGE_PORT` moves the host side; the container listens on `8080` either way.
+
+The image is built from `scratch` and holds the binary, so there is nothing in it to shell into — the `HEALTHCHECK` is the binary asking itself. It prepares `/data` owned by the unprivileged user the process runs as, which is what makes an empty named volume mounted there writable. A bind mount keeps the host's own ownership instead, so that directory has to be writable by UID 65532 before the container will accept it.
+
+`PERSISTENCE_DIR` is not set in the image. `compose.yaml` points it at `/data`, and `docker run` has to do the same:
+
+```bash
+docker run -p 8080:8080 -e PERSISTENCE_DIR=/data -v nabu-data:/data nabu-storage
+```
 
 ## API
 
@@ -62,6 +86,8 @@ The accepted actions are `WriteFile`, `DeleteFile`, and `RenameFile`, the last t
 `page` and `page_size` are optional; anything unparseable or below one falls back to the default, and `page_size` is capped at 200. A page past the end is an empty page rather than a 404.
 
 The answer is read from `$PERSISTENCE_DIR` at request time, so a directory created by hand is listed like any other. A directory whose name is not a UUID is skipped, because neither other endpoint could open it. `updatedAt` is the newest file in the project rather than the directory's own timestamp, which does not move when a file is rewritten in place.
+
+**`GET /health`** answers `ok` while the process is serving, and is what the container's `HEALTHCHECK` calls — the binary calling itself, since the image holds no curl. It reports on this process alone: the persistence directory was settled at startup, and a server that failed that check is not running to be asked.
 
 ## What isn't built
 

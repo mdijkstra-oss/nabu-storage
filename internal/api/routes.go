@@ -19,6 +19,7 @@ func SetupRoutes(r chi.Router, baseDir string, corsOrigins []string) {
 	r.Use(middleware.StripSlashes)
 	r.Use(buildCorsHandler(corsOrigins))
 
+	r.Get("/health", HealthHandler)
 	r.With(
 		LimitRequestBody(maxRequestBytes),
 		DecompressGzip(maxDecompressedBytes),

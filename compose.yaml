@@ -1,0 +1,25 @@
+name: nabu-storage
+
+services:
+  storage:
+    build:
+      context: .
+    # Loopback, not 0.0.0.0. There is no authentication: the project UUID is the
+    # only credential, so anything that can reach the port can read and rewrite
+    # every project behind it.
+    ports:
+      - "127.0.0.1:${STORAGE_PORT:-8080}:8080"
+    # PERSISTENCE_DIR is the mount point rather than anything from .env — the
+    # server refuses to start without it, and inside this container /data is the
+    # only path that outlives a restart.
+    environment:
+      PERSISTENCE_DIR: /data
+      PORT: 8080
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+    volumes:
+      - projects:/data
+    restart: unless-stopped
+
+volumes:
+  projects:
