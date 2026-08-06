@@ -23,7 +23,7 @@ make start
 
 ## API
 
-Both endpoints take a `projectId` that must be a UUID. Any spelling `uuid.Parse` accepts is normalised to canonical form, so `{A1B2…}` and `urn:uuid:a1b2…` address one project. Files live flat in `$PERSISTENCE_DIR/{projectId}/` — no subdirectories.
+The two project endpoints take a `projectId` that must be a UUID. Any spelling `uuid.Parse` accepts is normalised to canonical form, so `{A1B2…}` and `urn:uuid:a1b2…` address one project. Files live flat in `$PERSISTENCE_DIR/{projectId}/` — no subdirectories.
 
 **`POST /commands/{projectId}`** applies one command. Accepts `Content-Encoding: gzip`.
 
@@ -47,6 +47,21 @@ The accepted actions are `WriteFile`, `DeleteFile`, and `RenameFile`, the last t
 `fileCount` counts the frames that follow, so a file the server cannot read is left out of both.
 
 `preferences.md` and `settings.hidden.md` are seeded from templates when a project directory exists without them. Connecting to a UUID that has never been written to reads nothing and creates nothing.
+
+**`GET /queries/projects`** lists the projects, most recently written first.
+
+```json
+{
+  "items": [{ "id": "a1b2…", "updatedAt": "2026-08-06T14:57:03.361255521+02:00" }],
+  "total": 1,
+  "page": 1,
+  "page_size": 50
+}
+```
+
+`page` and `page_size` are optional; anything unparseable or below one falls back to the default, and `page_size` is capped at 200. A page past the end is an empty page rather than a 404.
+
+The answer is read from `$PERSISTENCE_DIR` at request time, so a directory created by hand is listed like any other. A directory whose name is not a UUID is skipped, because neither other endpoint could open it. `updatedAt` is the newest file in the project rather than the directory's own timestamp, which does not move when a file is rewritten in place.
 
 ## What isn't built
 
