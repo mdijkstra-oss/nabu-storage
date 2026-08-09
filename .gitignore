@@ -33,4 +33,7 @@ CLAUDE.local.md
 AGENTS.md
 .claude/
 .env
+.env.*
+!.env.example
 .prod.env
+.prod.env.*
