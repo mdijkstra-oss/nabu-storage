@@ -55,6 +55,8 @@ Applies one command.
 
 The accepted actions are `WriteFile`, `DeleteFile`, and `RenameFile`, the last taking a `newPath` alongside `path`. Anything else is a 400. `WriteFile` creates the project directory when it is not already there.
 
+`WriteFile` replaces the whole file, writing a complete one beside it and renaming it into place. Rename is atomic within a directory, so another process reading the project directory sees either the old file or the new one, never a half-written one, and a write that fails leaves the previous content untouched.
+
 A `path` is a single file name: a leading `.`, a `..` anywhere, and any character outside letters, digits and `-_. (),'` are rejected. That is what keeps a project flat.
 
 Bodies may be sent with `Content-Encoding: gzip`. They are capped at 8 MiB on the wire and 32 MiB decompressed, and either ceiling returns 413.
