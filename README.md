@@ -41,6 +41,8 @@ docker run -p 8080:8080 -e PERSISTENCE_DIR=/data -v nabu-data:/data nabu-storage
 
 The image prepares `/data` owned by UID 65532, the unprivileged user the process runs as, which is what makes an empty named volume mounted there writable. A bind mount keeps the host's own ownership instead, so that directory has to be writable by 65532 before the container will accept it.
 
+`SIGINT` or `SIGTERM` stops the listener and exits `0`, giving requests already in flight five seconds to finish. Open websockets do not hold it up.
+
 ## API
 
 Every project endpoint takes a `projectId` that must be a UUID. Any spelling `uuid.Parse` accepts is normalised to canonical form, so `{A1B2…}` and `urn:uuid:a1b2…` address one project.
